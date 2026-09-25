@@ -84,3 +84,11 @@ export function inputSecondsFor(month: number, timer: TimerSettings): number {
   if (isQuarterStart(month)) return timer.quarterStart;
   return timer.normal;
 }
+
+// チーム数が変わったときの設定（開始時に未参加のチームを外したとき）。
+// 市場予算の基準が標準（チーム数 × 20,000円）のままなら、新しいチーム数に合わせる。
+// GM が基準を変えていたら、その値を残す。
+export function withTeamCount(config: GameConfig, fromCount: number, toCount: number): GameConfig {
+  if (config.market.base !== fromCount * MARKET_BASE_PER_TEAM) return config;
+  return { ...config, market: { ...config.market, base: toCount * MARKET_BASE_PER_TEAM } };
+}

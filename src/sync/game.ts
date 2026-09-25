@@ -3,7 +3,7 @@
 import {
   get, ref, remove, serverTimestamp, set, update, type Database,
 } from 'firebase/database';
-import { inputSecondsFor, isQuarterStart } from '../engine/config';
+import { inputSecondsFor, isQuarterStart, withTeamCount } from '../engine/config';
 import { closeMonth, openNextMonth, startTerm } from '../engine/month';
 import type {
   GameConfig, MonthConditions, MonthlyDecision, MonthResult, QuarterlyDecision, Submission, TeamState, TimerSettings,
@@ -95,8 +95,10 @@ function clockFor(conditions: MonthConditions, timer: TimerSettings, now: number
   });
 }
 
-// 1か月目を始める
-export async function startGame(db: Database, code: string, now: number): Promise<void> {
+// 1か月目を始める。dropUnjoined なら、参加していないチームを外してから始める
+export async function startGame(
+  db: Database, code: string, now: number, options: { dropUnjoined?: boolean } = {},
+): Promise<void> {
   const [config, settings, teams, clock] = await Promise.all([
     read<GameConfig>(db, gamePath(code, 'config')),
     read<{ timer: TimerSettings }>(db, gamePath(code, 'settings')),
@@ -106,12 +108,25 @@ export async function startGame(db: Database, code: string, now: number): Promis
   if (!config || !settings || !teams || !clock) throw new Error('ゲームが見つかりません');
   if (clock.phase !== 'lobby') return;
 
-  const list = sortedTeams(teams).map(({ teamId, slot }) => ({ teamId, name: slot.name }));
-  const term = startTerm(config, list);
+  const all = sortedTeams(teams);
+  const kept = options.dropUnjoined ? all.filter(({ slot }) => slot.uid) : all;
+  if (kept.length === 0) throw new Error('参加しているチームがありません');
+  const removed: Record<string, null> = {};
+  for (const { teamId } of all.filter((t) => !kept.includes(t))) {
+    removed[`teams/${teamId}/name`] = null;
+    removed[`teams/${teamId}/order`] = null;
+    removed[`teams/${teamId}/uid`] = null;
+  }
+  const finalConfig = kept.length === all.length ? config : withTeamCount(config, all.length, kept.length);
+
+  const list = kept.map(({ teamId, slot }) => ({ teamId, name: slot.name }));
+  const term = startTerm(finalConfig, list);
   const state: Record<string, TeamState> = {};
   for (const t of term.teams) state[t.teamId] = t;
 
   await update(ref(db, gamePath(code)), {
+    ...removed,
+    ...(finalConfig !== config ? { config: finalConfig } : {}),
     state,
     [`hidden/${monthKey(1)}`]: { marketBudget: term.conditions.marketBudget },
     clock: clockFor(term.conditions, settings.timer, now),

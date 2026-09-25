@@ -80,6 +80,30 @@ describe('ゲームの流れ（sync）', () => {
     expect(await readPath(gm.db, `games/${code}/meta`)).toBeNull();
   });
 
+  it('開始時に参加していないチームを外すと、市場予算の基準もチーム数に合わせて変わる', async () => {
+    const gm = await newGm();
+    const code = await createGame(gm.db, gm.uid, {
+      config: defaultConfig(3, 'drop'), teamNames: ['A', 'B', 'C'], timer: DEFAULT_TIMER, now: Date.now(),
+    });
+    const a = await newTeamDevice();
+    const b = await newTeamDevice();
+    await claimTeam(a.db, code, 't01', a.uid);
+    await claimTeam(b.db, code, 't02', b.uid);
+    await startGame(gm.db, code, Date.now(), { dropUnjoined: true });
+
+    const teams = await readPath<Record<string, unknown>>(gm.db, `games/${code}/teams`);
+    expect(Object.keys(teams!)).toEqual(['t01', 't02']);
+    const config = await readPath<{ market: { base: number } }>(gm.db, `games/${code}/config`);
+    expect(config!.market.base).toBe(40000);
+    const state = await readPath<Record<string, unknown>>(gm.db, `games/${code}/state`);
+    expect(Object.keys(state!)).toEqual(['t01', 't02']);
+
+    await submitDecision(a.db, code, 1, 't01', { lemonQty: 10, sugarQty: 10, price: 100 });
+    await closeCurrentMonth(gm.db, code);
+    const [r] = await readResults(gm.db, code);
+    expect(r!.teamResults.map((t) => t.teamId)).toEqual(['t01', 't02']);
+  });
+
   it('締切の延長ができ、締切後は提出できない', async () => {
     const gm = await newGm();
     const code = await createGame(gm.db, gm.uid, {

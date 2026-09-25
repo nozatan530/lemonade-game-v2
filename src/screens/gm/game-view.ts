@@ -118,13 +118,25 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
         <td>${slot.uid ? '✅ 参加' : '<span class="muted">まだ</span>'}</td>
         <td>${slot.uid ? `<button class="small" data-release="${teamId}">解除</button>` : ''}</td></tr>`).join('')}</table>
       <p class="muted">「解除」すると、そのチームに別の端末から参加し直せます（端末を替えたとき用）。</p>
-      <button class="btn" id="start">1か月目を始める</button></div>`;
+      ${joined > 0 && joined < slots.length ? `
+        <button class="btn" id="startDrop">参加チームだけで始める（未参加の${slots.length - joined}チームを外す）</button>
+        <p class="muted" style="margin:4px 0 8px">外すと、市場の大きさ（お客さんのお金）も${joined}チーム分になります。</p>
+        <button class="btn secondary" id="start">全チームで始める（未参加は静観。途中から参加できる）</button>`
+      : `<button class="btn" id="start" ${joined === 0 ? 'disabled' : ''}>1か月目を始める</button>
+        ${joined === 0 ? '<p class="muted">チームが参加すると始められます。</p>' : ''}`}
+    </div>`;
     bindRelease();
-    main.querySelector('#start')!.addEventListener('click', async (e) => {
-      if (joined < slots.length && !confirm(`まだ参加していないチームがあります。始めますか？\n（参加していないチームは静観として進みます。途中から参加もできます）`)) return;
-      (e.target as HTMLButtonElement).disabled = true;
-      await startGame(db, code, serverNow());
-    });
+    const start = async (e: Event, dropUnjoined: boolean) => {
+      main.querySelectorAll<HTMLButtonElement>('#start, #startDrop').forEach((b) => (b.disabled = true));
+      try {
+        await startGame(db, code, serverNow(), { dropUnjoined });
+      } catch (err) {
+        alert(`始められませんでした：${(err as Error).message}`);
+        (e.target as HTMLButtonElement).disabled = false;
+      }
+    };
+    main.querySelector('#startDrop')?.addEventListener('click', (e) => start(e, true));
+    main.querySelector('#start')!.addEventListener('click', (e) => start(e, false));
   }
 
   function renderInput(c: Clock, slots: { teamId: string; slot: TeamSlot }[]) {

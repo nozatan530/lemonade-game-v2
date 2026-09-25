@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_TIMER, defaultConfig, inputSecondsFor, isQuarterStart } from '../config';
+import { DEFAULT_TIMER, defaultConfig, inputSecondsFor, isQuarterStart, withTeamCount } from '../config';
 
 describe('isQuarterStart', () => {
   it('1・4・7・10か月目が四半期の最初の月', () => {
@@ -34,5 +34,24 @@ describe('inputSecondsFor（入力時間）', () => {
     const resultDisplay = 60 * 12;
     const transition = 15 * 12;
     expect(input + resultDisplay + transition).toBeLessThanOrEqual(36 * 60);
+  });
+});
+
+describe('withTeamCount（未参加チームを外したとき）', () => {
+  it('市場予算の基準が標準なら、新しいチーム数 × 20,000円にする', () => {
+    const c = withTeamCount(defaultConfig(4, 's'), 4, 3);
+    expect(c.market.base).toBe(60000);
+  });
+
+  it('GM が基準を変えていたら、そのまま残す', () => {
+    const custom = defaultConfig(4, 's');
+    custom.market.base = 100000;
+    expect(withTeamCount(custom, 4, 3).market.base).toBe(100000);
+  });
+
+  it('元の設定は変えない', () => {
+    const c = defaultConfig(4, 's');
+    withTeamCount(c, 4, 2);
+    expect(c.market.base).toBe(80000);
   });
 });
