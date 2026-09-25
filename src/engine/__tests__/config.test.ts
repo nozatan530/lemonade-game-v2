@@ -13,3 +13,12 @@ describe('defaultConfig', () => {
     expect(defaultConfig(4, 's').market.base).toBe(80000);
   });
 });
+
+describe('シナリオのお知らせ文', () => {
+  it('暦の月の表記を含まない（月は画面側で開始月から組み立てる）', async () => {
+    const { SCENARIOS } = await import('../scenarios');
+    for (const sc of Object.values(SCENARIOS)) {
+      for (const m of sc.months) expect(m.msg).not.toMatch(/\d+月/);
+    }
+  });
+});

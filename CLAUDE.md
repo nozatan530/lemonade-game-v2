@@ -48,6 +48,7 @@ lemonade-game/
 │   │   ├── accounting.ts      # 月次損益・期末決算
 │   │   ├── reputation.ts      # 評判の持ち越し
 │   │   ├── cpu-teams.ts       # CPUチームの意思決定
+│   │   ├── month.ts           # 1か月分の処理（各計算をまとめる）と未提出チームの補完
 │   │   ├── random.ts          # シード付き乱数（同じシードなら同じ結果）
 │   │   └── __tests__/
 │   ├── sync/                  # Firebaseとのやりとり（engineの外側）

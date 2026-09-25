@@ -11,6 +11,9 @@ import { createLegacy, type LegacyG } from './legacy/load-legacy';
 
 const legacy = createLegacy();
 
+// v2 のお知らせ文は暦の月の表記（「1月。」など）を消している。月の表示は画面側で開始月から組み立てる
+const withoutMonthLabel = (msg: string) => msg.replace(/ \d+月。/, ' ');
+
 // テスト入力を作るための乱数（engine の乱数とは別）
 function mulberry32(a: number) {
   return () => {
@@ -81,7 +84,7 @@ describe('旧版との比較：市場予算と単価', () => {
         expect(now).toEqual({
           marketBudget: old.marketBudget,
           prices: { lemon: old.costLemon, sugar: old.costSugar, barista: old.costBarista },
-          message: old.msg,
+          message: withoutMonthLabel(old.msg),
         });
       }
     }
@@ -107,7 +110,7 @@ describe('旧版との比較：市場予算と単価', () => {
         expect(G.month).toBe(month);
         expect(cond.marketBudget).toBe(legacy.getBudget());
         expect(cond.prices).toEqual({ lemon: G.config.costLemon, sugar: G.config.costSugar, barista: G.config.costBarista });
-        expect(cond.message).toBe(G.eventMsg ? G.eventMsg.text : undefined);
+        expect(cond.message).toBe(G.eventMsg ? withoutMonthLabel(G.eventMsg.text) : undefined);
       }
     }
   });
