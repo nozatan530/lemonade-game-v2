@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "demo-lemonade"
+    "default": "demo-lemonade",
+    "prod": "lemonade-game-v2"
   }
 }

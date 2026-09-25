@@ -10,7 +10,8 @@
     "test": "vitest run --project unit",
     "test:watch": "vitest --project unit",
     "emu": "firebase emulators:start --only auth,database",
-    "test:emu": "firebase emulators:exec --only auth,database \"vitest run --project emu\""
+    "test:emu": "firebase emulators:exec --only auth,database \"vitest run --project emu\"",
+    "deploy": "npm test && npm run build && firebase deploy --only hosting,database --project prod"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",

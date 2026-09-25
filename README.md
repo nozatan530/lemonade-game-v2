@@ -27,5 +27,20 @@ npm test         # engine などのテスト
 npm run test:emu # セキュリティルールと sync のテスト（エミュレーターを自動で起動・停止する）
 ```
 
-## デプロイ
-本番の Firebase プロジェクトを用意してから追記する。
+## デプロイ（Firebase Hosting）
+本番の Firebase プロジェクトは `lemonade-game-v2`（Spark プラン）。`.firebaserc` の `prod` がこのプロジェクト。
+
+初回だけ、Firebase CLI にログインする：
+```
+npx firebase login
+```
+
+公開（テスト → ビルド → Hosting とセキュリティルールを反映）：
+```
+npm run deploy
+```
+
+公開先：https://lemonade-game-v2.web.app
+- GM：`#/gm` ／ チーム：`#/team` ／ 全体表示：`#/screen?code=XXXXXX`
+
+GitHub Pages で公開する場合は、`dist/` をそのまま置けばよい（相対パスでビルドしている）。そのときは Firebase コンソールの Authentication →「設定」→「承認済みドメイン」に GitHub Pages のドメインを追加する（Google ログインのため）。

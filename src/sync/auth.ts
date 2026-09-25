@@ -31,6 +31,8 @@ export function waitForAuth(auth: Auth): Promise<User | null> {
 
 // 開発用（エミュレーター接続時だけ使う）：テスト用の GM アカウントでログイン
 export async function signInAsDevGm(auth: Auth): Promise<User> {
+  // 本番のビルドではこの下のコードごと取り除かれる
+  if (import.meta.env.VITE_USE_EMULATOR !== 'true') throw new Error('開発用のログインはエミュレーター接続時だけ使えます');
   const email = 'dev-gm@example.com';
   const password = 'dev-password';
   const cred = await signInWithEmailAndPassword(auth, email, password)

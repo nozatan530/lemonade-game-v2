@@ -32,8 +32,13 @@ async function route() {
       break;
     }
     case '/dev': {
-      const { renderDev } = await import('./screens/dev/dev');
-      await renderDev(root, params);
+      // 開発用ページは本番のビルドに含めない
+      if (import.meta.env.VITE_USE_EMULATOR === 'true') {
+        const { renderDev } = await import('./screens/dev/dev');
+        await renderDev(root, params);
+        break;
+      }
+      location.hash = '';
       break;
     }
     default:

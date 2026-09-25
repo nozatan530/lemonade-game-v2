@@ -13,13 +13,15 @@ export const EMULATOR_CONFIG: FirebaseOptions = {
   databaseURL: 'https://demo-lemonade-default-rtdb.firebaseio.com',
 };
 
-// 本番用。Firebase プロジェクトを作ったら、コンソールの値に差し替える
+// 本番用（Firebase プロジェクト lemonade-game-v2）
 export const PRODUCTION_CONFIG: FirebaseOptions = {
-  apiKey: '',
-  authDomain: '',
-  projectId: '',
-  databaseURL: '',
-  appId: '',
+  apiKey: 'AIzaSyDCCsA07wrveBGW4Rhev3LBLRedjvdiBok',
+  authDomain: 'lemonade-game-v2.firebaseapp.com',
+  databaseURL: 'https://lemonade-game-v2-default-rtdb.asia-southeast1.firebasedatabase.app',
+  projectId: 'lemonade-game-v2',
+  storageBucket: 'lemonade-game-v2.firebasestorage.app',
+  messagingSenderId: '597316515204',
+  appId: '1:597316515204:web:579bc8eab9728196a199d1',
 };
 
 export interface FirebaseHandles {
