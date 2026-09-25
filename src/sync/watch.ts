@@ -46,3 +46,11 @@ export const watchResults = (db: Database, code: string, cb: (v: MonthResult[]) 
 export function watchServerOffset(db: Database, cb: (offsetMs: number) => void): Unsubscribe {
   return watchPath<number>(db, '.info/serverTimeOffset', (v) => cb(v ?? 0));
 }
+
+// その月の市場予算（GM だけが読める）
+export const watchHidden = (db: Database, code: string, month: number, cb: (v: { marketBudget: number } | null) => void) =>
+  watchPath(db, gamePath(code, `hidden/${monthKey(month)}`), cb);
+
+// GM が作ったゲームの一覧（コード → 作成時刻）
+export const watchMyGames = (db: Database, gmUid: string, cb: (v: Record<string, number>) => void) =>
+  watchPath<Record<string, number>>(db, `gmGames/${gmUid}`, (v) => cb(asRecord(v)));

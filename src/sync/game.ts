@@ -220,6 +220,24 @@ export async function cleanupOldGames(db: Database, gmUid: string, now: number, 
   return old;
 }
 
+// 締切の猶予（ミリ秒）。ルールは締切＋3秒まで提出を受け付けるので、それより後に締め切る
+export const CLOSE_GRACE_MS = 3500;
+
+// 自動で締め切るべきか。締切を過ぎたか、参加しているチームが全員提出したとき
+export function shouldAutoClose(
+  clock: Clock,
+  serverNow: number,
+  joinedTeamIds: string[],
+  submittedTeamIds: string[],
+  closeWhenAllSubmitted: boolean,
+): boolean {
+  if (clock.phase !== 'input') return false;
+  if (serverNow >= clock.deadlineAt + CLOSE_GRACE_MS) return true;
+  if (!closeWhenAllSubmitted || joinedTeamIds.length === 0) return false;
+  const submitted = new Set(submittedTeamIds);
+  return joinedTeamIds.every((id) => submitted.has(id));
+}
+
 // ---- 販売チーム ----
 
 // チームの枠を確保する。すでに別の端末が使っていれば失敗する

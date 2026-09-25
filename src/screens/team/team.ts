@@ -12,11 +12,11 @@ import { esc, mmss, monthLabel, secondsLeft, yen } from '../../ui/format';
 import { DEFAULT_DECISION, mountInputView, type InputView } from './input-view';
 import { renderFinal, renderMonthResult } from './result-view';
 
-export async function renderTeam(root: HTMLElement, params: URLSearchParams): Promise<void> {
+export async function renderTeam(root: HTMLElement, params: URLSearchParams): Promise<() => void> {
   const code = (params.get('code') ?? '').trim().toUpperCase();
   if (!code) {
     renderCodeEntry(root);
-    return;
+    return () => {};
   }
 
   root.innerHTML = '<div class="page"><p class="muted">読み込み中…</p></div>';
@@ -78,6 +78,10 @@ export async function renderTeam(root: HTMLElement, params: URLSearchParams): Pr
   let mounting = false;
   async function render() {
     if (S.pub === null) {
+      $('teamname').textContent = '🍋 レモネードスタンド';
+      $('month').textContent = '';
+      inputView = null;
+      viewKey = 'notfound';
       view.innerHTML = `<div class="card">ゲームコード「${esc(code)}」のゲームが見つかりません。<br><a href="#/team">コードを入れ直す</a></div>`;
       return;
     }
@@ -169,7 +173,7 @@ export async function renderTeam(root: HTMLElement, params: URLSearchParams): Pr
   }
 
   // 残り時間の表示（締切になったら入力を止める）
-  setInterval(() => {
+  const tick = setInterval(() => {
     const c = S.clock;
     const t = $('timer');
     if (!c || c.phase !== 'input') { t.textContent = ''; return; }
@@ -179,12 +183,19 @@ export async function renderTeam(root: HTMLElement, params: URLSearchParams): Pr
     if (left === 0 && inputView) render();
   }, 250);
 
-  watchServerOffset(db, (o) => { S.offset = o; });
-  watchPublic(db, code, (v) => { S.pub = v; render(); });
-  watchClock(db, code, (v) => { S.clock = v; render(); });
-  watchTeams(db, code, (v) => { S.teams = v; render(); });
-  watchState(db, code, (v) => { S.state = v; render(); });
-  watchResults(db, code, (v) => { S.results = v; viewKey = viewKey.startsWith('result') ? '' : viewKey; render(); });
+  const unsubs = [
+    watchServerOffset(db, (o) => { S.offset = o; }),
+    watchPublic(db, code, (v) => { S.pub = v; render(); }),
+    watchClock(db, code, (v) => { S.clock = v; render(); }),
+    watchTeams(db, code, (v) => { S.teams = v; render(); }),
+    watchState(db, code, (v) => { S.state = v; render(); }),
+    watchResults(db, code, (v) => { S.results = v; viewKey = viewKey.startsWith('result') ? '' : viewKey; render(); }),
+  ];
+  return () => {
+    clearInterval(tick);
+    unsubs.forEach((u) => u());
+    unsubOwn?.();
+  };
 }
 
 function renderCodeEntry(root: HTMLElement) {

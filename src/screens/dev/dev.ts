@@ -1,12 +1,10 @@
 // 開発用ページ（エミュレーター接続時だけ）。GM 画面ができる前に、ゲームの作成と進行をボタンで行う。
 
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { DEFAULT_TIMER, defaultConfig } from '../../engine/config';
+import { signInAsDevGm } from '../../sync/auth';
 import { firebase } from '../../sync/firebase';
 import { closeCurrentMonth, createGame, extendDeadline, startGame, startNextMonth } from '../../sync/game';
 import { watchClock, watchServerOffset, watchSubmitted, watchTeams } from '../../sync/watch';
-
-const DEV_GM = { email: 'dev-gm@example.com', password: 'dev-password' };
 
 export async function renderDev(root: HTMLElement, params: URLSearchParams): Promise<void> {
   if (import.meta.env.VITE_USE_EMULATOR !== 'true') {
@@ -14,9 +12,7 @@ export async function renderDev(root: HTMLElement, params: URLSearchParams): Pro
     return;
   }
   const { auth, db } = firebase('gm');
-  const cred = await signInWithEmailAndPassword(auth, DEV_GM.email, DEV_GM.password)
-    .catch(() => createUserWithEmailAndPassword(auth, DEV_GM.email, DEV_GM.password));
-  const uid = cred.user.uid;
+  const uid = (await signInAsDevGm(auth)).uid;
 
   let offset = 0;
   watchServerOffset(db, (o) => { offset = o; });

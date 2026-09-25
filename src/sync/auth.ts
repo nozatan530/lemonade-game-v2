@@ -1,6 +1,7 @@
 // ログイン。GM は Google、販売チームと全体表示は匿名認証。
 
 import {
+  createUserWithEmailAndPassword, signInWithEmailAndPassword,
   GoogleAuthProvider, onAuthStateChanged, signInAnonymously, signInWithPopup, signOut, type Auth, type User,
 } from 'firebase/auth';
 
@@ -26,4 +27,13 @@ export function waitForAuth(auth: Auth): Promise<User | null> {
       resolve(user);
     });
   });
+}
+
+// 開発用（エミュレーター接続時だけ使う）：テスト用の GM アカウントでログイン
+export async function signInAsDevGm(auth: Auth): Promise<User> {
+  const email = 'dev-gm@example.com';
+  const password = 'dev-password';
+  const cred = await signInWithEmailAndPassword(auth, email, password)
+    .catch(() => createUserWithEmailAndPassword(auth, email, password));
+  return cred.user;
 }
