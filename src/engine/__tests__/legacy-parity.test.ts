@@ -1,11 +1,14 @@
 // 旧版（legacy/index.html）と新しい engine を同じ入力で動かし、結果が一致することを確かめる。
 // 比べるもの：市場予算と単価の推移、各チームの販売数・売上・費用・利益・在庫・資金。
 // GM の手入力による上書き（予算・単価）は engine の外の話なので、両方に同じ値を渡して比べる。
+// 乱数は旧版に欠陥があったので v2 では作り直した（docs/decisions.md）。
+// 市場予算と原価の計算式が同じことは、engine に旧版の乱数（legacySeededRand）を渡して比べる。
 
 import { describe, expect, it } from 'vitest';
 import { autoMonthValues, monthConditions, scenarioMonthValues } from '../demand';
 import { defaultConfig, isQuarterStart } from '../config';
 import { initialTeamState, resolveMonth } from '../month';
+import { legacySeededRand } from '../random';
 import type { CostMode, GameConfig, ScenarioId, Submission, TeamState, UnitPrices } from '../types';
 import { createLegacy, type LegacyG } from './legacy/load-legacy';
 
@@ -64,7 +67,7 @@ describe('旧版との比較：市場予算と単価', () => {
       config.market.costRange = 35;
       const G = legacyG(config, ['A', 'B', 'C', 'D']);
       const old = legacy.calcNextMonthValues(month, G);
-      const now = autoMonthValues(month, config);
+      const now = autoMonthValues(month, config, legacySeededRand);
       expect(now).toEqual({
         marketBudget: old.marketBudget,
         prices: { lemon: old.costLemon, sugar: old.costSugar, barista: old.costBarista },
@@ -99,14 +102,14 @@ describe('旧版との比較：市場予算と単価', () => {
 
       // 1か月目（旧版の startGame）
       let prev: UnitPrices = { ...config.initialPrices };
-      let cond = monthConditions(1, config, n, prev);
+      let cond = monthConditions(1, config, n, prev, legacySeededRand);
       expect(cond.marketBudget).toBe(legacy.calcNextMonthValues(1, G).marketBudget);
       expect(cond.prices).toEqual({ lemon: G.config.costLemon, sugar: G.config.costSugar, barista: G.config.costBarista });
 
       for (let month = 2; month <= 12; month++) {
         prev = cond.prices;
         legacy.nextMonth();
-        cond = monthConditions(month, config, n, prev);
+        cond = monthConditions(month, config, n, prev, legacySeededRand);
         expect(G.month).toBe(month);
         expect(cond.marketBudget).toBe(legacy.getBudget());
         expect(cond.prices).toEqual({ lemon: G.config.costLemon, sugar: G.config.costSugar, barista: G.config.costBarista });
@@ -135,7 +138,7 @@ describe('旧版との比較：12か月の販売と損益', () => {
     let prices: UnitPrices = { ...config.initialPrices };
 
     for (let month = 1; month <= 12; month++) {
-      const cond = monthConditions(month, config, n, prices);
+      const cond = monthConditions(month, config, n, prices, legacySeededRand);
       prices = cond.prices;
       // 予算は、ときどき GM が手で小さく上書きした想定にする（途中で予算が尽きるケース）
       const budget = rand() < 0.3 ? int(0, 8000) : cond.marketBudget;

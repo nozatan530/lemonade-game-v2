@@ -1,6 +1,6 @@
 // 市場予算と、その月の原価。初級は旧版と同じ仕組み（価格重視層のみ）。
 
-import { monthRandom } from './random';
+import { monthRandom, seededRand, type SeededRand } from './random';
 import { SCENARIOS } from './scenarios';
 import type { GameConfig, MonthConditions, UnitPrices } from './types';
 
@@ -11,9 +11,10 @@ interface AutoValues {
 
 // シナリオなしのときの市場予算と原価（旧版の calcNextMonthValues）。
 // 原価の変動は常に初期値を基準に計算する（前月を基準にすると際限なく下がるため）。
-export function autoMonthValues(month: number, config: GameConfig): AutoValues {
+// rand は旧版との比較テストで旧版の乱数を渡すためのもの。ゲームでは既定の seededRand を使う。
+export function autoMonthValues(month: number, config: GameConfig, rand: SeededRand = seededRand): AutoValues {
   const M = config.market;
-  const r = monthRandom(M.seed, month);
+  const r = monthRandom(M.seed, month, rand);
   const marketVariance = ((r(1) * 2 - 1) * M.range) / 100;
   const marketBudget = Math.round((M.base * (1 + marketVariance)) / 1000) * 1000;
 
@@ -74,8 +75,9 @@ export function monthConditions(
   config: GameConfig,
   teamCount: number,
   prevPrices: UnitPrices,
+  rand: SeededRand = seededRand,
 ): MonthConditions {
-  const auto = autoMonthValues(month, config);
+  const auto = autoMonthValues(month, config, rand);
   if (month === 1) {
     return { month, marketBudget: auto.marketBudget, prices: { ...config.initialPrices } };
   }
