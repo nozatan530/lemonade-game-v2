@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultConfig, isQuarterStart } from '../config';
+import { DEFAULT_TIMER, defaultConfig, inputSecondsFor, isQuarterStart } from '../config';
 
 describe('isQuarterStart', () => {
   it('1・4・7・10か月目が四半期の最初の月', () => {
@@ -20,5 +20,19 @@ describe('シナリオのお知らせ文', () => {
     for (const sc of Object.values(SCENARIOS)) {
       for (const m of sc.months) expect(m.msg).not.toMatch(/\d+月/);
     }
+  });
+});
+
+describe('inputSecondsFor（入力時間）', () => {
+  it('1か月目は長め、四半期の最初の月は少し長め', () => {
+    const secs = Array.from({ length: 12 }, (_, i) => inputSecondsFor(i + 1, DEFAULT_TIMER));
+    expect(secs).toEqual([150, 90, 90, 105, 90, 90, 105, 90, 90, 105, 90, 90]);
+  });
+
+  it('50分版の入力・結果表示・切り替えの合計が、12か月の枠（36分）に収まる', () => {
+    const input = Array.from({ length: 12 }, (_, i) => inputSecondsFor(i + 1, DEFAULT_TIMER)).reduce((a, b) => a + b, 0);
+    const resultDisplay = 60 * 12;
+    const transition = 15 * 12;
+    expect(input + resultDisplay + transition).toBeLessThanOrEqual(36 * 60);
   });
 });

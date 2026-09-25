@@ -7,12 +7,19 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "vitest run --project unit",
+    "test:watch": "vitest --project unit",
+    "emu": "firebase emulators:start --only auth,database",
+    "test:emu": "firebase emulators:exec --only auth,database \"vitest run --project emu\""
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase-tools": "^15.31.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.1",
     "vitest": "^5.0.1"
+  },
+  "dependencies": {
+    "firebase": "^12.19.0"
   }
 }

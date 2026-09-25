@@ -1,0 +1,100 @@
+{
+  "rules": {
+    "gmGames": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid && auth.token.firebase.sign_in_provider !== 'anonymous'",
+        ".write": "auth != null && auth.uid === $uid && auth.token.firebase.sign_in_provider !== 'anonymous'"
+      }
+    },
+    "games": {
+      "$code": {
+        ".write": "auth != null && data.child('meta/gmUid').val() === auth.uid && !newData.exists()",
+
+        "meta": {
+          ".read": "auth != null",
+          ".write": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && newData.child('gmUid').val() === auth.uid && (!data.exists() || data.child('gmUid').val() === auth.uid)",
+          ".validate": "newData.hasChildren(['gmUid', 'createdAt', 'status'])"
+        },
+        "config": {
+          ".read": "auth != null",
+          ".write": "auth != null && root.child('games').child($code).child('meta/gmUid').val() === auth.uid"
+        },
+        "settings": {
+          ".read": "auth != null",
+          ".write": "auth != null && root.child('games').child($code).child('meta/gmUid').val() === auth.uid"
+        },
+        "clock": {
+          ".read": "auth != null",
+          ".write": "auth != null && root.child('games').child($code).child('meta/gmUid').val() === auth.uid"
+        },
+        "state": {
+          ".read": "auth != null",
+          ".write": "auth != null && root.child('games').child($code).child('meta/gmUid').val() === auth.uid"
+        },
+        "hidden": {
+          ".read": "auth != null && root.child('games').child($code).child('meta/gmUid').val() === auth.uid",
+          ".write": "auth != null && root.child('games').child($code).child('meta/gmUid').val() === auth.uid"
+        },
+        "decided": {
+          ".read": "auth != null && root.child('games').child($code).child('meta/gmUid').val() === auth.uid",
+          ".write": "auth != null && root.child('games').child($code).child('meta/gmUid').val() === auth.uid"
+        },
+        "results": {
+          ".read": "auth != null",
+          "$m": {
+            ".write": "auth != null && root.child('games').child($code).child('meta/gmUid').val() === auth.uid && !data.exists()"
+          }
+        },
+        "teams": {
+          ".read": "auth != null",
+          "$teamId": {
+            "name": {
+              ".write": "auth != null && root.child('games').child($code).child('meta/gmUid').val() === auth.uid"
+            },
+            "order": {
+              ".write": "auth != null && root.child('games').child($code).child('meta/gmUid').val() === auth.uid"
+            },
+            "uid": {
+              ".write": "auth != null && (root.child('games').child($code).child('meta/gmUid').val() === auth.uid || (root.child('games').child($code).child('teams').child($teamId).child('name').exists() && (!data.exists() || data.val() === auth.uid) && newData.val() === auth.uid))"
+            }
+          }
+        },
+        "submitted": {
+          ".read": "auth != null",
+          "$m": {
+            "$teamId": {
+              ".write": "auth != null && root.child('games').child($code).child('teams').child($teamId).child('uid').val() === auth.uid && root.child('games').child($code).child('clock/phase').val() === 'input' && root.child('games').child($code).child('clock/monthKey').val() === $m && now <= root.child('games').child($code).child('clock/deadlineAt').val() + 3000",
+              ".validate": "newData.val() === true"
+            }
+          }
+        },
+        "subs": {
+          "$m": {
+            ".read": "auth != null && root.child('games').child($code).child('meta/gmUid').val() === auth.uid",
+            "$teamId": {
+              ".read": "auth != null && root.child('games').child($code).child('teams').child($teamId).child('uid').val() === auth.uid",
+              ".write": "auth != null && root.child('games').child($code).child('teams').child($teamId).child('uid').val() === auth.uid && root.child('games').child($code).child('clock/phase').val() === 'input' && root.child('games').child($code).child('clock/monthKey').val() === $m && now <= root.child('games').child($code).child('clock/deadlineAt').val() + 3000",
+              ".validate": "newData.hasChildren(['monthlyDecision', 'submittedAt'])",
+              "submittedAt": { ".validate": "newData.val() === now" },
+              "monthlyDecision": {
+                ".validate": "newData.hasChildren(['lemonQty', 'sugarQty', 'price'])",
+                "lemonQty": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000" },
+                "sugarQty": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000" },
+                "price": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000" },
+                "maxSell": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000" },
+                "watching": { ".validate": "newData.isBoolean()" },
+                "$other": { ".validate": false }
+              },
+              "quarterlyDecision": {
+                ".validate": "newData.hasChildren(['baristaCount']) && root.child('games').child($code).child('clock/quarterStart').val() === true",
+                "baristaCount": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 50" },
+                "$other": { ".validate": false }
+              },
+              "$other": { ".validate": false }
+            }
+          }
+        }
+      }
+    }
+  }
+}

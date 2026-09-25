@@ -1,6 +1,6 @@
 // 難易度・実施モード・初期値。数値は docs/game-design.md の初期値（要調整）。
 
-import type { Difficulty, GameConfig, PlayMode } from './types';
+import type { Difficulty, GameConfig, PlayMode, TimerSettings } from './types';
 
 export const PLAY_MODES: Record<PlayMode, { months: number; minutes: number }> = {
   standard: { months: 12, minutes: 50 },
@@ -68,4 +68,19 @@ export function defaultConfig(teamCount: number, seed: string): GameConfig {
     },
     scenario: 'none',
   };
+}
+
+// 入力時間の初期値（50分版）
+export const DEFAULT_TIMER: TimerSettings = {
+  firstMonth: 150,
+  quarterStart: 105,
+  normal: 90,
+  closeWhenAllSubmitted: true,
+};
+
+// その月の入力時間（秒）
+export function inputSecondsFor(month: number, timer: TimerSettings): number {
+  if (month === 1) return timer.firstMonth;
+  if (isQuarterStart(month)) return timer.quarterStart;
+  return timer.normal;
 }

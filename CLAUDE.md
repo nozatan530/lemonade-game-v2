@@ -57,7 +57,8 @@ lemonade-game/
 │   │   ├── gm/                # GM画面（設定・進行・強制締切・終了と削除）
 │   │   ├── team/              # 販売チーム画面（スマホ優先）
 │   │   ├── dashboard/         # 全体表示（プロジェクター・画面共有用）
-│   │   └── report/            # 期末レポート
+│   │   ├── report/            # 期末レポート
+│   │   └── dev/               # 開発用ページ（エミュレーター接続時だけ）
 │   ├── ui/                    # 共通部品（スライダー、タイマー、グラフ）
 │   └── main.ts
 ├── gas/                       # Gemini中継用のGAS（clasp管理）
@@ -111,7 +112,9 @@ UIの文言は日本語。子どもから大人まで使うので、専門用語
 ## よく使うコマンド
 ```
 npm run dev              # 開発サーバー
+npm run emu              # Firebaseのエミュレーター（開発中は npm run dev と同時に動かす）
 npm test                 # テスト
+npm run test:emu         # セキュリティルールとsyncのテスト（エミュレーターを使う）
 npm run build            # ビルド（dist/ に静的ファイル）
 firebase deploy --only hosting,database   # Firebase Hostingへデプロイ
 cd gas && clasp push     # GASへ反映

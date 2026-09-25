@@ -20,6 +20,14 @@ export interface Recipe {
   sugar: number;
 }
 
+// 入力時間（秒）。50分版の初期値は docs/game-design.md 参照
+export interface TimerSettings {
+  firstMonth: number; // 1か月目（練習を兼ねる）
+  quarterStart: number; // 4・7・10か月目（バリスタの欄が増える）
+  normal: number; // そのほかの月
+  closeWhenAllSubmitted: boolean; // 全チームが提出したら早めに締め切る
+}
+
 export interface MarketSettings {
   base: number; // 市場予算の基準額（標準はチーム数 × 20,000円）
   range: number; // 市場予算の変動幅（%）
