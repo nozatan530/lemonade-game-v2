@@ -150,3 +150,53 @@ button.small {
 .card.danger { border-color: var(--bad); }
 a { color: inherit; }
 a.btn { text-align: center; text-decoration: none; line-height: 52px; }
+
+/* グラフの系列色（チームの並び順で固定。dataviz の検証済みパレット） */
+:root {
+  --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100;
+  --series-5: #e87ba4; --series-6: #008300; --series-7: #4a3aa7; --series-8: #e34948;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+    --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
+  }
+}
+.line-chart { width: 100%; height: auto; display: block; }
+.line-chart .grid { stroke: var(--border); stroke-width: 1; }
+.line-chart .axis-zero { stroke: var(--muted); stroke-width: 1.5; }
+.line-chart .tick { fill: var(--muted); font-size: 12px; }
+.line-chart .end-label { fill: var(--text); font-size: 13px; font-weight: 700; }
+.line-chart .dot { stroke: var(--surface); stroke-width: 2; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 6px; font-size: 0.9rem; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+/* 全体表示（プロジェクター用）：離れた席からも読める大きさ */
+.screen { min-height: 100vh; padding: 1.5vw 2.5vw; font-size: clamp(16px, 1.6vw, 28px); }
+.screen-head { display: flex; align-items: center; justify-content: space-between; gap: 2vw; margin-bottom: 1.5vw; }
+.screen-title { font-weight: 800; font-size: 1.3em; }
+.screen-month { font-weight: 800; font-size: 1.8em; }
+.screen-timer { font-weight: 900; font-size: 3.2em; font-variant-numeric: tabular-nums; min-width: 4ch; text-align: right; }
+.screen-timer.urgent { color: var(--bad); }
+.screen-label { font-size: 1.1em; color: var(--muted); margin: 0.4em 0; }
+.screen-big { font-size: 2em; text-align: center; margin-top: 10vh; }
+.screen-lobby { display: grid; grid-template-columns: 1fr 1fr; gap: 3vw; align-items: center; }
+.screen-join { display: flex; gap: 2vw; align-items: center; }
+.screen-join .qr { width: 18vw; min-width: 160px; background: #fff; padding: 0.6vw; border-radius: 12px; }
+.screen-join .qr svg { display: block; width: 100%; height: auto; }
+.screen-code { font-size: 4em; font-weight: 900; letter-spacing: 0.15em; margin: 0.2em 0; }
+.screen-teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(14em, 1fr)); gap: 0.8vw; }
+.team-tile { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); padding: 0.6em 0.8em; font-size: 1.2em; font-weight: 700; }
+.team-tile.on { border-color: var(--good); }
+.screen-news { background: var(--surface2); border-radius: var(--radius); padding: 0.8em 1em; font-size: 1.8em; font-weight: 800; margin-bottom: 1vw; text-align: center; }
+.screen-prices { display: flex; justify-content: center; gap: 2vw; font-size: 1.4em; font-weight: 700; margin: 1vw 0; }
+.screen-result { display: grid; grid-template-columns: 1fr 1fr; gap: 2vw; align-items: start; }
+.screen-table { font-size: 1em; }
+@media (max-width: 900px) {
+  .screen-lobby, .screen-result { grid-template-columns: 1fr; }
+}
+.line-chart { overflow: visible; }
+.screen h2 { font-size: 1.3em; }
+.screen .line-chart .tick { font-size: 17px; }
+.screen .line-chart .end-label { font-size: 19px; }
+.screen .legend { font-size: 1em; }

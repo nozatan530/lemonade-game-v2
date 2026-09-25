@@ -26,6 +26,11 @@ async function route() {
       cleanup = await renderGm(root, params);
       break;
     }
+    case '/screen': {
+      const { renderDashboard } = await import('./screens/dashboard/dashboard');
+      cleanup = await renderDashboard(root, params);
+      break;
+    }
     case '/dev': {
       const { renderDev } = await import('./screens/dev/dev');
       await renderDev(root, params);
