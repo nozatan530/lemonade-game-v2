@@ -1,0 +1,3200 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍋 レモネードスタンド</title>
+
+<!-- ★ GMパスワード設定 ★ -->
+<!-- ここを変更するとGMモードのパスワードが変わります -->
+<script>
+window.GM_PASSWORD = '********';
+</script>
+
+<!-- ★ ここにあなたのFirebase設定を貼り付けてください ★ -->
+<script>
+window.FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDOdgLQkiuHROuOKOJxokUG0FxkbXBvOxk",
+  authDomain: "lemonade-game-66cde.firebaseapp.com",
+  databaseURL: "https://lemonade-game-66cde-default-rtdb.firebaseio.com",
+  projectId: "lemonade-game-66cde",
+  storageBucket: "lemonade-game-66cde.firebasestorage.app",
+  messagingSenderId: "76104095163",
+  appId: "1:76104095163:web:c4f0cbb51e2add7b05609e"
+};
+</script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- Firebase SDK (CDN) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;600;700&display=swap');
+:root{
+  --bg:#0f0f10;--surface:#1a1a1d;--surface2:#242428;--border:#2e2e35;
+  --accent:#f5c842;--green:#4ade80;--orange:#f97316;--red:#f87171;
+  --text:#e8e8ea;--muted:#7a7a8a;--radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* MODE SELECT */
+#modeSelect{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:20px;padding:24px;}
+.mode-title{font-size:28px;font-weight:700;text-align:center;}
+.mode-sub{font-size:14px;color:var(--muted);text-align:center;}
+.mode-cards{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:8px;}
+.mode-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px 36px;cursor:pointer;transition:all .2s;text-align:center;min-width:200px;}
+.mode-card:hover{border-color:var(--accent);transform:translateY(-2px);}
+.mode-icon{font-size:36px;margin-bottom:10px;}
+.mode-label{font-size:16px;font-weight:700;}
+.mode-desc{font-size:12px;color:var(--muted);margin-top:4px;}
+
+/* HIDDEN */
+.hidden{display:none!important;}
+
+/* ── HEADER ── */
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;
+  background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-text{font-size:14px;font-weight:700;letter-spacing:.04em;}
+.logo-sub{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
+.badge{background:var(--accent);color:#1a1100;font-family:'DM Mono',monospace;font-weight:600;
+  font-size:12px;padding:5px 12px;border-radius:20px;}
+.hdr-right{display:flex;gap:8px;align-items:center;}
+
+/* TABS */
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;overflow-x:auto;}
+.tab{padding:11px 16px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;
+  border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-panel{display:none;padding:20px;max-width:960px;margin:0 auto;}
+.tab-panel.active{display:block;}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+.card-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;}
+.sec{font-size:15px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+
+/* FORMS */
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px;}
+input[type=number],input[type=text],select{
+  width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;
+  color:var(--text);padding:9px 12px;font-size:15px;font-family:'DM Mono',monospace;transition:border-color .2s;}
+input:focus,select:focus{outline:none;border-color:var(--accent);}
+.fg{margin-bottom:12px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+
+/* BUTTONS */
+.btn{border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;
+  cursor:pointer;font-family:'Sora',sans-serif;transition:all .15s;}
+.btn-p{background:var(--accent);color:#1a1100;}
+.btn-p:hover{background:#ffd654;}
+.btn-g{background:var(--green);color:#051b0e;}
+.btn-g:hover{background:#6ee79a;}
+.btn-o{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn-o:hover{border-color:var(--accent);color:var(--accent);}
+.btn-r{background:var(--red);color:#fff;}
+.btn-full{width:100%;}
+.btn-lg{padding:14px;font-size:15px;border-radius:10px;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* TABLES */
+.tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.tbl th{text-align:left;padding:7px 10px;font-size:11px;color:var(--muted);font-weight:600;
+  text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);}
+.tbl td{padding:9px 10px;border-bottom:1px solid #1e1e22;font-family:'DM Mono',monospace;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:var(--surface2);}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;}
+.dot-w{background:var(--muted);}
+.dot-s{background:var(--green);box-shadow:0 0 6px var(--green);}
+.pos{color:var(--green);}
+.neg{color:var(--red);}
+.r1{color:var(--accent);font-weight:700;}
+.r2{color:#c0c0c0;}
+.r3{color:#cd7f32;}
+
+/* INFO BOXES */
+.tip{background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.25);
+  border-radius:7px;padding:9px 13px;font-size:13px;color:var(--green);margin-bottom:10px;}
+.warn{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);
+  border-radius:7px;padding:9px 13px;font-size:13px;color:var(--red);margin-bottom:10px;}
+.caution{background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.35);
+  border-radius:7px;padding:9px 13px;font-size:13px;color:var(--orange);margin-bottom:10px;}
+.info{background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+  padding:13px 15px;font-size:13px;line-height:1.7;color:var(--muted);}
+.info strong{color:var(--text);}
+
+/* CODE BOX */
+.code-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  padding:14px;font-family:'DM Mono',monospace;font-size:12px;word-break:break-all;
+  color:var(--green);cursor:pointer;line-height:1.6;user-select:all;}
+
+/* SUB ITEM */
+.sub-item{display:grid;grid-template-columns:90px 1fr auto;gap:8px;align-items:center;
+  background:var(--bg);border-radius:7px;padding:9px 12px;margin-bottom:6px;}
+.sub-name{font-weight:700;font-size:13px;}
+
+/* COST PREVIEW */
+.cprev{background:var(--surface2);border-radius:8px;padding:14px;}
+.crow{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;}
+.crow.tot{border-top:1px solid var(--border);margin-top:6px;padding-top:9px;font-weight:700;}
+.cval{font-family:'DM Mono',monospace;color:var(--accent);}
+
+/* SPARK */
+.spark{height:70px;display:flex;align-items:flex-end;gap:3px;padding-top:6px;}
+.sbar{flex:1;border-radius:2px 2px 0 0;min-width:10px;transition:height .5s;}
+
+/* RESULT CARD */
+.rcard{border-left:3px solid var(--accent);padding-left:12px;margin-bottom:12px;}
+.rcard.loss{border-left-color:var(--red);}
+.mbar{height:7px;background:var(--surface2);border-radius:3px;margin-top:5px;overflow:hidden;}
+.mbar-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .8s;}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;
+  align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:26px;width:92%;max-width:460px;max-height:90vh;overflow-y:auto;}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:16px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--green);color:#051b0e;
+  padding:11px 18px;border-radius:8px;font-weight:600;font-size:14px;z-index:300;
+  opacity:0;transition:opacity .3s;pointer-events:none;}
+.toast.show{opacity:1;}
+
+/* BALANCE */
+.bal-num{font-size:24px;font-weight:700;font-family:'DM Mono',monospace;color:var(--green);}
+
+/* RECIPE CHIPS */
+.chip{display:inline-block;padding:4px 10px;border-radius:6px;font-size:12px;
+  font-family:'DM Mono',monospace;background:var(--surface2);border:1px solid var(--border);}
+
+::-webkit-scrollbar{width:5px;height:5px;}
+@keyframes fadeInDown{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+@media(max-width:600px){
+  .row2,.row3{grid-template-columns:1fr;}
+  .tab-panel{padding:14px;}
+  header{padding:11px 14px;}
+}
+
+</style>
+</head>
+<body>
+<!-- ═══════════════════════════════════════
+     MODE SELECT SCREEN
+═══════════════════════════════════════ -->
+<div id="modeSelect">
+  <div style="font-size:40px;">🍋</div>
+  <div class="mode-title">レモネードスタンド</div>
+  <div class="mode-sub">経済学習シミュレーションゲーム</div>
+  <div class="mode-cards">
+    <div class="mode-card" onclick="enterGMMode()">
+      <div class="mode-icon">🎮</div>
+      <div class="mode-label">ゲームマスター（GM）</div>
+      <div class="mode-desc">ゲーム設定・市場操作・集計管理</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px;">🔒 パスワード必要</div>
+    </div>
+    <div class="mode-card" onclick="enterMode('student')">
+      <div class="mode-icon">🧑‍🎮</div>
+      <div class="mode-label">販売チーム</div>
+      <div class="mode-desc">仕入れ・価格設定・販売</div>
+    </div>
+    <div class="mode-card" onclick="enterMode('audience')">
+      <div class="mode-icon">👀</div>
+      <div class="mode-label">観客モード</div>
+      <div class="mode-desc">市場状況・結果をリアルタイム表示</div>
+    </div>
+  </div>
+  <div id="resumeArea" style="margin-top:16px;"></div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     GAME MASTER APP
+═══════════════════════════════════════ -->
+<div id="teacherApp" class="hidden">
+  <header>
+    <div class="logo">
+      <span style="font-size:20px;">🍋</span>
+      <div><div class="logo-text">LEMONADE STAND</div><div class="logo-sub">GAME MASTER</div></div>
+    </div>
+    <span class="badge" id="t-badge">SETUP</span>
+    <div class="hdr-right">
+      <button class="btn btn-o" style="font-size:12px;" onclick="exportCSV()">CSV</button>
+      <button class="btn btn-r" style="font-size:12px;" onclick="resetAll()">リセット</button>
+      <button class="btn btn-o" style="font-size:12px;" onclick="goHome()">←戻る</button>
+    </div>
+  </header>
+  <div class="tabs">
+    <div class="tab active" id="tt-setup" onclick="tTab('setup')">① 設定</div>
+    <div class="tab" id="tt-input" onclick="tTab('input')">② 月次集計</div>
+    <div class="tab" id="tt-result" onclick="tTab('result')">③ 結果</div>
+  </div>
+
+  <!-- SETUP -->
+  <div class="tab-panel active" id="tp-setup">
+    <div class="sec">🎮 ゲーム設定</div>
+    <div class="row2">
+      <div class="card">
+        <div class="card-title">基本設定</div>
+        <div class="row2">
+          <div class="fg"><label>チーム数</label><input type="number" id="ts-teams" value="4" min="2" max="12" oninput="updateTeamNames()"></div>
+          <div class="fg"><label>初期資金（円）</label><input type="number" id="ts-fund" value="10000" step="500"></div>
+        </div>
+        <div class="fg"><label>チーム名（カンマ区切り）</label><input type="text" id="ts-names" value="Aチーム,Bチーム,Cチーム,Dチーム"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">コスト設定</div>
+        <div class="row2">
+          <div class="fg"><label>🍋 レモン1個（円）</label><input type="number" id="ts-lemon" value="80"></div>
+          <div class="fg"><label>🍬 砂糖1袋（円）</label><input type="number" id="ts-sugar" value="10"></div>
+        </div>
+        <div class="row2">
+          <div class="fg"><label>👨‍🍳 バリスタ1人（円）</label><input type="number" id="ts-barista" value="2000"></div>
+          <div class="fg"><label>製造可能（杯/人）</label><input type="number" id="ts-capacity" value="50"></div>
+        </div>
+        <div class="row2">
+          <div class="fg"><label>1杯 = レモン×</label><input type="number" id="ts-rl" value="1" min="1"></div>
+          <div class="fg"><label>砂糖×</label><input type="number" id="ts-rs" value="1" min="1"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">📈 市場変動・コスト変動設定</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">毎月の市場規模とコストを自動で変動させます。販売チームには「市場予報」としてヒントが表示されます。</div>
+      <div class="row2">
+        <div class="fg">
+          <label>市場規模 基準値（円）</label>
+          <input type="number" id="ts-market-base" value="80000" step="1000">
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">※ チーム数変更時に自動更新（¥20,000/チーム）</div>
+        </div>
+        <div class="fg">
+          <label>市場規模 変動幅（±%）</label>
+          <input type="number" id="ts-market-range" value="30" min="0" max="100">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="fg">
+          <label>コスト変動モード</label>
+          <select id="ts-cost-mode">
+            <option value="fixed">固定（変動なし）</option>
+            <option value="random">ランダム変動</option>
+            <option value="trend">トレンド（緩やかに上昇）</option>
+            <option value="shock">ショック（突発的な大変動）</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>コスト変動幅（±%）</label>
+          <input type="number" id="ts-cost-range" value="20" min="0" max="80">
+        </div>
+      </div>
+      <div class="fg">
+        <label>シード値（同じ展開の再現用・空白でランダム）</label>
+        <input type="text" id="ts-seed" placeholder="例: lemon2025">
+      </div>
+      <div class="info" style="margin-top:8px;font-size:12px;">
+        <strong>市場予報の仕組み：</strong>販売チーム画面に「📈 需要上昇傾向 +15%予測」のようなヒントを表示します。予報には±10%の誤差が加わるので、戦略の判断材料になります。
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">📖 シナリオ設定（任意）</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+        プリセットを選ぶと12ヶ月分の市場・コストが自動で変動します。各月開始時に販売チームへメッセージも届きます。
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;" id="scenario-cards">
+        <div class="scenario-card" data-id="none" onclick="selectScenario('none')" style="
+          background:rgba(245,200,66,.15);border:2px solid var(--accent);
+          border-radius:10px;padding:14px;cursor:pointer;transition:all .2s;">
+          <div style="font-size:20px;margin-bottom:4px;">🎮</div>
+          <div style="font-weight:700;font-size:13px;">なし（手動）</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;">上の設定をそのまま使う</div>
+        </div>
+        <div class="scenario-card" data-id="summer" onclick="selectScenario('summer')" style="
+          background:var(--surface2);border:2px solid var(--border);
+          border-radius:10px;padding:14px;cursor:pointer;transition:all .2s;">
+          <div style="font-size:20px;margin-bottom:4px;">☀️</div>
+          <div style="font-weight:700;font-size:13px;">夏の繁忙期</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;">需要が夏にピーク、秋に急落</div>
+        </div>
+        <div class="scenario-card" data-id="inflation" onclick="selectScenario('inflation')" style="
+          background:var(--surface2);border:2px solid var(--border);
+          border-radius:10px;padding:14px;cursor:pointer;transition:all .2s;">
+          <div style="font-size:20px;margin-bottom:4px;">📈</div>
+          <div style="font-weight:700;font-size:13px;">原材料高騰</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;">中盤からコストが急上昇</div>
+        </div>
+        <div class="scenario-card" data-id="chaos" onclick="selectScenario('chaos')" style="
+          background:var(--surface2);border:2px solid var(--border);
+          border-radius:10px;padding:14px;cursor:pointer;transition:all .2s;">
+          <div style="font-size:20px;margin-bottom:4px;">🎲</div>
+          <div style="font-weight:700;font-size:13px;">市場乱高下</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;">読めない相場、大きなショックあり</div>
+        </div>
+      </div>
+      <div id="scenario-preview" style="margin-top:12px;display:none;"></div>
+    </div>
+    <div class="info" style="margin-bottom:16px;">
+      <strong>ゲームの流れ</strong><br>
+      各販売チームが仕入れ・雇用・価格を決定 → 送信 → GMが集計実行（安い順購入）→ 結果発表。これを12ヶ月繰り返します。
+    </div>
+    <button class="btn btn-p btn-lg btn-full" onclick="startGame()">ゲーム開始 →</button>
+
+    <div id="t-links-area" class="hidden" style="margin-top:24px;">
+      <div class="sec">🎫 参加コード（全チーム共通）</div>
+      <div class="info" style="margin-bottom:14px;">
+        <strong>共有方法：</strong>このコードを全員に送るかプロジェクターに映すだけ。
+        販売チームは「販売チーム」を選択 → コード入力 → チーム名を選んで参加します。
+      </div>
+      <div class="card" style="text-align:center;padding:28px 20px;">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;letter-spacing:.06em;text-transform:uppercase;">参加コード</div>
+        <div id="t-join-code" style="font-family:'DM Mono',monospace;font-size:42px;font-weight:700;
+          letter-spacing:0.2em;color:var(--accent);margin-bottom:20px;">——</div>
+        <button class="btn btn-p" style="font-size:14px;padding:12px 28px;" onclick="copyJoinCode()">📋 コピー</button>
+      </div>
+      <div id="t-links-list" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- INPUT -->
+  <div class="tab-panel" id="tp-input">
+
+    <div class="row2" style="align-items:start;">
+      <div>
+        <div class="sec">📥 販売チームの提出受取 <span id="t-month-label" style="font-size:13px;color:var(--muted);font-weight:400;"></span></div>
+        <div class="card">
+          <div id="t-sub-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">市場購入予算（今月）</div>
+          <div class="fg"><label>市場の購入予算（円）— この金額分だけ安い順に売れます</label>
+            <input type="number" id="t-budget" value="15000" step="500"></div>
+          <div class="info" style="margin-bottom:14px;">同価格の場合は先着順（提出順）で処理されます。</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-g btn-lg" style="flex:2;" id="t-auction-btn" onclick="runAuction()" disabled>集計実行 →</button>
+            <button class="btn btn-o btn-lg" style="flex:1;font-size:12px;" id="t-force-btn" onclick="forceAuction()">⚡ 強制集計</button>
+          </div>
+        </div>
+
+      </div>
+      <div>
+        <div class="sec">📊 提出状況</div>
+        <div class="card">
+          <table class="tbl"><thead><tr><th>チーム</th><th>状態</th><th>価格</th><th>上限</th><th>残高</th></tr></thead>
+          <tbody id="t-status-body"></tbody></table>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:28px;font-weight:700;font-family:'DM Mono',monospace;" id="t-sub-count">0/0</div>
+          <div style="font-size:11px;color:var(--muted);">チーム提出完了</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="tab-panel" id="tp-result">
+    <div class="sec">🏆 集計結果 <span id="t-res-label" style="font-size:13px;color:var(--muted);font-weight:400;"></span></div>
+    <div class="row2" style="align-items:start;">
+      <div>
+        <div class="card"><div class="card-title">今月の結果</div><div id="t-month-result"></div></div>
+        <div class="card" id="t-next-cost-card" style="margin-bottom:10px;">
+          <div class="card-title">💹 次月のコスト設定（任意）</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">変更しない項目はそのままでOK。「次の月へ」を押したとき生徒画面に即反映されます。</div>
+          <div class="row3">
+            <div class="fg"><label>🍋 レモン1個（円）</label>
+              <input type="number" id="t-next-lemon" style="font-size:14px;" oninput="previewNextCost()"></div>
+            <div class="fg"><label>🍬 砂糖1袋（円）</label>
+              <input type="number" id="t-next-sugar" style="font-size:14px;" oninput="previewNextCost()"></div>
+            <div class="fg"><label>👨‍🍳 バリスタ1人（円）</label>
+              <input type="number" id="t-next-barista" style="font-size:14px;" oninput="previewNextCost()"></div>
+          </div>
+          <div id="t-next-cost-preview" style="font-size:12px;margin-top:6px;"></div>
+        </div>
+        <button class="btn btn-p btn-lg btn-full" id="t-next-btn" onclick="nextMonth()" disabled>次の月へ →</button>
+      </div>
+      <div>
+        <div class="card"><div class="card-title">累計ランキング</div>
+          <table class="tbl"><thead><tr><th>順位</th><th>チーム</th><th>累計利益</th><th>残高</th></tr></thead>
+          <tbody id="t-ranking-body"></tbody></table>
+        </div>
+        <div class="card" style="margin-top:14px;"><div class="card-title">収益推移（月別）</div><div id="t-sparks"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     SALES TEAM APP
+═══════════════════════════════════════ -->
+<div id="studentApp" class="hidden">
+  <header>
+    <div class="logo">
+      <span style="font-size:20px;">🍋</span>
+      <div><div class="logo-text" id="s-team-name">チーム名</div><div class="logo-sub">SALES TEAM</div></div>
+    </div>
+    <span class="badge" id="s-badge">?月</span>
+    <button class="btn btn-o" style="font-size:12px;" onclick="goHome()">←戻る</button>
+  </header>
+
+  <div style="padding:16px;max-width:600px;margin:0 auto;">
+
+    <!-- ゲームコード入力（初回） -->
+    <div id="s-code-entry">
+      <!-- Step1: 参加コード入力 -->
+      <div class="card" id="s-step1">
+        <div class="card-title">🎫 参加コードを入力</div>
+        <div class="fg" style="margin-bottom:20px;">
+          <label style="font-size:13px;margin-bottom:8px;display:block;">GMから共有された参加コード（4文字-4文字）</label>
+          <input type="text" id="s-game-code" placeholder="例: ABCD-1234"
+            style="font-size:28px;font-family:'DM Mono',monospace;letter-spacing:0.15em;
+              text-transform:uppercase;text-align:center;padding:16px;"
+            oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')">
+        </div>
+        <button class="btn btn-p btn-full btn-lg" onclick="lookupJoinCode()">次へ →</button>
+      </div>
+      <!-- Step2: チーム選択 -->
+      <div class="card hidden" id="s-step2">
+        <div class="card-title">👥 チームを選択してください</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:16px;" id="s-step2-info"></div>
+        <div id="s-team-buttons" style="display:flex;flex-direction:column;gap:10px;"></div>
+        <button class="btn btn-o btn-full" style="margin-top:16px;font-size:12px;" onclick="backToStep1()">← コードを入力し直す</button>
+      </div>
+    </div>
+
+    <!-- 入力フォーム（コード入力後） -->
+    <div id="s-form" class="hidden">
+      <!-- 残高 -->
+      <div class="card">
+        <div class="card-title">現在の資金</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="bal-num" id="s-balance">¥—</div>
+          <div style="font-size:12px;color:var(--muted);" id="s-month-info">第?月</div>
+        </div>
+      </div>
+      <!-- コスト表 -->
+      <div class="card" id="s-cost-card">
+        <div class="card-title">💰 今月の仕入れコスト</div>
+        <div id="s-recipe-box"></div>
+      </div>
+      <div class="card" id="s-forecast-card" style="display:none;">
+        <div class="card-title">📊 市場インテリジェンス</div>
+        <div id="s-forecast-content"></div>
+      </div>
+      <!-- Step1 -->
+      <div class="sec">① 原材料を購入する</div>
+      <div class="card">
+        <div class="row2">
+          <div class="fg"><label>🍋 レモン（個）</label><input type="number" id="s-lemon" value="20" min="0" oninput="sUpdate()"></div>
+          <div class="fg"><label>🍬 砂糖（袋）</label><input type="number" id="s-sugar" value="20" min="0" oninput="sUpdate()"></div>
+        </div>
+        <div id="s-make-hint" class="tip">製造可能数: —</div>
+      </div>
+      <!-- Step2 -->
+      <div class="sec">② バリスタを雇う</div>
+      <div class="card">
+        <div class="fg"><label>👨‍🍳 バリスタ（人）</label><input type="number" id="s-barista" value="1" min="0" oninput="sUpdate()"></div>
+        <div id="s-cap-hint"></div>
+      </div>
+      <!-- Step3 -->
+      <div class="sec">③ 販売価格と販売数を決める</div>
+      <div class="card">
+        <div class="row2">
+          <div class="fg"><label>💰 販売価格（円/杯）</label><input type="number" id="s-price" value="300" min="1" oninput="sUpdate()"></div>
+          <div class="fg"><label>📦 最大販売数（杯）</label><input type="number" id="s-max" value="20" min="0" oninput="sUpdate()"></div>
+        </div>
+        <div id="s-sell-hint"></div>
+      </div>
+      <!-- Preview -->
+      <div class="card">
+        <div class="card-title">費用・収益シミュレーション</div>
+        <div class="cprev">
+          <div class="crow"><span>レモン代</span><span class="cval" id="sc-lemon">¥0</span></div>
+          <div class="crow"><span>砂糖代</span><span class="cval" id="sc-sugar">¥0</span></div>
+          <div class="crow"><span>バリスタ代</span><span class="cval" id="sc-barista">¥0</span></div>
+          <div class="crow tot"><span>総費用</span><span class="cval" id="sc-total" style="font-size:16px;">¥0</span></div>
+          <div class="crow" style="margin-top:10px;"><span>全部売れた場合の収益</span><span class="cval" id="sc-rev">¥0</span></div>
+          <div class="crow"><span>全部売れた場合の利益</span><span class="cval" id="sc-profit" style="color:var(--green)">¥0</span></div>
+        </div>
+      </div>
+      <!-- Submit -->
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-p btn-lg" style="flex:2;" onclick="generateSubmitCode()">📋 今月の計画を提出する</button>
+        <button class="btn btn-o btn-lg" style="flex:1;" onclick="submitWatching()" title="今月は購入・販売をせずに市場を観察します">👀 静観する</button>
+      </div>
+      <!-- 提出済み表示 -->
+      <div class="card hidden" id="s-code-out" style="margin-top:14px;">
+        <div class="card-title">✅ 提出完了</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.7;" id="s-submit-summary"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 生徒用 結果モーダル（集計後に自動表示） -->
+<div id="s-result-overlay" class="hidden" style="
+  position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;
+  display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:32px;" id="s-result-emoji">🍋</div>
+      <div style="font-size:20px;font-weight:700;margin-top:8px;" id="s-result-title">今月の結果</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px;" id="s-result-month"></div>
+    </div>
+    <!-- 自チームの結果 -->
+    <div id="s-result-myteam" style="margin-bottom:18px;"></div>
+    <!-- 全チームランキング -->
+    <div style="margin-bottom:18px;">
+      <div style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;
+        letter-spacing:.06em;margin-bottom:10px;">今月のランキング</div>
+      <div id="s-result-ranking"></div>
+    </div>
+    <!-- 累計残高 -->
+    <div style="background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:18px;text-align:center;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">あなたの累計残高</div>
+      <div style="font-size:28px;font-weight:700;font-family:'DM Mono',monospace;" id="s-result-balance">¥0</div>
+    </div>
+    <button class="btn btn-p btn-lg btn-full" id="s-result-next-btn" onclick="studentGoNextMonth()">
+      次の月へ →
+    </button>
+    <div style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px;" id="s-result-next-hint"></div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     AUDIENCE DASHBOARD
+═══════════════════════════════════════ -->
+<div id="audienceApp" class="hidden" style="display:flex;flex-direction:column;height:100vh;overflow:hidden;">
+
+  <!-- 最小ヘッダー -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;
+    background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:16px;">🍋</span>
+      <span style="font-size:12px;font-weight:700;letter-spacing:.06em;">LEMONADE STAND</span>
+      <span style="font-size:10px;color:var(--muted);">LIVE</span>
+      <span style="width:7px;height:7px;border-radius:50%;background:var(--green);
+        box-shadow:0 0 6px var(--green);display:inline-block;" id="aud-live-dot"></span>
+    </div>
+    <span class="badge" id="aud-badge" style="font-size:11px;padding:4px 10px;">接続中...</span>
+    <button class="btn btn-o" style="font-size:11px;padding:5px 10px;" onclick="goHome()">←戻る</button>
+  </div>
+
+  <!-- ゲームコード入力 -->
+  <div id="aud-code-entry" style="padding:20px;max-width:480px;margin:40px auto 0;">
+    <div class="card">
+      <div class="card-title">👀 参加コードを入力</div>
+      <div class="fg" style="margin-bottom:20px;">
+        <label style="font-size:13px;margin-bottom:8px;display:block;">GMから共有された参加コード（4文字-4文字）</label>
+        <input type="text" id="aud-game-code" placeholder="例: ABCD-1234"
+          style="font-size:28px;font-family:'DM Mono',monospace;letter-spacing:0.15em;
+            text-transform:uppercase;text-align:center;padding:16px;width:100%;
+            background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);"
+          oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'')">
+      </div>
+      <button class="btn btn-p btn-full btn-lg" onclick="loadAudienceGame()">観戦を開始する →</button>
+    </div>
+  </div>
+
+  <!-- ダッシュボード本体（全画面・スクロールなし） -->
+  <div id="aud-dashboard" class="hidden" style="flex:1;overflow:hidden;display:flex;flex-direction:column;padding:10px 14px;gap:10px;">
+
+    <!-- 上段: 月・市場・コスト・進捗を1行に集約 -->
+    <div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;flex-shrink:0;">
+
+      <!-- 月バッジ -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;
+        padding:8px 16px;text-align:center;min-width:80px;">
+        <div style="font-size:10px;color:var(--muted);">月</div>
+        <div style="font-size:28px;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);line-height:1.1;" id="aud-month">—</div>
+        <div style="font-size:10px;color:var(--muted);">/ 12</div>
+      </div>
+
+      <!-- 市場規模 + コスト横並び -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
+        <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:2px;">🏪 市場規模（予測）</div>
+            <div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:#378ADD;" id="aud-market">¥—</div>
+            <div style="font-size:10px;color:var(--muted);" id="aud-market-hint"></div>
+          </div>
+          <div style="width:1px;height:36px;background:var(--border);"></div>
+          <div id="aud-costs-inline" style="display:flex;gap:16px;align-items:center;"></div>
+        </div>
+      </div>
+
+      <!-- 進捗バー -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 16px;text-align:center;min-width:100px;">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">提出完了</div>
+        <div style="font-size:24px;font-weight:700;font-family:'DM Mono',monospace;" id="aud-submit-count">0/0</div>
+        <div id="aud-progress-dots" style="display:flex;gap:4px;justify-content:center;margin-top:4px;flex-wrap:wrap;"></div>
+      </div>
+
+      <!-- 市場トレンド -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 16px;text-align:center;min-width:90px;">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">市場トレンド</div>
+        <div style="font-size:22px;" id="aud-trend-icon">—</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px;" id="aud-trend-text"></div>
+      </div>
+    </div>
+
+    <!-- 中段: チームカード + 前月結果 -->
+    <div style="display:grid;grid-template-columns:1fr auto;gap:10px;flex-shrink:0;">
+      <!-- チームカード -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;">
+        <div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">チーム状況</div>
+        <div id="aud-team-status" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;"></div>
+      </div>
+      <!-- 前月結果 -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;min-width:220px;" id="aud-result-card">
+        <div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">前月の結果</div>
+        <div id="aud-result-content"><div style="font-size:12px;color:var(--muted);padding:10px 0;">集計前</div></div>
+      </div>
+    </div>
+
+    <!-- 下段: グラフ（残りの高さを全部使う） -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;flex:1;min-height:0;display:flex;flex-direction:column;">
+      <div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">📊 チーム別 累計残高の推移</div>
+      <div style="flex:1;min-height:0;position:relative;">
+        <canvas id="aud-chart" style="position:absolute;inset:0;width:100%!important;height:100%!important;"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══ 最終レポートオーバーレイ ═══ -->
+  <div id="aud-final-overlay" style="display:none;position:absolute;inset:0;background:var(--bg);z-index:50;
+    flex-direction:column;overflow:hidden;">
+
+    <!-- 最終レポートヘッダー -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px;
+      background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:20px;">🏆</span>
+        <div>
+          <div style="font-size:15px;font-weight:700;">最終レポート</div>
+          <div style="font-size:11px;color:var(--muted);">12ヶ月間の全記録</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-o" style="font-size:11px;padding:5px 10px;" onclick="hideFinalReport()">← ライブに戻る</button>
+          <button class="btn btn-p" style="font-size:11px;padding:5px 10px;" onclick="goHome()">🏠 ホームへ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- レポート本体 -->
+    <div style="flex:1;overflow:hidden;display:grid;
+      grid-template-rows:auto 1fr 1fr;
+      grid-template-columns:1fr 1fr;
+      gap:10px;padding:10px;">
+
+      <!-- A: ランキング（上段・全幅） -->
+      <div id="aud-final-ranking" style="grid-column:1/-1;background:var(--surface);
+        border:1px solid var(--border);border-radius:10px;padding:12px;
+        display:flex;gap:0;align-items:stretch;overflow:hidden;">
+      </div>
+
+      <!-- B: 損益推移グラフ（中段左） -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;
+        padding:12px;display:flex;flex-direction:column;min-height:0;">
+        <div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;
+          letter-spacing:.06em;margin-bottom:8px;">📈 月別損益推移</div>
+        <div style="flex:1;min-height:0;position:relative;">
+          <canvas id="aud-final-chart" style="position:absolute;inset:0;width:100%!important;height:100%!important;"></canvas>
+        </div>
+      </div>
+
+      <!-- C: 販売達成率 + 市場規模（中段右） -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;
+        padding:12px;overflow-y:auto;min-height:0;">
+        <div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;
+          letter-spacing:.06em;margin-bottom:8px;">🏪 月別市場規模 &amp; 販売達成率</div>
+        <div id="aud-final-heatmap"></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">—</div>
+    <div id="modal-body"></div>
+    <div style="margin-top:18px;text-align:right;"><button class="btn btn-o" onclick="closeModal()">閉じる</button></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+
+// ━━━ STATE ━━━
+let G = null;
+let SC = null;
+let DB = null; // Firebase Realtime Database reference
+let GAME_ID = null; // 現在のゲームセッションID
+
+// Firebase初期化（ページ読み込み後に呼ばれる）
+function initFirebase(){
+  const cfg = window.FIREBASE_CONFIG;
+  if(!cfg){ toast('Firebase設定が見つかりません',true); return; }
+  try{
+    firebase.initializeApp(cfg);
+    DB = firebase.database();
+    toast('Firebase接続OK');
+    renderResumeArea();
+  }catch(e){
+    // すでに初期化済みの場合
+    DB = firebase.database();
+    renderResumeArea();
+  }
+}
+
+// Firebaseにゲーム状態を保存
+function saveG(){
+  if(!G || !DB || !GAME_ID) return;
+  DB.ref('games/'+GAME_ID).set(G);
+}
+
+// ローカルストレージにも保存（再開用のIDを覚えておく）
+function saveLocal(){
+  if(GAME_ID) localStorage.setItem('lemon_gid_v3', GAME_ID);
+}
+
+function loadG(){ return null; } // Firebase版では使わない
+
+// ━━━ HOME ━━━
+function goHome(){
+  hide('teacherApp'); hide('studentApp');
+  document.getElementById('audienceApp').classList.add('hidden');
+  document.getElementById('audienceApp').style.display = '';
+  if(AUD_GAME_ID && DB){
+    DB.ref('games/'+AUD_GAME_ID).off();
+    AUD_GAME_ID = null;
+  }
+  show('modeSelect');
+  renderResumeArea();
+}
+
+function renderResumeArea(){
+  const el = document.getElementById('resumeArea');
+  if(!DB){ el.innerHTML=''; return; }
+  const savedId = localStorage.getItem('lemon_gid_v3');
+  if(savedId){
+    DB.ref('games/'+savedId).once('value').then(snap=>{
+      const g = snap.val();
+      if(g && g.month>0){
+        el.innerHTML=`<button class="btn btn-o" style="font-size:13px;"
+          onclick="resumeGame('${savedId}')">📂 前回のゲームを再開（第${g.month}月）</button>`;
+      } else { el.innerHTML=''; }
+    });
+  }
+}
+
+function resumeGame(gid){
+  GAME_ID = gid;
+  DB.ref('games/'+gid).once('value').then(snap=>{
+    G = snap.val();
+    if(!G){ toast('ゲームデータが見つかりません',true); return; }
+    hide('modeSelect'); show('teacherApp');
+    listenGame(); // リアルタイム監視開始
+    tTab(G.lastResult?'result':'input');
+    renderInputTab(); renderResultTab();
+    document.getElementById('t-badge').textContent=`${G.month}月目`;
+    renderLinksArea();
+    document.getElementById('t-links-area').classList.remove('hidden');
+    toast(`第${G.month}月 再開`);
+  });
+}
+
+function enterGMMode(){
+  const pw = prompt('GMパスワードを入力してください：');
+  if(pw === null) return; // キャンセル
+  if(pw !== (window.GM_PASSWORD || '********')){
+    alert('パスワードが違います');
+    return;
+  }
+  enterMode('teacher');
+}
+
+function enterMode(mode){
+  hide('modeSelect');
+  if(mode==='teacher'){
+    show('teacherApp');
+    tTab('setup');
+  } else if(mode==='audience'){
+    // audienceApp は display:flex なので hidden クラスではなく直接制御
+    document.getElementById('audienceApp').style.display = 'flex';
+    document.getElementById('audienceApp').classList.remove('hidden');
+    hide('aud-dashboard');
+    show('aud-code-entry');
+    document.getElementById('aud-game-code').value='';
+    document.getElementById('aud-badge').textContent='接続中...';
+    AUD_GAME_ID = null;
+    if(AUD_CHART_INST){ AUD_CHART_INST.destroy(); AUD_CHART_INST=null; }
+  } else {
+    show('studentApp');
+    SC = null;
+    show('s-code-entry'); hide('s-form');
+    document.getElementById('s-game-code').value='';
+    document.getElementById('s-team-name').textContent='チーム名';
+    document.getElementById('s-badge').textContent='?月';
+    hide('s-code-out');
+  }
+}
+
+// ━━━ GAME MASTER: SETUP ━━━
+
+// ━━━ MARKET ENGINE ━━━
+function seededRand(seed, n){
+  let h = 0;
+  const s = String(seed) + String(n);
+  for(let i=0;i<s.length;i++){ h = Math.imul(31,h)+s.charCodeAt(i)|0; }
+  return ((h>>>0)/0xFFFFFFFF);
+}
+
+function calcNextMonthValues(month, G){
+  const M = G.market || { base:20000, range:30, costMode:'fixed', costRange:20, seed:'x' };
+  const seed = M.seed;
+  const r = (n) => seededRand(seed, month*100+n);
+  const marketVariance = (r(1)*2-1) * M.range/100;
+  const marketBudget = Math.round(M.base * (1 + marketVariance) / 1000) * 1000;
+  // 初期設定値を基準に変動させる（毎月の現在値を基準にすると際限なく下がる）
+  const IC = G.initialConfig || G.config; // 初期設定値（フォールバック: 現在値）
+  let lemon = IC.costLemon, sugar = IC.costSugar, barista = IC.costBarista;
+  if(M.costMode !== 'fixed'){
+    const cr = M.costRange/100;
+    if(M.costMode === 'random'){
+      // 初期値±変動幅の範囲内でランダム変動
+      lemon   = Math.max(10, Math.round(IC.costLemon   * (1+(r(2)*2-1)*cr)));
+      sugar   = Math.max(5,  Math.round(IC.costSugar   * (1+(r(3)*2-1)*cr)));
+      barista = Math.max(500,Math.round(IC.costBarista  * (1+(r(4)*2-1)*cr/2)));
+    } else if(M.costMode === 'trend'){
+      // 初期値を起点に月が進むにつれ上昇トレンド＋小ランダム
+      const trend = 1 + (month-1)*0.03;
+      lemon   = Math.max(10, Math.round(IC.costLemon   * trend * (1+(r(2)*2-1)*cr*0.3)));
+      sugar   = Math.max(5,  Math.round(IC.costSugar   * trend * (1+(r(3)*2-1)*cr*0.3)));
+      barista = Math.max(500,Math.round(IC.costBarista  * (1+(r(4)*2-1)*cr*0.2)));
+    } else if(M.costMode === 'shock'){
+      // 普段は小変動、ランダムに大きなショックが来る
+      const isShock = r(5) < 0.25;
+      const mult = isShock ? (1+(r(6)>0.5?1:-1)*cr) : (1+(r(2)*2-1)*cr*0.2);
+      lemon   = Math.max(10, Math.round(IC.costLemon   * mult));
+      sugar   = Math.max(5,  Math.round(IC.costSugar   * (isShock?mult:1+(r(3)*2-1)*cr*0.1)));
+      barista = Math.max(500,Math.round(IC.costBarista));
+    }
+  }
+  return { marketBudget, costLemon:lemon, costSugar:sugar, costBarista:barista };
+}
+
+function generateForecast(nextMonth, G){
+  // 固定モードはシンプルに返す
+  if(!G.market || G.market.costMode === 'fixed'){
+    const C = G.config;
+    return {
+      hint:'📊 市場は安定', detail:'コストと市場規模に変動はありません',
+      costHint:'変動なし', month:nextMonth,
+      // レンジ: 幅なし（固定値そのまま）
+      range: {
+        lemon:   { lo:C.costLemon,   hi:C.costLemon,   mid:C.costLemon },
+        sugar:   { lo:C.costSugar,   hi:C.costSugar,   mid:C.costSugar },
+        barista: { lo:C.costBarista, hi:C.costBarista, mid:C.costBarista },
+        market:  { lo:G.market.base, hi:G.market.base, mid:G.market.base },
+      },
+    };
+  }
+
+  const actual = calcNextMonthValues(nextMonth, G);
+  const M = G.market;
+
+  // 「予報の不確実性」= コスト変動幅の30% か 最低5%
+  const uncertainty = Math.max(0.05, (M.costRange||20)/100 * 0.3);
+  const mktUncertainty = Math.max(0.05, (M.range||30)/100 * 0.3);
+
+  // レンジ計算（actualが実際のGM入力値。そこから±uncertaintyで表示レンジを作る）
+  const mkRange = (val, unc, step=1) => {
+    const lo = Math.max(step, Math.round(val*(1-unc)/step)*step);
+    const hi = Math.round(val*(1+unc)/step)*step;
+    return { lo, hi, mid:val };
+  };
+
+  const range = {
+    lemon:   mkRange(actual.costLemon,   uncertainty, 5),
+    sugar:   mkRange(actual.costSugar,   uncertainty, 1),
+    barista: mkRange(actual.costBarista, uncertainty, 100),
+    market:  mkRange(actual.marketBudget, mktUncertainty, 1000),
+  };
+
+  const prevBudget = G.history && G.history.length > 0
+    ? G.history[G.history.length-1].marketBudget : M.base;
+  const budgetChange = Math.round((actual.marketBudget - prevBudget)/prevBudget*100);
+  const icon = budgetChange > 10 ? '📈' : budgetChange < -10 ? '📉' : '➡️';
+  const word = budgetChange > 10 ? '需要増加傾向' : budgetChange < -10 ? '需要減少傾向' : '需要横ばい';
+
+  return {
+    hint: `${icon} ${word}`,
+    detail: `市場規模予測: ¥${range.market.lo.toLocaleString()}〜¥${range.market.hi.toLocaleString()}（${budgetChange>0?'+':''}${budgetChange}%）`,
+    costHint: `🍋¥${range.lemon.lo}〜¥${range.lemon.hi} / 🍬¥${range.sugar.lo}〜¥${range.sugar.hi}`,
+    forecastBudgetRaw: actual.marketBudget,
+    nowMarket: actual.marketBudget,
+    month: nextMonth,
+    range,
+  };
+}
+
+// ━━━ SCENARIO ENGINE ━━━
+
+// 3種のプリセットシナリオ定義
+const SCENARIOS = {
+  none: null,
+
+  summer: {
+    name: '☀️ 夏の繁忙期',
+    desc: '春は準備期、夏に需要急増、秋に急落。バリスタの増減タイミングが鍵。',
+    months: [
+      { market:15000, lemonMult:1.0, sugarMult:1.0, baristaMult:1.0, msg:'🌸 春。市場はまだ小さい。準備を整えよう。' },
+      { market:18000, lemonMult:1.0, sugarMult:1.0, baristaMult:1.0, msg:'🌸 春。需要が少し上向いてきた。' },
+      { market:22000, lemonMult:1.05,sugarMult:1.0, baristaMult:1.0, msg:'🌤 初夏。気温上昇。レモン単価がじわり上昇。' },
+      { market:32000, lemonMult:1.1, sugarMult:1.0, baristaMult:1.0, msg:'☀️ 夏本番！需要急増。バリスタを増やす好機。' },
+      { market:40000, lemonMult:1.15,sugarMult:1.05,baristaMult:1.0, msg:'🔥 猛暑。最高の需要。コストも上昇中。' },
+      { market:42000, lemonMult:1.2, sugarMult:1.1, baristaMult:1.0, msg:'🔥 猛暑ピーク！フル稼働で勝負。' },
+      { market:35000, lemonMult:1.1, sugarMult:1.05,baristaMult:1.0, msg:'🍂 夏の終わり。需要が落ち始めた。' },
+      { market:25000, lemonMult:1.0, sugarMult:1.0, baristaMult:1.0, msg:'🍂 秋。需要が急落。バリスタ削減を検討。' },
+      { market:18000, lemonMult:0.95,sugarMult:1.0, baristaMult:1.0, msg:'🍂 秋深まる。市場は縮小傾向。' },
+      { market:14000, lemonMult:0.9, sugarMult:1.0, baristaMult:1.0, msg:'❄️ 冬。市場は最小。効率重視で。' },
+      { market:13000, lemonMult:0.9, sugarMult:0.95,baristaMult:1.0, msg:'❄️ 冬本番。コストが下がり始めた。' },
+      { market:14000, lemonMult:0.95,sugarMult:1.0, baristaMult:1.0, msg:'❄️ 冬の終わり。最終月、勝負をかけろ！' },
+    ]
+  },
+
+  inflation: {
+    name: '📈 原材料高騰',
+    desc: '序盤は安定。中盤からレモンが急騰、終盤は全コスト高。価格転嫁の判断が試される。',
+    months: [
+      { market:22000, lemonMult:1.0, sugarMult:1.0, baristaMult:1.0, msg:'📊 1月。市場は安定。今のうちに在庫を積む？' },
+      { market:22000, lemonMult:1.0, sugarMult:1.0, baristaMult:1.0, msg:'📊 2月。まだ平穏。好きなだけ仕入れられる今。' },
+      { market:23000, lemonMult:1.1, sugarMult:1.0, baristaMult:1.0, msg:'⚠️ 3月。レモンの産地で不作の噂。単価が上昇。' },
+      { market:23000, lemonMult:1.25,sugarMult:1.0, baristaMult:1.0, msg:'⚠️ 4月。レモン価格が急上昇！仕入れを絞るか？' },
+      { market:24000, lemonMult:1.4, sugarMult:1.1, baristaMult:1.0, msg:'🚨 5月。レモン高騰が砂糖にも波及。厳しい局面。' },
+      { market:25000, lemonMult:1.5, sugarMult:1.2, baristaMult:1.1, msg:'🚨 6月。全コストが上昇。価格を上げないと赤字に。' },
+      { market:26000, lemonMult:1.5, sugarMult:1.25,baristaMult:1.2, msg:'🚨 7月。高コストが続く。値上げすると客が減る…' },
+      { market:25000, lemonMult:1.45,sugarMult:1.2, baristaMult:1.3, msg:'📉 8月。バリスタ不足で人件費も上昇。' },
+      { market:24000, lemonMult:1.4, sugarMult:1.15,baristaMult:1.3, msg:'📉 9月。高コスト環境が定着。戦略の見直しを。' },
+      { market:23000, lemonMult:1.3, sugarMult:1.1, baristaMult:1.2, msg:'📉 10月。少し落ち着いてきた？でも油断禁物。' },
+      { market:23000, lemonMult:1.2, sugarMult:1.05,baristaMult:1.1, msg:'📊 11月。コストが緩和傾向。残り2ヶ月。' },
+      { market:24000, lemonMult:1.1, sugarMult:1.0, baristaMult:1.0, msg:'🏁 12月。最終月！コストが戻ってきた。全力で！' },
+    ]
+  },
+
+  chaos: {
+    name: '🎲 市場乱高下',
+    desc: '何が起きるかわからない相場。大きなショックが複数回発生。リスク管理が重要。',
+    months: [
+      { market:20000, lemonMult:1.0, sugarMult:1.0, baristaMult:1.0, msg:'🎲 1月。静かな出発。嵐の前の静けさ…？' },
+      { market:35000, lemonMult:0.8, sugarMult:1.0, baristaMult:1.0, msg:'📈 2月。突然の需要急増！チャンスを掴め。' },
+      { market:12000, lemonMult:1.5, sugarMult:1.3, baristaMult:1.0, msg:'📉 3月。ショック発生！市場が急縮小、コスト急騰。' },
+      { market:28000, lemonMult:0.9, sugarMult:0.9, baristaMult:1.0, msg:'📈 4月。一転して回復。コストも下落。' },
+      { market:18000, lemonMult:1.3, sugarMult:1.0, baristaMult:1.2, msg:'⚠️ 5月。レモン不足。バリスタ争奪戦も起きてる。' },
+      { market:40000, lemonMult:1.0, sugarMult:1.0, baristaMult:1.0, msg:'🎉 6月。大型イベント！需要が爆発的に増加。' },
+      { market:15000, lemonMult:1.4, sugarMult:1.4, baristaMult:1.0, msg:'💥 7月。ダブルショック！市場収縮＋コスト急騰。' },
+      { market:30000, lemonMult:0.85,sugarMult:0.9, baristaMult:1.0, msg:'📈 8月。V字回復。安く仕入れられるチャンス。' },
+      { market:22000, lemonMult:1.2, sugarMult:1.1, baristaMult:1.1, msg:'⚠️ 9月。中程度の混乱。慎重に。' },
+      { market:38000, lemonMult:0.9, sugarMult:1.0, baristaMult:1.0, msg:'📈 10月。再び好機！大きく仕掛けるか様子を見るか。' },
+      { market:16000, lemonMult:1.6, sugarMult:1.5, baristaMult:1.0, msg:'💥 11月。最大のショック！耐えろ。' },
+      { market:32000, lemonMult:1.0, sugarMult:1.0, baristaMult:1.0, msg:'🏁 12月。嵐が過ぎた。最終月、悔いなく戦え！' },
+    ]
+  }
+};
+
+let selectedScenario = 'none';
+
+function selectScenario(id){
+  selectedScenario = id;
+  // カードのハイライト更新
+  document.querySelectorAll('.scenario-card').forEach(el=>{
+    const isSelected = el.dataset.id === id;
+    el.style.borderColor = isSelected ? 'var(--accent)' : 'var(--border)';
+    el.style.background  = isSelected ? 'rgba(245,200,66,.15)' : 'var(--surface2)';
+  });
+  // プレビュー表示
+  const prev = document.getElementById('scenario-preview');
+  if(id === 'none'){
+    prev.style.display = 'none';
+    return;
+  }
+  const sc = SCENARIOS[id];
+  prev.style.display = 'block';
+  // 月別プレビューバー（市場規模の相対値）
+  const markets = sc.months.map(m=>m.market);
+  const maxM = Math.max(...markets);
+  const bars = markets.map((m,i)=>{
+    const h = Math.round(m/maxM*48)+4;
+    const teamN2 = parseInt(document.getElementById('ts-teams').value)||4;
+    const scaledM = Math.round(m * teamN2 / 2 / 1000) * 1000;
+    return `<div title="${i+1}月: ¥${scaledM.toLocaleString()}"
+      style="flex:1;height:${h}px;border-radius:2px 2px 0 0;background:var(--accent);opacity:.8;
+        cursor:default;transition:height .3s;"></div>`;
+  }).join('');
+  prev.innerHTML = `
+    <div style="background:var(--surface2);border-radius:8px;padding:12px;">
+      <div style="font-size:12px;font-weight:700;margin-bottom:4px;">${sc.name}</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">${sc.desc}</div>
+      <div style="display:flex;align-items:flex-end;gap:2px;height:56px;margin-bottom:4px;">${bars}</div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);">
+        <span>1月</span><span>6月</span><span>12月</span>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px;">▲ 市場規模の推移（棒グラフ）</div>
+    </div>`;
+}
+
+// シナリオを適用して各月の値を返す
+function getScenarioMonth(month, G){
+  if(!G.scenario || G.scenario === 'none') return null;
+  const sc = SCENARIOS[G.scenario];
+  if(!sc) return null;
+  const m = sc.months[month-1];
+  if(!m) return null;
+  const IC = G.initialConfig || G.config;
+  // チーム数に比例してmarket値をスケール
+  // シナリオのmarket値は2チーム基準（¥20,000/チーム）なので実チーム数で比例拡大
+  const teamCount = (G.teams && G.teams.length) || 2;
+  const marketScaled = Math.round(m.market * teamCount / 2 / 1000) * 1000;
+  return {
+    marketBudget: marketScaled,
+    costLemon:    Math.round(IC.costLemon    * m.lemonMult),
+    costSugar:    Math.round(IC.costSugar    * m.sugarMult),
+    costBarista:  Math.round(IC.costBarista  * m.baristaMult),
+    msg: m.msg,
+  };
+}
+
+function updateTeamNames(){
+  const n = parseInt(document.getElementById('ts-teams').value)||4;
+  // チーム数に応じて市場規模基準値を自動更新（1チームあたり¥20,000）
+  const marketBaseEl = document.getElementById('ts-market-base');
+  if(marketBaseEl) marketBaseEl.value = n * 20000;
+  const defaults = ['Aチーム','Bチーム','Cチーム','Dチーム','Eチーム','Fチーム','Gチーム','Hチーム','Iチーム','Jチーム','Kチーム','Lチーム'];
+  const cur = document.getElementById('ts-names').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const names = [];
+  for(let i=0;i<n;i++) names.push(cur[i]||defaults[i]||`チーム${i+1}`);
+  document.getElementById('ts-names').value = names.join(',');
+}
+
+function startGame(){
+  const rawNames = document.getElementById('ts-names').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const n = Math.max(2, Math.min(12, parseInt(document.getElementById('ts-teams').value)||4));
+  const teamNames = rawNames.slice(0,n);
+  while(teamNames.length<n) teamNames.push(`チーム${teamNames.length+1}`);
+
+  G = {
+    month: 1, maxMonths: 12,
+    config: {
+      costLemon: parseInt(document.getElementById('ts-lemon').value)||80,
+      costSugar: parseInt(document.getElementById('ts-sugar').value)||10,
+      costBarista: parseInt(document.getElementById('ts-barista').value)||2000,
+      baristaCapacity: parseInt(document.getElementById('ts-capacity').value)||50,
+      recipeLemon: parseInt(document.getElementById('ts-rl').value)||1,
+      recipeSugar: parseInt(document.getElementById('ts-rs').value)||1,
+      startFund: parseInt(document.getElementById('ts-fund').value)||10000,
+    },
+    // 初期設定値を保存（コスト変動の基準として使う）
+    initialConfig: {
+      costLemon: parseInt(document.getElementById('ts-lemon').value)||80,
+      costSugar: parseInt(document.getElementById('ts-sugar').value)||10,
+      costBarista: parseInt(document.getElementById('ts-barista').value)||2000,
+    },
+    market: {
+      base:      parseInt(document.getElementById('ts-market-base').value) || (n * 20000),
+      range:     parseInt(document.getElementById('ts-market-range').value)||30,
+      costMode:  document.getElementById('ts-cost-mode').value||'fixed',
+      costRange: parseInt(document.getElementById('ts-cost-range').value)||20,
+      seed:      document.getElementById('ts-seed').value.trim()||String(Date.now()),
+    },
+    scenario: selectedScenario || 'none',
+    teams: teamNames.map(name=>({ name, balance: parseInt(document.getElementById('ts-fund').value)||10000, totalProfit:0, stockLemon:0, stockSugar:0 })),
+    submissions: {},
+    history: [],
+    lastResult: null,
+    forecast: null, // 次月予報（GMが集計後に生成）
+  };
+  // 第1月の予報を生成
+  G.forecast = generateForecast(1, G);
+  // 1月の市場予算をゲーム設定値から自動計算してフォームに反映
+  const month1Budget = calcNextMonthValues(1, G);
+  const budgetInputEl = document.getElementById('t-budget');
+  if(budgetInputEl) budgetInputEl.value = month1Budget.marketBudget;
+  // FirebaseにゲームIDで保存
+  GAME_ID = DB.ref('games').push().key;
+  saveLocal();
+  saveG();
+  listenGame();
+  document.getElementById('t-badge').textContent = `1月目`;
+  renderLinksArea();
+  document.getElementById('t-links-area').classList.remove('hidden');
+  toast('ゲーム開始！各チームにゲームコードを配布してください');
+}
+
+function buildGameCode(teamName){
+  // Firebase版：ゲームIDとチーム名のみ
+  const obj = { gameId: GAME_ID, teamName };
+  return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+}
+
+function _unused_buildGameCode(teamName){
+  const team = G.teams.find(t=>t.name===teamName);
+  const obj = {
+    config: G.config,
+    teams: G.teams.map(t=>t.name),
+    month: G.month,
+    teamName,
+    balance: team ? team.balance : G.config.startFund,
+  };
+  return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+}
+
+// ゲームIDから短い参加コードを生成（例: LMND-7K2A）
+function buildJoinCode(gameId){
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 紛らわしい文字(0,O,1,I)を除外
+  const seed = gameId.replace(/-/g,'');
+  let code = '';
+  for(let i=0;i<8;i++){
+    const c1 = seed.charCodeAt(i*2   % seed.length);
+    const c2 = seed.charCodeAt(i*2+1 % seed.length);
+    code += chars[(c1*31+c2) % chars.length];
+  }
+  return code.slice(0,4)+'-'+code.slice(4);
+}
+
+// Firebaseの全ゲームから参加コードに一致するゲームを検索
+function findGameByJoinCode(joinCode, callback){
+  const normalized = joinCode.replace(/-/g,'').toUpperCase();
+  DB.ref('games').once('value').then(snap=>{
+    const games = snap.val();
+    if(!games){ callback(null, null); return; }
+    for(const [gid, gdata] of Object.entries(games)){
+      if(!gdata || !gdata.teams) continue;
+      const code = buildJoinCode(gid).replace(/-/g,'');
+      if(code === normalized){
+        callback(gid, gdata);
+        return;
+      }
+    }
+    callback(null, null);
+  }).catch(()=>callback(null, null));
+}
+
+function renderLinksArea(){
+  if(!G || !GAME_ID) return;
+  const code = buildJoinCode(GAME_ID);
+  document.getElementById('t-join-code').textContent = code;
+}
+
+function copyJoinCode(){
+  const code = document.getElementById('t-join-code').textContent;
+  navigator.clipboard.writeText(code).then(()=>toast('参加コードをコピーしました！'));
+}
+
+// ━━━ GAME MASTER: INPUT TAB ━━━
+function renderInputTab(){
+  if(!G) return;
+  document.getElementById('t-month-label').textContent = `第${G.month}月`;
+  // 市場予算フォームにその月の自動計算値をセット（まだ集計前の場合のみ）
+  const hasResult = Array.isArray(G.history) && G.history.some(h=>h.month===G.month);
+  if(!hasResult){
+    // シナリオ優先、なければ自動変動計算
+    const scB = getScenarioMonth(G.month, G);
+    const autoB = scB ? null : calcNextMonthValues(G.month, G);
+    const budget = scB ? scB.marketBudget : (autoB ? autoB.marketBudget : null);
+    const bEl = document.getElementById('t-budget');
+    if(bEl && budget) bEl.value = budget;
+  }
+
+
+
+  // Submission list
+  const subs = G.submissions || {};
+  const html = G.teams.map(t=>{
+    const sub = subs[encodeKey(t.name)] || subs[t.name];
+    let statusText = '<span style="font-size:12px;color:var(--muted);">入力待ち...</span>';
+    if(sub){
+      statusText = sub.isWatching
+        ? `<span style="font-size:12px;color:var(--muted);">👀 静観</span>`
+        : `<span style="font-size:12px;color:var(--muted);">✓ ¥${sub.price}/杯 ×${sub.maxSell}</span>`;
+    }
+    return `<div class="sub-item">
+      <span class="sub-name">${t.name}</span>
+      ${statusText}<span></span>
+    </div>`;
+  }).join('');
+  document.getElementById('t-sub-list').innerHTML = html;
+
+  const done = Object.keys(G.submissions).length;
+  document.getElementById('t-sub-count').textContent = `${done}/${G.teams.length}`;
+  document.getElementById('t-auction-btn').disabled = done < G.teams.length;
+
+  // Status table
+  const subsForStatus = G.submissions || {};
+  const rows = G.teams.map(t=>{
+    const sub = subsForStatus[encodeKey(t.name)] || subsForStatus[t.name];
+    return `<tr>
+      <td><span class="dot ${sub?'dot-s':'dot-w'}"></span>${t.name}</td>
+      <td>${sub ? (sub.isWatching ? '👀 静観' : '✓ 済') : '待機'}</td>
+      <td>${sub && !sub.isWatching ? `¥${sub.price}` : '—'}</td>
+      <td>${sub && !sub.isWatching ? sub.maxSell : '—'}</td>
+      <td class="${t.balance>=0?'pos':'neg'}">¥${t.balance.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('t-status-body').innerHTML = rows;
+}
+
+// Firebase版ではapplyCodeは不要（リアルタイム監視で自動反映）
+function applyCode(teamName, inputId){ /* unused */ }
+
+// ゲームのリアルタイム監視（教員画面）
+function listenGame(){
+  if(!DB || !GAME_ID) return;
+  DB.ref('games/'+GAME_ID).on('value', snap=>{
+    const data = snap.val();
+    if(!data) return;
+    G = data;
+    // 現在のタブに応じてUIを更新
+    const activeTab = document.querySelector('.tab.active')?.id?.replace('tt-','');
+    if(activeTab==='input') renderInputTab();
+    if(activeTab==='result') renderResultTab();
+    document.getElementById('t-badge').textContent = `${G.month}月目`;
+    // 全チーム提出済みなら集計ボタンを有効化（encodeKeyのキーで照合）
+    const subs = G.submissions || {};
+    const done = G.teams ? G.teams.filter(t=>
+      subs[encodeKey(t.name)] || subs[t.name]
+    ).length : 0;
+    const total = G.teams ? G.teams.length : 0;
+    const btn = document.getElementById('t-auction-btn');
+    if(btn) btn.disabled = done < total;
+    const countEl = document.getElementById('t-sub-count');
+    if(countEl) countEl.textContent = `${done}/${total}`;
+  });
+}
+
+// ━━━ AUCTION ENGINE ━━━
+function forceAuction(){
+  if(!G){ toast('ゲームが開始されていません',true); return; }
+  const subs = G.submissions || {};
+  const notSubmitted = G.teams.filter(t => !(subs[encodeKey(t.name)] || subs[t.name]));
+  if(notSubmitted.length === 0){ runAuction(); return; }
+  const names = notSubmitted.map(t=>t.name).join('、');
+  if(!confirm(`未提出チーム（${names}）を静観扱いにして集計しますか？`)) return;
+  const promises = notSubmitted.map(t=>
+    DB.ref('games/'+GAME_ID+'/submissions/'+encodeKey(t.name)).set({
+      team:t.name, month:G.month, lemonQty:0, sugarQty:0, baristaCount:0,
+      price:0, maxSell:0, isWatching:true, isForced:true, submitOrder:Date.now()
+    })
+  );
+  Promise.all(promises).then(()=>{
+    notSubmitted.forEach(t=>{
+      G.submissions = G.submissions||{};
+      G.submissions[encodeKey(t.name)] = {
+        team:t.name, month:G.month, lemonQty:0, sugarQty:0, baristaCount:0,
+        price:0, maxSell:0, isWatching:true, isForced:true, submitOrder:Date.now()
+      };
+    });
+    toast(`${names} を静観扱いにして集計します`);
+    runAuction();
+  });
+}
+
+function runAuction(){
+  if(!G){ toast('ゲームが開始されていません',true); return; }
+
+  // submissionsをencodeKey対応で安全に取得
+  const subs = G.submissions || {};
+  const getSubForTeam = (teamName) => subs[encodeKey(teamName)] || subs[teamName] || null;
+
+  // 全チーム揃っているか確認
+  const notSubmitted = G.teams.filter(t => !getSubForTeam(t.name));
+  if(notSubmitted.length > 0){
+    toast(`未提出チームがあります: ${notSubmitted.map(t=>t.name).join(', ')}`, true);
+    return;
+  }
+
+  const budget = parseInt(document.getElementById('t-budget').value)||0;
+  const C = G.config;
+
+  // 市場ソート（安い順。同価格は提出順）
+  const market = G.teams.map(t=>({
+    teamName: t.name, ...getSubForTeam(t.name)
+  })).sort((a,b)=> a.price!==b.price ? a.price-b.price : a.submitOrder-b.submitOrder);
+
+  let rem = budget;
+  const res = {};
+  G.teams.forEach(t=>{
+    const sub = getSubForTeam(t.name);
+    res[t.name] = { sold:0, revenue:0, cost:0, profit:0,
+      maxSell_for_stock: sub ? sub.maxSell : 0 };
+  });
+
+  // 価格帯ごとにグループ化して均等分配
+  let i = 0;
+  while(i < market.length && rem > 0){
+    const price = market[i].price;
+    if(price <= 0){ i++; continue; }
+
+    // 同価格グループを抽出
+    const group = [];
+    while(i < market.length && market[i].price === price){
+      group.push(market[i]);
+      i++;
+    }
+
+    // グループ内の購入上限合計
+    const groupMaxSell = group.map(g=>g.maxSell);
+    const totalGroupMax = groupMaxSell.reduce((a,b)=>a+b,0);
+    const totalCanAfford = Math.floor(rem / price);
+    const totalToBuy = Math.min(totalGroupMax, totalCanAfford);
+
+    if(totalToBuy <= 0) continue;
+
+    // 均等に配分（1杯ずつラウンドロビン）
+    const allocated = new Array(group.length).fill(0);
+    let remaining = totalToBuy;
+    // まず均等割
+    const baseEach = Math.floor(totalToBuy / group.length);
+    group.forEach((g, idx)=>{
+      const give = Math.min(baseEach, g.maxSell);
+      allocated[idx] = give;
+      remaining -= give;
+    });
+    // 端数を提出順（先着順）に配布
+    for(let j = 0; j < group.length && remaining > 0; j++){
+      const canGiveMore = group[j].maxSell - allocated[j];
+      if(canGiveMore > 0){
+        const extra = Math.min(canGiveMore, remaining);
+        allocated[j] += extra;
+        remaining -= extra;
+      }
+    }
+
+    // 結果に反映
+    group.forEach((g, idx)=>{
+      res[g.teamName].sold    = allocated[idx];
+      res[g.teamName].revenue = allocated[idx] * price;
+      rem -= allocated[idx] * price;
+    });
+  }
+
+  G.teams.forEach(t=>{
+    const sub = getSubForTeam(t.name);
+    const C = G.config;
+
+    // 購入材料コスト（バリスタは在庫に含まない）
+    const costLemon   = sub.lemonQty * C.costLemon;
+    const costSugar   = sub.sugarQty * C.costSugar;
+    const costBarista = sub.baristaCount * C.costBarista;
+    const totalCost   = costLemon + costSugar + costBarista;
+
+    // 販売に回した材料（maxSell杯 × レシピ分）= 売れようが売れまいが消費
+    // ※ 販売に回さなかった分（購入したが出品しなかった分）は在庫に残る
+    const sub_maxSell = res[t.name].maxSell_for_stock || getSubForTeam(t.name).maxSell || 0;
+    const usedLemon = sub_maxSell * C.recipeLemon;
+    const usedSugar = sub_maxSell * C.recipeSugar;
+
+    // 在庫更新（前月繰越 + 今月購入 - 販売に回した分）
+    const prevStockLemon = t.stockLemon || 0;
+    const prevStockSugar = t.stockSugar || 0;
+    t.stockLemon = prevStockLemon + sub.lemonQty - usedLemon;
+    t.stockSugar = prevStockSugar + sub.sugarQty - usedSugar;
+    // マイナスにはならない（通常ありえないが安全のため）
+    if(t.stockLemon < 0) t.stockLemon = 0;
+    if(t.stockSugar < 0) t.stockSugar = 0;
+
+    res[t.name].cost       = totalCost;
+    res[t.name].costLemon  = costLemon;   // 内訳: レモン代
+    res[t.name].costSugar  = costSugar;   // 内訳: 砂糖代
+    res[t.name].costBarista= costBarista; // 内訳: バリスタ代
+    res[t.name].lemonBought= sub.lemonQty;
+    res[t.name].sugarBought= sub.sugarQty;
+    res[t.name].baristaCnt = sub.baristaCount;
+    res[t.name].profit  = res[t.name].revenue - totalCost;
+    res[t.name].stockLemon = t.stockLemon;
+    res[t.name].stockSugar = t.stockSugar;
+    res[t.name].usedLemon  = usedLemon;
+    res[t.name].usedSugar  = usedSugar;
+    t.balance     += res[t.name].profit;
+    t.totalProfit  = (t.totalProfit||0) + res[t.name].profit;
+  });
+
+  // historyがなければ初期化
+  if(!Array.isArray(G.history)) G.history = [];
+
+  // 月ごとのconfigスナップショットを保存（コスト変遷の記録）
+  const configSnapshot = {
+    costLemon:    G.config.costLemon,
+    costSugar:    G.config.costSugar,
+    costBarista:  G.config.costBarista,
+    baristaCapacity: G.config.baristaCapacity,
+    recipeLemon:  G.config.recipeLemon,
+    recipeSugar:  G.config.recipeSugar,
+  };
+
+  G.history.push({
+    month: G.month, marketBudget: budget,
+    config: configSnapshot,
+    teamResults: G.teams.map(t=>({
+      name:t.name, ...res[t.name], balance:t.balance,
+      price: getSubForTeam(t.name).price,
+      maxSell: getSubForTeam(t.name).maxSell,
+    }))
+  });
+  G.lastResult = G.history[G.history.length-1];
+  G.submissions = {};
+  saveG(); // Firebaseに保存 → 生徒画面に自動反映
+
+  renderResultTab();
+  document.getElementById('t-next-btn').disabled = false;
+  tTab('result');
+  toast('集計完了！');
+}
+
+// ━━━ RESULT TAB ━━━
+function renderResultTab(){
+  if(!G || !G.lastResult) return;
+  const r = G.lastResult;
+  document.getElementById('t-res-label').textContent = `第${r.month}月`;
+  // コスト設定欄を現在値でリセット（結果タブが表示されるたびに更新）
+  const C = G.config;
+  const nl = document.getElementById('t-next-lemon');
+  const ns = document.getElementById('t-next-sugar');
+  const nb = document.getElementById('t-next-barista');
+
+  // 次月の値を取得（シナリオ優先）
+  const nextM = G.month + 1;
+  const scVals  = getScenarioMonth(nextM, G);
+  const autoNext = (!scVals && G.market) ? calcNextMonthValues(nextM, G) : null;
+  const nextVals = scVals || autoNext;
+
+  if(nl){ nl.value = nextVals ? nextVals.costLemon   : C.costLemon; }
+  if(ns){ ns.value = nextVals ? nextVals.costSugar   : C.costSugar; }
+  if(nb){ nb.value = nextVals ? nextVals.costBarista : C.costBarista; }
+
+  // 市場予算フォームにも反映
+  const budgetEl = document.getElementById('t-budget');
+  if(budgetEl && nextVals) budgetEl.value = nextVals.marketBudget;
+
+  // シナリオのイベントメッセージをプレビュー
+  if(scVals && scVals.msg && nextM <= G.maxMonths){
+    const prevEl = document.getElementById('t-next-cost-preview');
+    if(prevEl) prevEl.innerHTML =
+      `<div style="margin-top:8px;padding:8px 10px;background:rgba(74,222,128,.08);
+        border:1px solid rgba(74,222,128,.2);border-radius:6px;font-size:12px;color:var(--green);">
+        📢 次月のイベント: ${scVals.msg}</div>`;
+  }
+
+  G.nextConfig = null; // 前回の手動変更をリセット（新しい値でスタート）
+  previewNextCost();
+
+  const sorted = [...r.teamResults].sort((a,b)=>b.profit-a.profit);
+  const listHtml = sorted.map(t=>`
+    <div class="rcard ${t.profit<0?'loss':''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:700;">${t.name}</span>
+        <span class="${t.profit>=0?'pos':'neg'}" style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;">
+          ${t.profit>=0?'+':''}¥${t.profit.toLocaleString()}</span>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px;">
+        ¥${t.price}/杯 × ${t.sold}杯（上限${t.maxSell}） | 費用¥${t.cost.toLocaleString()}
+      </div>
+      <div class="mbar"><div class="mbar-fill" style="width:${t.maxSell>0?Math.round(t.sold/t.maxSell*100):0}%"></div></div>
+    </div>`).join('');
+  document.getElementById('t-month-result').innerHTML = listHtml;
+
+  const ranked = [...G.teams].sort((a,b)=>b.totalProfit-a.totalProfit);
+  const rkHtml = ranked.map((t,i)=>`<tr>
+    <td class="${['r1','r2','r3'][i]||''}">${i+1}</td>
+    <td>${t.name}</td>
+    <td class="${t.totalProfit>=0?'pos':'neg'}">
+      ${t.totalProfit>=0?'+':''}¥${t.totalProfit.toLocaleString()}</td>
+    <td>¥${t.balance.toLocaleString()}</td>
+  </tr>`).join('');
+  document.getElementById('t-ranking-body').innerHTML = rkHtml;
+
+  // Sparklines
+  const colors=['var(--accent)','var(--green)','var(--orange)','#a78bfa','#f472b6','#22d3ee'];
+  const spHtml = G.teams.map((t,ti)=>{
+    const profits = G.history.map(h=>h.teamResults.find(r=>r.name===t.name)?.profit||0);
+    const maxAbs = Math.max(...profits.map(Math.abs),1);
+    const bars = profits.map(p=>{
+      const h = Math.round(Math.abs(p)/maxAbs*56)+6;
+      return `<div class="sbar" style="height:${h}px;background:${p>=0?colors[ti%colors.length]:'var(--red)'}"></div>`;
+    }).join('');
+    return `<div style="margin-bottom:10px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">${t.name}</div>
+      <div class="spark">${bars}</div></div>`;
+  }).join('');
+  document.getElementById('t-sparks').innerHTML = spHtml;
+}
+
+function previewNextCost(){
+  if(!G) return;
+  const l = parseInt(document.getElementById('t-next-lemon').value)||G.config.costLemon;
+  const s = parseInt(document.getElementById('t-next-sugar').value)||G.config.costSugar;
+  const b = parseInt(document.getElementById('t-next-barista').value)||G.config.costBarista;
+  const C = G.config;
+  // G.nextConfigに即時保存（nextMonth()でここから読む）
+  G.nextConfig = { costLemon:l, costSugar:s, costBarista:b };
+  const changes = [];
+  if(l !== C.costLemon) changes.push(`🍋 ¥${C.costLemon}→¥${l}`);
+  if(s !== C.costSugar) changes.push(`🍬 ¥${C.costSugar}→¥${s}`);
+  if(b !== C.costBarista) changes.push(`👨‍🍳 ¥${C.costBarista}→¥${b}`);
+  const el = document.getElementById('t-next-cost-preview');
+  if(el) el.innerHTML = changes.length
+    ? `<span style="color:var(--orange);">変更: ${changes.join(' / ')}</span>`
+    : '<span style="color:var(--muted);">変更なし</span>';
+}
+
+function nextMonth(){
+  if(!G) return;
+  if(G.month >= G.maxMonths){ showFinal(); return; }
+
+  // 次月コストと市場予算を計算
+  // 優先順位: ① シナリオ > ② GM手動設定 > ③ 自動変動 > ④ 現在値
+  const nextMonthNum = G.month + 1;
+  const scenarioVals = getScenarioMonth(nextMonthNum, G);
+  const autoVals = (!scenarioVals && G.market) ? calcNextMonthValues(nextMonthNum, G) : null;
+
+  if(G.nextConfig){
+    // GMが手動で上書きした場合はそちらを優先
+    G.config.costLemon   = G.nextConfig.costLemon   || G.config.costLemon;
+    G.config.costSugar   = G.nextConfig.costSugar   || G.config.costSugar;
+    G.config.costBarista = G.nextConfig.costBarista || G.config.costBarista;
+    G.nextConfig = null;
+  } else if(scenarioVals){
+    // シナリオが設定されている場合はシナリオ値を適用
+    G.config.costLemon   = scenarioVals.costLemon;
+    G.config.costSugar   = scenarioVals.costSugar;
+    G.config.costBarista = scenarioVals.costBarista;
+  } else if(autoVals && G.market.costMode !== 'fixed'){
+    G.config.costLemon   = autoVals.costLemon;
+    G.config.costSugar   = autoVals.costSugar;
+    G.config.costBarista = autoVals.costBarista;
+  }
+
+  // 市場予算フォームを更新
+  const nextBudget = scenarioVals ? scenarioVals.marketBudget
+    : (autoVals ? autoVals.marketBudget : null);
+  if(nextBudget){
+    const budgetEl = document.getElementById('t-budget');
+    if(budgetEl) budgetEl.value = nextBudget;
+  }
+
+  // シナリオのイベントメッセージをFirebaseに保存（販売チーム・観客に通知）
+  if(scenarioVals && scenarioVals.msg){
+    G.eventMsg = { month: nextMonthNum, text: scenarioVals.msg };
+  } else {
+    G.eventMsg = null;
+  }
+
+  G.month++;
+  G.submissions = {};
+  // 次々月の予報を生成（販売チームが次月入力中に見る予報）
+  G.forecast = generateForecast(G.month + 1, G);
+  document.getElementById('t-badge').textContent = `${G.month}月目`;
+  document.getElementById('t-next-btn').disabled = true;
+  saveG(); // Firebaseに保存→生徒画面も自動更新（コスト変更含む）
+  renderLinksArea();
+  tTab('input');
+  renderInputTab();
+
+  toast(`第${G.month}月 開始！🍋¥${G.config.costLemon} 🍬¥${G.config.costSugar} 👨‍🍳¥${G.config.costBarista}`);
+}
+
+function showFinal(){
+  // 教員用：結果タブに留まりつつレポートモーダルを表示
+  buildFinalReportModal(G);
+  document.getElementById('modal-bg').classList.add('open');
+  // ライブ画面に最終状態を通知
+  if(DB && GAME_ID){
+    DB.ref('games/'+GAME_ID+'/gameOver').set(true);
+  }
+}
+
+// 生徒用：最終レポートオーバーレイを表示
+function showFinalReport(){
+  // オーバーレイを最終レポートに変換
+  const overlay = document.getElementById('s-result-overlay');
+  overlay.classList.remove('hidden');
+  overlay.style.display = 'flex';
+  // SC.gameIdからFirebaseで最新データ取得
+  DB.ref('games/'+SC.gameId).once('value').then(snap=>{
+    const gdata = snap.val();
+    if(!gdata) return;
+    buildFinalReportModal(gdata, SC.teamName, overlay.querySelector('div'));
+  });
+}
+
+function buildFinalReportModal(gdata, highlightTeam, targetEl){
+  const history = Array.isArray(gdata.history) ? gdata.history : [];
+  const isStudent = !!highlightTeam;
+
+  if(isStudent){
+    _buildStudentReport(gdata, highlightTeam, history, targetEl);
+  } else {
+    _buildTeacherReport(gdata, history, targetEl);
+  }
+}
+
+// ── 販売チーム用: 自チームの12ヶ月詳細テーブル + グラフ ──
+function _buildStudentReport(gdata, teamName, history, targetEl){
+  const medals = ['🥇','🥈','🥉','4','5','6','7','8','9','10','11','12'];
+  const ranked = [...gdata.teams].sort((a,b)=>b.totalProfit-a.totalProfit);
+  const myRank = ranked.findIndex(t=>t.name===teamName);
+  const myTeam = ranked[myRank] || {};
+
+  // 月別詳細テーブル
+  let totalRevenue=0, totalCost=0, totalProfit=0;
+  const rows = history.map(h=>{
+    const tr = (h.teamResults||[]).find(r=>r.name===teamName);
+    if(!tr) return '';
+    totalRevenue += tr.revenue||0;
+    totalCost    += tr.cost||0;
+    totalProfit  += tr.profit||0;
+    const profitColor = tr.profit>=0 ? '#4ade80' : '#f87171';
+    return `<tr style="border-bottom:1px solid #2e2e35;">
+      <td style="padding:7px 8px;color:#7a7a8a;font-family:'DM Mono',monospace;">${h.month}月</td>
+      <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;">¥${(h.config||{}).costLemon||'—'}<br><span style="font-size:10px;color:#7a7a8a;">砂糖¥${(h.config||{}).costSugar||'—'}</span></td>
+      <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;">${tr.lemonBought||0}個<br><span style="font-size:10px;color:#7a7a8a;">${tr.sugarBought||0}袋</span></td>
+      <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;">${tr.baristaCnt||0}人</td>
+      <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;">¥${(tr.price||0).toLocaleString()}<br><span style="font-size:10px;color:#7a7a8a;">${tr.sold||0}/${tr.maxSell||0}杯</span></td>
+      <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;">¥${(tr.revenue||0).toLocaleString()}</td>
+      <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;">¥${(tr.cost||0).toLocaleString()}</td>
+      <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;color:${profitColor};font-weight:600;">
+        ${tr.profit>=0?'+':''}¥${(tr.profit||0).toLocaleString()}</td>
+      <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;">¥${(tr.balance||0).toLocaleString()}</td>
+      ${(tr.stockLemon>0||tr.stockSugar>0)?`<td style="padding:7px 8px;font-size:10px;color:#f5c842;">🍋${tr.stockLemon||0}<br>🍬${tr.stockSugar||0}</td>`:'<td></td>'}
+    </tr>`;
+  }).join('');
+
+  const html = `
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:28px;">${['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','⓫','⓬'][myRank]||'—'}</div>
+      <div style="font-size:18px;font-weight:700;margin-top:6px;">${teamName}</div>
+      <div style="font-size:13px;color:#7a7a8a;">最終残高 ¥${(myTeam.balance||0).toLocaleString()} / 累計利益 <span style="color:${myTeam.totalProfit>=0?'#4ade80':'#f87171'}">${myTeam.totalProfit>=0?'+':''}¥${(myTeam.totalProfit||0).toLocaleString()}</span></div>
+    </div>
+
+    <div style="font-size:12px;color:#7a7a8a;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">12ヶ月 詳細データ</div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:640px;">
+        <thead>
+          <tr style="border-bottom:2px solid #2e2e35;color:#7a7a8a;">
+            <th style="padding:6px 8px;text-align:left;">月</th>
+            <th style="padding:6px 8px;text-align:right;">コスト</th>
+            <th style="padding:6px 8px;text-align:right;">仕入れ</th>
+            <th style="padding:6px 8px;text-align:right;">ﾊﾞﾘｽﾀ</th>
+            <th style="padding:6px 8px;text-align:right;">価格/販売</th>
+            <th style="padding:6px 8px;text-align:right;">収益</th>
+            <th style="padding:6px 8px;text-align:right;">支出</th>
+            <th style="padding:6px 8px;text-align:right;">損益</th>
+            <th style="padding:6px 8px;text-align:right;">残高</th>
+            <th style="padding:6px 8px;text-align:right;">在庫</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr style="border-top:2px solid #f5c842;font-weight:700;color:#f5c842;">
+            <td colspan="5" style="padding:8px 8px;">合計</td>
+            <td style="padding:8px 8px;text-align:right;font-family:'DM Mono',monospace;">¥${totalRevenue.toLocaleString()}</td>
+            <td style="padding:8px 8px;text-align:right;font-family:'DM Mono',monospace;">¥${totalCost.toLocaleString()}</td>
+            <td style="padding:8px 8px;text-align:right;font-family:'DM Mono',monospace;color:${totalProfit>=0?'#4ade80':'#f87171'};">
+              ${totalProfit>=0?'+':''}¥${totalProfit.toLocaleString()}</td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div style="margin-top:20px;">
+      <div style="font-size:12px;color:#7a7a8a;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">月別損益グラフ</div>
+      <canvas id="s-final-chart" style="width:100%;max-height:200px;"></canvas>
+    </div>
+
+    <div style="margin-top:16px;display:flex;gap:8px;">
+      <button class="btn btn-p" style="flex:1;" onclick="exportMyCSV('${teamName}')">📥 自チームCSV</button>
+      <button class="btn btn-o" style="flex:1;" onclick="window.print()">🖨️ 印刷・PDF</button>
+    </div>`;
+
+  if(targetEl){
+    targetEl.innerHTML = `<div style="width:100%;max-width:700px;max-height:90vh;overflow-y:auto;
+      background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;">${html}</div>`;
+  } else {
+    document.getElementById('modal-title').textContent = '最終レポート — '+teamName;
+    document.getElementById('modal-body').innerHTML = html;
+  }
+  // Chart.js で折れ線グラフ描画
+  setTimeout(()=>_drawStudentChart(history, teamName), 100);
+}
+
+function _drawStudentChart(history, teamName){
+  const canvas = document.getElementById('s-final-chart');
+  if(!canvas || !window.Chart) return;
+  // 既存のチャートを破棄
+  if(canvas._chartInst) canvas._chartInst.destroy();
+  const labels = history.map(h=>h.month+'月');
+  const profits = history.map(h=>{
+    const tr = (h.teamResults||[]).find(r=>r.name===teamName);
+    return tr ? tr.profit : 0;
+  });
+  const balances = history.map(h=>{
+    const tr = (h.teamResults||[]).find(r=>r.name===teamName);
+    return tr ? tr.balance : 0;
+  });
+  canvas._chartInst = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '月次損益',
+          data: profits,
+          backgroundColor: profits.map(p=>p>=0?'rgba(74,222,128,.7)':'rgba(248,113,113,.7)'),
+          borderRadius: 4,
+          order: 2,
+        },
+        {
+          label: '累計残高',
+          data: balances,
+          type: 'line',
+          borderColor: '#f5c842',
+          backgroundColor: 'rgba(245,200,66,.1)',
+          pointBackgroundColor: '#f5c842',
+          pointRadius: 4,
+          tension: 0.3,
+          fill: true,
+          yAxisID: 'y2',
+          order: 1,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#e8e8ea', font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ¥${ctx.raw.toLocaleString()}`
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color:'#7a7a8a', font:{size:10} }, grid: { color:'#2e2e35' } },
+        y: {
+          ticks: { color:'#7a7a8a', font:{size:10},
+            callback: v => '¥'+v.toLocaleString() },
+          grid: { color:'#2e2e35' },
+          title: { display:true, text:'月次損益', color:'#7a7a8a', font:{size:10} }
+        },
+        y2: {
+          position: 'right',
+          ticks: { color:'#f5c842', font:{size:10},
+            callback: v => '¥'+v.toLocaleString() },
+          grid: { drawOnChartArea:false },
+          title: { display:true, text:'残高', color:'#f5c842', font:{size:10} }
+        }
+      }
+    }
+  });
+}
+
+// ── 教員用: 全チームデータ ──
+function _buildTeacherReport(gdata, history, targetEl){
+  const ranked = [...gdata.teams].sort((a,b)=>b.totalProfit-a.totalProfit);
+  const medals = ['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','⓫','⓬'];
+  const teamColors = ['#f5c842','#4ade80','#f97316','#a78bfa','#f472b6','#22d3ee'];
+
+  // ランキング
+  const rankingHTML = ranked.map((t,i)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;
+      padding:9px 12px;border-radius:8px;margin-bottom:5px;background:var(--surface2);">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:16px;">${medals[i]}</span>
+        <div>
+          <div style="font-weight:700;font-size:13px;">${t.name}</div>
+          <div style="font-size:11px;color:#7a7a8a;">残高 ¥${(t.balance||0).toLocaleString()}</div>
+        </div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;
+        color:${t.totalProfit>=0?'#4ade80':'#f87171'};">
+        ${t.totalProfit>=0?'+':''}¥${(t.totalProfit||0).toLocaleString()}</div>
+    </div>`).join('');
+
+  // チーム別スパークライン
+  const sparklines = gdata.teams.map((t,ti)=>{
+    const profits = history.map(h=>{
+      const tr = (h.teamResults||[]).find(r=>r.name===t.name);
+      return tr ? tr.profit : 0;
+    });
+    const maxAbs = Math.max(...profits.map(Math.abs),1);
+    const col = teamColors[ti%teamColors.length];
+    const bars = profits.map(p=>{
+      const h = Math.round(Math.abs(p)/maxAbs*56)+4;
+      return `<div style="flex:1;min-width:8px;border-radius:2px 2px 0 0;height:${h}px;
+        background:${p>=0?col:'#f87171'};opacity:.85;"></div>`;
+    }).join('');
+    return `<div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">
+        <span style="color:#e8e8ea;">${t.name}</span>
+        <span style="color:${t.totalProfit>=0?'#4ade80':'#f87171'};font-family:'DM Mono',monospace;">
+          ${t.totalProfit>=0?'+':''}¥${(t.totalProfit||0).toLocaleString()}</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:2px;height:64px;">${bars}</div>
+    </div>`;
+  }).join('');
+
+  // 月別コスト推移テーブル
+  const costRows = history.map(h=>{
+    const cfg = h.config||{};
+    return `<tr style="border-bottom:1px solid #2e2e35;">
+      <td style="padding:5px 8px;color:#7a7a8a;font-family:'DM Mono',monospace;">${h.month}月</td>
+      <td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace;">¥${(h.marketBudget||0).toLocaleString()}</td>
+      <td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace;">¥${cfg.costLemon||'—'}</td>
+      <td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace;">¥${cfg.costSugar||'—'}</td>
+      <td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace;">¥${cfg.costBarista||'—'}</td>
+    </tr>`;
+  }).join('');
+
+  // 市場規模スパーク
+  const maxBudget = Math.max(...history.map(h=>h.marketBudget||0),1);
+  const budgetBars = history.map(h=>{
+    const hpx = Math.round((h.marketBudget||0)/maxBudget*50)+4;
+    return `<div style="flex:1;min-width:8px;border-radius:2px 2px 0 0;height:${hpx}px;background:#378ADD;opacity:.8;"></div>`;
+  }).join('');
+
+  const html = `
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:32px;">🏆</div>
+      <div style="font-size:11px;color:#7a7a8a;margin-top:4px;">${history.length}ヶ月間の総合結果</div>
+    </div>
+
+    <div style="font-size:12px;color:#7a7a8a;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">最終ランキング</div>
+    ${rankingHTML}
+
+    <div style="font-size:12px;color:#7a7a8a;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;">月別損益推移</div>
+    ${sparklines}
+
+    <div style="font-size:12px;color:#7a7a8a;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;">市場規模・コスト推移</div>
+    <div style="display:flex;align-items:flex-end;gap:2px;height:58px;background:var(--surface2);border-radius:8px;padding:6px 8px 0;">${budgetBars}</div>
+    <div style="overflow-x:auto;margin-top:8px;">
+      <table style="width:100%;border-collapse:collapse;font-size:11px;">
+        <thead><tr style="color:#7a7a8a;border-bottom:1px solid #2e2e35;">
+          <th style="padding:5px 8px;text-align:left;">月</th>
+          <th style="padding:5px 8px;text-align:right;">市場予算</th>
+          <th style="padding:5px 8px;text-align:right;">🍋/個</th>
+          <th style="padding:5px 8px;text-align:right;">🍬/袋</th>
+          <th style="padding:5px 8px;text-align:right;">👨‍🍳/人</th>
+        </tr></thead>
+        <tbody>${costRows}</tbody>
+      </table>
+    </div>
+
+    <div style="font-size:12px;color:#7a7a8a;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;">各チームの詳細</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;" id="gm-team-tabs">
+      ${gdata.teams.map((t,i)=>`
+        <button onclick="gmShowTeamDetail('${t.name}')"
+          style="padding:5px 12px;border-radius:6px;border:1px solid ${i===0?'var(--accent)':'var(--border)'};
+          background:${i===0?'rgba(245,200,66,.15)':'transparent'};color:${i===0?'var(--accent)':'var(--muted)'};
+          font-size:12px;cursor:pointer;font-family:inherit;" id="gmt-${t.name.replace(/[^a-zA-Z0-9]/g,'_')}">${t.name}</button>`).join('')}
+    </div>
+    <div id="gm-team-detail"></div>
+
+    <div style="margin-top:16px;display:flex;gap:8px;">
+      <button class="btn btn-p" style="flex:1;" onclick="exportFinalCSV()">📥 全チームCSV</button>
+      <button class="btn btn-o" style="flex:1;" onclick="window.print()">🖨️ 印刷・PDF</button>
+    </div>`;
+
+  // グローバルに現在のgdataを保持（タブ切り替え用）
+  window._gmReportData = gdata;
+
+  if(targetEl){
+    targetEl.innerHTML = `<div style="width:100%;max-width:680px;max-height:90vh;overflow-y:auto;
+      background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;">${html}</div>`;
+  } else {
+    document.getElementById('modal-title').textContent = '12ヶ月 最終レポート';
+    document.getElementById('modal-body').innerHTML = html;
+  }
+  // 最初のチームを表示
+  setTimeout(()=>{ if(gdata.teams && gdata.teams[0]) gmShowTeamDetail(gdata.teams[0].name); }, 100);
+}
+
+function gmShowTeamDetail(teamName){
+  const gdata = window._gmReportData;
+  if(!gdata) return;
+  const history = Array.isArray(gdata.history) ? gdata.history : [];
+  // タブハイライト
+  gdata.teams.forEach(t=>{
+    const btn = document.getElementById('gmt-'+t.name.replace(/[^a-zA-Z0-9]/g,'_'));
+    if(!btn) return;
+    const active = t.name === teamName;
+    btn.style.borderColor = active ? 'var(--accent)' : 'var(--border)';
+    btn.style.background  = active ? 'rgba(245,200,66,.15)' : 'transparent';
+    btn.style.color       = active ? 'var(--accent)' : 'var(--muted)';
+  });
+  // テーブル生成
+  let totalRev=0, totalCost=0, totalProfit=0;
+  const rows = history.map(h=>{
+    const tr = (h.teamResults||[]).find(r=>r.name===teamName);
+    if(!tr) return '';
+    totalRev    += tr.revenue||0;
+    totalCost   += tr.cost||0;
+    totalProfit += tr.profit||0;
+    const pc = tr.profit>=0?'#4ade80':'#f87171';
+    return `<tr style="border-bottom:1px solid #2e2e35;font-size:11px;">
+      <td style="padding:5px 6px;color:#7a7a8a;">${h.month}月</td>
+      <td style="padding:5px 6px;text-align:right;">¥${(h.config||{}).costLemon||'—'}/¥${(h.config||{}).costSugar||'—'}</td>
+      <td style="padding:5px 6px;text-align:right;">${tr.lemonBought||0}/${tr.sugarBought||0}</td>
+      <td style="padding:5px 6px;text-align:right;">${tr.baristaCnt||0}</td>
+      <td style="padding:5px 6px;text-align:right;">¥${tr.price||0}×${tr.sold||0}/${tr.maxSell||0}</td>
+      <td style="padding:5px 6px;text-align:right;">¥${(tr.revenue||0).toLocaleString()}</td>
+      <td style="padding:5px 6px;text-align:right;">¥${(tr.cost||0).toLocaleString()}</td>
+      <td style="padding:5px 6px;text-align:right;color:${pc};font-weight:600;">
+        ${tr.profit>=0?'+':''}¥${(tr.profit||0).toLocaleString()}</td>
+      <td style="padding:5px 6px;text-align:right;">¥${(tr.balance||0).toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+  const myTeam = gdata.teams.find(t=>t.name===teamName)||{};
+  document.getElementById('gm-team-detail').innerHTML = `
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:560px;">
+        <thead><tr style="color:#7a7a8a;border-bottom:1px solid #2e2e35;">
+          <th style="padding:5px 6px;text-align:left;">月</th>
+          <th style="padding:5px 6px;text-align:right;">L/S単価</th>
+          <th style="padding:5px 6px;text-align:right;">仕入L/S</th>
+          <th style="padding:5px 6px;text-align:right;">人</th>
+          <th style="padding:5px 6px;text-align:right;">価格×販売/上限</th>
+          <th style="padding:5px 6px;text-align:right;">収益</th>
+          <th style="padding:5px 6px;text-align:right;">支出</th>
+          <th style="padding:5px 6px;text-align:right;">損益</th>
+          <th style="padding:5px 6px;text-align:right;">残高</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr style="border-top:1px solid #f5c842;color:#f5c842;font-weight:700;font-size:11px;">
+          <td colspan="5" style="padding:5px 6px;">合計</td>
+          <td style="padding:5px 6px;text-align:right;">¥${totalRev.toLocaleString()}</td>
+          <td style="padding:5px 6px;text-align:right;">¥${totalCost.toLocaleString()}</td>
+          <td style="padding:5px 6px;text-align:right;color:${totalProfit>=0?'#4ade80':'#f87171'};">
+            ${totalProfit>=0?'+':''}¥${totalProfit.toLocaleString()}</td>
+          <td style="padding:5px 6px;text-align:right;">¥${(myTeam.balance||0).toLocaleString()}</td>
+        </tfoot>
+      </table>
+    </div>
+    <div style="margin-top:8px;">
+      <canvas id="gm-team-chart-${teamName.replace(/[^a-zA-Z0-9]/g,'_')}" style="max-height:160px;"></canvas>
+    </div>`;
+  // 小さいチャートを描画
+  setTimeout(()=>{
+    const cid = 'gm-team-chart-'+teamName.replace(/[^a-zA-Z0-9]/g,'_');
+    const cv = document.getElementById(cid);
+    if(!cv||!window.Chart) return;
+    if(cv._c) cv._c.destroy();
+    const labels = history.map(h=>h.month+'月');
+    const profits = history.map(h=>{ const tr=(h.teamResults||[]).find(r=>r.name===teamName); return tr?tr.profit:0; });
+    cv._c = new Chart(cv,{type:'bar',data:{labels,datasets:[{data:profits,
+      backgroundColor:profits.map(p=>p>=0?'rgba(74,222,128,.7)':'rgba(248,113,113,.7)'),borderRadius:3}]},
+      options:{plugins:{legend:{display:false}},scales:{
+        x:{ticks:{color:'#7a7a8a',font:{size:9}},grid:{color:'#2e2e35'}},
+        y:{ticks:{color:'#7a7a8a',font:{size:9},callback:v=>'¥'+v.toLocaleString()},grid:{color:'#2e2e35'}}
+      }}});
+  },50);
+}
+
+function exportFinalCSV(){
+  const gdata = G || null;
+  if(!gdata || !Array.isArray(gdata.history) || !gdata.history.length){
+    toast('データがありません',true); return;
+  }
+  let csv = '月,チーム,レモン仕入,砂糖仕入,バリスタ,価格,上限,販売数,収益,レモン代,砂糖代,バリスタ代,総費用,損益,残高,繰越レモン,繰越砂糖,市場予算,レモン単価,砂糖単価,バリスタ単価\n';
+  gdata.history.forEach(h=>{
+    const cfg = h.config||{};
+    (h.teamResults||[]).forEach(t=>{
+      csv += [h.month,t.name,t.lemonBought||0,t.sugarBought||0,t.baristaCnt||0,
+        t.price,t.maxSell,t.sold,t.revenue,
+        t.costLemon||0,t.costSugar||0,t.costBarista||0,t.cost,t.profit,t.balance,
+        t.stockLemon||0,t.stockSugar||0,
+        h.marketBudget||0,cfg.costLemon||0,cfg.costSugar||0,cfg.costBarista||0
+      ].join(',')+('\n');
+    });
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download = 'lemonade_all_teams.csv';
+  a.click();
+  toast('全チームCSVを保存しました');
+}
+
+function exportMyCSV(teamName){
+  const gdata = G || null;
+  // 生徒側の場合はFirebaseから取得
+  if(!gdata && SC){
+    DB.ref('games/'+SC.gameId).once('value').then(snap=>{
+      _doExportMyCSV(snap.val(), teamName);
+    });
+    return;
+  }
+  _doExportMyCSV(gdata, teamName);
+}
+
+function _doExportMyCSV(gdata, teamName){
+  if(!gdata || !Array.isArray(gdata.history) || !gdata.history.length){
+    toast('データがありません',true); return;
+  }
+  let csv = '月,レモン仕入,砂糖仕入,バリスタ,価格,販売上限,販売数,収益,レモン代,砂糖代,バリスタ代,総費用,損益,残高,繰越レモン,繰越砂糖,市場予算,レモン単価,砂糖単価,バリスタ単価\n';
+  gdata.history.forEach(h=>{
+    const cfg = h.config||{};
+    const t = (h.teamResults||[]).find(r=>r.name===teamName);
+    if(!t) return;
+    csv += [h.month,t.lemonBought||0,t.sugarBought||0,t.baristaCnt||0,
+      t.price,t.maxSell,t.sold,t.revenue,
+      t.costLemon||0,t.costSugar||0,t.costBarista||0,t.cost,t.profit,t.balance,
+      t.stockLemon||0,t.stockSugar||0,
+      h.marketBudget||0,cfg.costLemon||0,cfg.costSugar||0,cfg.costBarista||0
+    ].join(',')+('\n');
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download = `lemonade_${teamName}.csv`;
+  a.click();
+  toast(teamName+'のCSVを保存しました');
+}
+
+// ━━━ GAME MASTER TABS ━━━
+function tTab(name){
+  ['setup','input','result'].forEach(n=>{
+    document.getElementById('tt-'+n).classList.toggle('active',n===name);
+    document.getElementById('tp-'+n).classList.toggle('active',n===name);
+  });
+  if(name==='input') renderInputTab();
+  if(name==='result') renderResultTab();
+}
+
+// ━━━ SALES TEAM: LOAD CODE ━━━
+
+// Step1: 参加コードでゲームを検索
+function lookupJoinCode(){
+  const raw = document.getElementById('s-game-code').value.trim().replace(/-/g,'').toUpperCase();
+  if(raw.length < 6){ toast('コードを入力してください',true); return; }
+  toast('検索中...');
+  findGameByJoinCode(raw, (gid, gdata)=>{
+    if(!gid || !gdata){
+      toast('コードが見つかりません。GMに確認してください',true);
+      return;
+    }
+    if(!gdata.teams || gdata.teams.length === 0){
+      toast('ゲームデータが見つかりません',true);
+      return;
+    }
+    // Step2: チーム選択画面を表示
+    hide('s-step1');
+    show('s-step2');
+    document.getElementById('s-step2-info').textContent =
+      `ゲーム: 第${gdata.month}月 / ${gdata.teams.length}チーム`;
+    const colors = ['#f5c842','#4ade80','#f97316','#a78bfa','#f472b6','#22d3ee'];
+    document.getElementById('s-team-buttons').innerHTML = gdata.teams.map((t,i)=>{
+      const col = colors[i % colors.length];
+      return `<button
+        style="padding:16px;border-radius:10px;border:2px solid ${col};background:${col}22;
+          color:var(--text);font-size:18px;font-weight:700;cursor:pointer;
+          font-family:'Sora',sans-serif;text-align:left;width:100%;transition:all .15s;"
+        onmouseover="this.style.background='${col}44'"
+        onmouseout="this.style.background='${col}22'"
+        onclick="selectTeam('${gid}','${t.name.replace(/'/g,"\'")}')">
+        <span style="color:${col};margin-right:10px;">●</span>${t.name}
+      </button>`;
+    }).join('');
+  });
+}
+
+function backToStep1(){
+  hide('s-step2');
+  show('s-step1');
+}
+
+// Step2: チームを選んで参加
+function selectTeam(gid, tname){
+  toast('参加中...');
+  DB.ref('games/'+gid).once('value').then(snap=>{
+    const gameData = snap.val();
+    if(!gameData){ toast('ゲームデータが見つかりません',true); return; }
+    const myTeamInit = gameData.teams && gameData.teams.find(t=>t.name===tname);
+    SC = {
+      config: gameData.config,
+      teams: gameData.teams.map(t=>t.name),
+      month: gameData.month,
+      teamName: tname,
+      balance: myTeamInit ? myTeamInit.balance : gameData.config.startFund,
+      stockLemon: myTeamInit ? (myTeamInit.stockLemon||0) : 0,
+      stockSugar: myTeamInit ? (myTeamInit.stockSugar||0) : 0,
+      gameId: gid,
+    };
+    // loadGameCode の後半処理を呼び出す
+    _setupStudentUI(SC, gameData, gid);
+  }).catch(e=>{ toast('接続エラー: '+e.message, true); });
+}
+
+function loadGameCode(){
+  // 旧形式のゲームコード（btoa）にも対応（後方互換）
+  const raw = document.getElementById('s-game-code').value.trim();
+  if(!raw){ toast('コードを入力してください',true); return; }
+  try{
+    const json = decodeURIComponent(escape(atob(raw)));
+    const parsed = JSON.parse(json);
+    if(!parsed.gameId||!parsed.teamName){ throw new Error('invalid'); }
+    const gid = parsed.gameId;
+    const tname = parsed.teamName;
+    DB.ref('games/'+gid).once('value').then(snap=>{
+      const gameData = snap.val();
+      if(!gameData){ toast('ゲームが見つかりません',true); return; }
+      const myTeamInit = gameData.teams && gameData.teams.find(t=>t.name===tname);
+      SC = {
+        config: gameData.config,
+        teams: gameData.teams.map(t=>t.name),
+        month: gameData.month,
+        teamName: tname,
+        balance: myTeamInit ? myTeamInit.balance : gameData.config.startFund,
+        stockLemon: myTeamInit ? (myTeamInit.stockLemon||0) : 0,
+        stockSugar: myTeamInit ? (myTeamInit.stockSugar||0) : 0,
+        gameId: gid,
+      };
+      _setupStudentUI(SC, gameData, gid);
+    }).catch(e=>{ toast('接続エラー: '+e.message, true); });
+  }catch(e){ toast('コードが正しくありません',true); }
+}
+
+// 販売チームUIのセットアップ（参加コード・旧コード共通の後半処理）
+function _setupStudentUI(SC, gameData, gid){
+      const gameData2 = gameData; // エイリアス
+
+    // configのサニタイズ：欠損・異常値を安全なデフォルト値で補完
+    const C = SC.config;
+    C.costLemon      = (C.costLemon      > 0 && C.costLemon      < 1000000) ? C.costLemon      : 80;
+    C.costSugar      = (C.costSugar      > 0 && C.costSugar      < 1000000) ? C.costSugar      : 50;
+    C.costBarista    = (C.costBarista    > 0 && C.costBarista    < 1000000) ? C.costBarista    : 2000;
+    C.baristaCapacity= (C.baristaCapacity> 0 && C.baristaCapacity< 100000)  ? C.baristaCapacity: 20;
+    C.recipeLemon    = (C.recipeLemon    > 0 && C.recipeLemon    < 100)     ? C.recipeLemon    : 1;
+    C.recipeSugar    = (C.recipeSugar    > 0 && C.recipeSugar    < 100)     ? C.recipeSugar    : 1;
+    C.startFund      = (C.startFund      > 0)                               ? C.startFund      : 10000;
+
+    hide('s-code-entry');
+    show('s-form');
+    document.getElementById('s-team-name').textContent = SC.teamName;
+    document.getElementById('s-badge').textContent = `${SC.month}月目`;
+    document.getElementById('s-balance').textContent = `¥${(SC.balance||C.startFund).toLocaleString()}`;
+    document.getElementById('s-month-info').textContent = `第${SC.month}月`;
+
+    // フォームの初期値をリセット（前回の入力値が残らないように）
+    document.getElementById('ts-lemon').value   = C.baristaCapacity;   // バリスタ1人分の材料をデフォルト
+    document.getElementById('ts-sugar').value   = C.baristaCapacity;
+    document.getElementById('ts-barista').value = 1;
+    document.getElementById('s-price').value   = 300;
+    document.getElementById('s-max').value     = C.baristaCapacity;
+
+    // Recipe chips
+    document.getElementById('s-recipe-box').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:20px;">🍋</div>
+        <div style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);">¥${C.costLemon}</div>
+        <div style="font-size:11px;color:var(--muted);">レモン 1個</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:20px;">🍬</div>
+        <div style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);">¥${C.costSugar}</div>
+        <div style="font-size:11px;color:var(--muted);">砂糖 1袋</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:20px;">👨‍🍳</div>
+        <div style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);">¥${C.costBarista}</div>
+        <div style="font-size:11px;color:var(--muted);">バリスタ 1人（${C.baristaCapacity}杯/人）</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:20px;">🥤</div>
+        <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:var(--text);">L×${C.recipeLemon}+S×${C.recipeSugar}</div>
+        <div style="font-size:11px;color:var(--muted);">1杯のレシピ</div>
+      </div>
+    </div>`;
+
+      hide('s-code-out');
+      sUpdate();
+      renderForecast(gid); // ログイン時に市場インテリジェンスを表示
+      toast(`${SC.teamName} でログインしました（第${SC.month}月）`);
+      // ゲーム全体をリアルタイム監視
+      let lastSeenResultMonth = 0;
+      let waitingForNextMonth = false; // 次月待ち状態フラグ
+
+      DB.ref('games/'+gid).on('value', snap=>{
+        const gdata = snap.val();
+        if(!gdata || !SC) return;
+
+        const myTeam = gdata.teams && gdata.teams.find(t=>t.name===SC.teamName);
+        const newBalance = myTeam ? myTeam.balance : SC.balance;
+        const newStock = myTeam ? { l: myTeam.stockLemon||0, s: myTeam.stockSugar||0 } : null;
+
+        // ① 結果が出た → 結果モーダルを表示
+        if(gdata.lastResult && gdata.lastResult.month > lastSeenResultMonth){
+          lastSeenResultMonth = gdata.lastResult.month;
+          SC.balance = newBalance;
+          if(newStock){ SC.stockLemon = newStock.l; SC.stockSugar = newStock.s; }
+          showStudentResult(gdata.lastResult, SC.teamName, newBalance, gdata.month);
+          waitingForNextMonth = true; // 次月開始待ちに
+        }
+
+        // ② 教員が次の月へ進んだ → ボタン有効化 or 自動遷移
+        if(waitingForNextMonth && gdata.month > lastSeenResultMonth){
+          waitingForNextMonth = false;
+          SC.pendingMonth = gdata.month;
+          SC.pendingBalance = newBalance;
+          if(newStock){ SC.stockLemon = newStock.l; SC.stockSugar = newStock.s; }
+          if(gdata.config) SC.config = gdata.config;
+          // シナリオのイベントメッセージがあれば表示
+          if(gdata.eventMsg && gdata.eventMsg.month === gdata.month){
+            SC.pendingEventMsg = gdata.eventMsg.text;
+          }
+          // 結果モーダルのボタンを有効化
+          const btn = document.getElementById('s-result-next-btn');
+          if(btn && btn.disabled){
+            btn.textContent = `第${gdata.month}月の入力へ →`;
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.onclick = studentGoNextMonth;
+            document.getElementById('s-result-next-hint').textContent = '';
+            toast('GMが次の月を開始しました！');
+          }
+        }
+      });
+}
+
+// ━━━ SALES TEAM: RESULT MODAL ━━━
+function showStudentResult(result, myTeamName, myBalance, nextMonth){
+  // 自チームの結果を取得
+  const myResult = result.teamResults.find(r=>r.name===myTeamName);
+  if(!myResult) return;
+
+  const profit = myResult.profit;
+  const isProfit = profit >= 0;
+
+  // 絵文字・タイトル
+  document.getElementById('s-result-emoji').textContent =
+    profit > 5000 ? '🎉' : profit > 0 ? '😊' : profit === 0 ? '😐' : '😓';
+  document.getElementById('s-result-title').textContent =
+    profit > 0 ? '利益が出ました！' : profit === 0 ? 'トントンでした' : '今月は赤字でした…';
+  document.getElementById('s-result-month').textContent = `第${result.month}月の結果`;
+
+  // 自チーム詳細
+  document.getElementById('s-result-myteam').innerHTML = `
+    <div style="background:var(--surface2);border-radius:10px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span style="font-weight:700;font-size:15px;">${myTeamName}</span>
+        <span style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;
+          color:${isProfit?'var(--green)':'var(--red)'};">
+          ${isProfit?'+':''}¥${profit.toLocaleString()}
+        </span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:var(--muted);">
+        <div>販売数</div><div style="text-align:right;font-family:'DM Mono',monospace;color:var(--text);">
+          ${myResult.sold}杯 / 上限${myResult.maxSell}杯</div>
+        <div>販売価格</div><div style="text-align:right;font-family:'DM Mono',monospace;color:var(--text);">
+          ¥${myResult.price}/杯</div>
+        <div>総費用</div><div style="text-align:right;font-family:'DM Mono',monospace;color:var(--text);">
+          ¥${myResult.cost.toLocaleString()}</div>
+        <div>収益</div><div style="text-align:right;font-family:'DM Mono',monospace;color:var(--text);">
+          ¥${myResult.revenue.toLocaleString()}</div>
+        ${(myResult.stockLemon>0||myResult.stockSugar>0) ? `
+        <div style="color:var(--accent);">次月への在庫</div>
+        <div style="text-align:right;font-family:'DM Mono',monospace;color:var(--accent);">
+          🍋${myResult.stockLemon}個 🍬${myResult.stockSugar}袋</div>` : ''}
+      </div>
+      <div style="height:6px;background:var(--surface);border-radius:3px;margin-top:12px;overflow:hidden;">
+        <div style="height:100%;background:var(--accent);border-radius:3px;
+          width:${myResult.maxSell>0?Math.round(myResult.sold/myResult.maxSell*100):0}%;transition:width .8s;"></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;text-align:right;">
+        販売達成率 ${myResult.maxSell>0?Math.round(myResult.sold/myResult.maxSell*100):0}%</div>
+    </div>`;
+
+  // 全チームランキング
+  const sorted = [...result.teamResults].sort((a,b)=>b.profit-a.profit);
+  const rankEmoji = ['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣'];
+  document.getElementById('s-result-ranking').innerHTML = sorted.map((t,i)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;
+      padding:8px 10px;border-radius:7px;margin-bottom:4px;
+      background:${t.name===myTeamName?'rgba(245,200,66,.12)':'var(--surface2)'};
+      border:${t.name===myTeamName?'1px solid rgba(245,200,66,.3)':'1px solid transparent'};">
+      <span style="font-size:14px;">${rankEmoji[i]||i+1} ${t.name}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:13px;
+        color:${t.profit>=0?'var(--green)':'var(--red)'};">
+        ${t.profit>=0?'+':''}¥${t.profit.toLocaleString()}</span>
+    </div>`).join('');
+
+  // 累計残高
+  document.getElementById('s-result-balance').textContent = `¥${myBalance.toLocaleString()}`;
+  document.getElementById('s-result-balance').style.color =
+    myBalance >= 0 ? 'var(--green)' : 'var(--red)';
+
+  // ボタンと案内 — 教員が次月を開始するまでグレーアウト
+  const btn = document.getElementById('s-result-next-btn');
+  const hint = document.getElementById('s-result-next-hint');
+  if(result.month >= 12){
+    btn.textContent = '📊 最終レポートを見る';
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.onclick = showFinalReport;
+    hint.textContent = '1年間お疲れ様でした！';
+  } else {
+    const isNextReady = SC.pendingMonth && SC.pendingMonth > result.month;
+    btn.textContent = isNextReady ? `第${SC.pendingMonth}月の入力へ →` : `GMが次の月を開始するまでお待ちください`;
+    btn.disabled = !isNextReady;
+    btn.style.opacity = isNextReady ? '1' : '0.4';
+    hint.textContent = isNextReady ? '' : 'GMが「次の月へ」を押すと入力できます';
+    // ボタン有効化はFirebaseリスナー（DB.ref games.on）側で行うので不要
+  }
+
+  // オーバーレイ表示
+  const overlay = document.getElementById('s-result-overlay');
+  overlay.classList.remove('hidden');
+  overlay.style.display = 'flex';
+}
+
+function studentGoNextMonth(){
+  if(!SC) return;
+
+  // 教員がまだ次月を開始していない場合
+  if(!SC.pendingMonth || SC.pendingMonth <= SC.month){
+    toast('GMが次の月を開始するまでお待ちください');
+    return;
+  }
+
+  // オーバーレイを閉じる
+  const overlay = document.getElementById('s-result-overlay');
+  overlay.classList.add('hidden');
+  overlay.style.display = '';
+
+  // 月を更新（config/stock はFirebaseリスナーで既に最新化済み）
+  SC.month = SC.pendingMonth;
+  SC.balance = SC.pendingBalance || SC.balance;
+
+  document.getElementById('s-badge').textContent = `${SC.month}月目`;
+  document.getElementById('s-month-info').textContent = `第${SC.month}月`;
+  document.getElementById('s-balance').textContent = `¥${(SC.balance||0).toLocaleString()}`;
+  hide('s-code-out');
+
+  const C = SC.config;
+  const stockInfo = (SC.stockLemon>0||SC.stockSugar>0)
+    ? `<span class="chip" style="background:rgba(245,200,66,.15);border-color:rgba(245,200,66,.4);">📦 繰越在庫: 🍋${SC.stockLemon}個 🍬${SC.stockSugar}袋</span>` : '';
+  document.getElementById('s-recipe-box').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:20px;">🍋</div>
+        <div style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);">¥${C.costLemon}</div>
+        <div style="font-size:11px;color:var(--muted);">レモン 1個</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:20px;">🍬</div>
+        <div style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);">¥${C.costSugar}</div>
+        <div style="font-size:11px;color:var(--muted);">砂糖 1袋</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:20px;">👨‍🍳</div>
+        <div style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);">¥${C.costBarista}</div>
+        <div style="font-size:11px;color:var(--muted);">バリスタ 1人（${C.baristaCapacity}杯/人）</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:20px;">🥤</div>
+        <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:var(--text);">L×${C.recipeLemon}+S×${C.recipeSugar}</div>
+        <div style="font-size:11px;color:var(--muted);">1杯のレシピ</div>
+      </div>
+    </div>`;
+
+  // 市場予報を表示（次月の予測）
+  renderForecast(SC.gameId);
+
+  document.getElementById('s-lemon').value = 0;
+  document.getElementById('s-sugar').value = 0;
+  document.getElementById('s-barista').value = 1;
+  document.getElementById('s-price').value = 300;
+  document.getElementById('s-max').value = C.baristaCapacity;
+  sUpdate();
+
+  const stockMsg = (SC.stockLemon>0||SC.stockSugar>0)
+    ? ` 📦繰越: 🍋${SC.stockLemon} 🍬${SC.stockSugar}` : '';
+  toast(`第${SC.month}月 開始！🍋¥${C.costLemon} 🍬¥${C.costSugar}${stockMsg}`);
+
+  // シナリオのイベントメッセージを表示
+  if(SC.pendingEventMsg){
+    const msg = SC.pendingEventMsg;
+    SC.pendingEventMsg = null;
+    setTimeout(()=>{
+      const banner = document.createElement('div');
+      banner.style.cssText = `position:fixed;top:70px;left:50%;transform:translateX(-50%);
+        background:var(--surface);border:2px solid var(--accent);border-radius:12px;
+        padding:14px 20px;font-size:14px;font-weight:600;z-index:400;
+        max-width:90vw;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.5);
+        animation:fadeInDown .4s ease;`;
+      banner.textContent = msg;
+      document.body.appendChild(banner);
+      setTimeout(()=>banner.remove(), 5000);
+    }, 800);
+  }
+}
+
+// ━━━ SALES TEAM: LIVE UPDATE ━━━
+function sVal(id){ return parseInt(document.getElementById(id).value)||0; }
+
+// ━━━ FORECAST RENDER (販売チーム側) ━━━
+function renderForecast(gameId){
+  // ゲームデータ全体を取得して先月/今月/来月を組み立て
+  DB.ref('games/'+gameId).once('value').then(snap=>{
+    const gdata = snap.val();
+    const card = document.getElementById('s-forecast-card');
+    const el = document.getElementById('s-forecast-content');
+    if(!gdata || !el || !card){ if(card) card.style.display='none'; return; }
+
+    const history = Array.isArray(gdata.history) ? gdata.history : [];
+    const currentMonth = SC.month;
+    const C = gdata.config; // 今月のコスト（確定値）
+
+    // ── 先月（実測値）──
+    const lastH = history.length > 0 ? history[history.length-1] : null;
+    const lastCfg = lastH ? (lastH.config||{}) : null;
+
+    // ── 来月（予測値）── gdata.forecast or 再計算
+    const fc = gdata.forecast || generateForecast(currentMonth+1, gdata);
+
+    // 列データ生成
+    const colStyle = (type) => {
+      // type: 'past' | 'now' | 'future'
+      const bg = type==='now' ? 'background:rgba(245,200,66,.08);border:1px solid rgba(245,200,66,.3);'
+                : type==='future' ? 'background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.25);'
+                : 'background:var(--surface2);border:1px solid var(--border);';
+      return `${bg}border-radius:10px;padding:14px 10px;`;
+    };
+    const labelStyle = 'font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;text-align:center;margin-bottom:10px;';
+    const labelColor = { past:'color:#7a7a8a;', now:'color:var(--accent);', future:'color:var(--orange);' };
+
+    // 先月・今月用コスト行ヘルパー（確定値）
+    const costRow = (icon, label, val, isEstimate=false, changeVal=null) => {
+      let changeHtml = '';
+      if(changeVal !== null){
+        const diff = Math.round(changeVal);
+        const col = diff > 0 ? 'var(--red)' : diff < 0 ? 'var(--green)' : 'var(--muted)';
+        const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '─';
+        changeHtml = `<span style="font-size:10px;color:${col};margin-left:3px;">${arrow}${Math.abs(diff)}%</span>`;
+      }
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+        <span style="font-size:11px;color:#7a7a8a;">${icon} ${label}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:${isEstimate?400:600};
+          color:${isEstimate?'var(--orange)':'var(--text)'};opacity:${isEstimate?.8:1};">
+          ¥${Number(val).toLocaleString()}${changeHtml}</span>
+      </div>`;
+    };
+
+    // 来月用レンジ行ヘルパー（予測値をレンジで表示）
+    const rangeRow = (icon, label, rangeStr, changeVal=null) => {
+      let changeHtml = '';
+      if(changeVal !== null){
+        const diff = Math.round(changeVal);
+        const col = diff > 0 ? 'var(--red)' : diff < 0 ? 'var(--green)' : 'var(--muted)';
+        const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '─';
+        changeHtml = `<span style="font-size:10px;color:${col};margin-left:3px;">${arrow}${Math.abs(diff)}%</span>`;
+      }
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+        <span style="font-size:11px;color:#7a7a8a;">${icon} ${label}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:400;color:var(--orange);">
+          ${rangeStr}${changeHtml}</span>
+      </div>`;
+    };
+
+    // 来月用市場規模レンジ
+    const rangeMarketRow = (r, changeVal=null) => {
+      if(!r) return '';
+      const rangeStr = (r.lo===r.hi)
+        ? `¥${r.lo.toLocaleString()}`
+        : `¥${r.lo.toLocaleString()}〜¥${r.hi.toLocaleString()}`;
+      let changeHtml = '';
+      if(changeVal !== null){
+        const diff = Math.round(changeVal);
+        const col = diff > 0 ? '#4ade80' : diff < 0 ? 'var(--red)' : 'var(--muted)';
+        const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '─';
+        changeHtml = `<br><span style="font-size:10px;color:${col};">${arrow}${diff>0?'+':''}${diff}%</span>`;
+      }
+      return `<div style="text-align:center;margin-top:8px;padding:8px;
+        background:rgba(249,115,22,.1);border-radius:6px;">
+        <div style="font-size:10px;color:#7a7a8a;margin-bottom:2px;">🏪 市場規模</div>
+        <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--orange);">
+          ${rangeStr}${changeHtml}</div>
+      </div>`;
+    };
+
+    const marketRow = (val, isEstimate=false, changeVal=null) => {
+      let changeHtml = '';
+      if(changeVal !== null){
+        const diff = Math.round(changeVal);
+        const col = diff > 0 ? '#4ade80' : diff < 0 ? 'var(--red)' : 'var(--muted)';
+        const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '─';
+        changeHtml = `<br><span style="font-size:10px;color:${col};">${arrow}${diff>0?'+':''}${diff}%</span>`;
+      }
+      return `<div style="text-align:center;margin-top:8px;padding:8px;
+        background:rgba(55,138,221,.12);border-radius:6px;">
+        <div style="font-size:10px;color:#7a7a8a;margin-bottom:2px;">🏪 市場規模</div>
+        <div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;
+          color:${isEstimate?'var(--orange)':'#378ADD'};">
+          ${isEstimate?'~':''}¥${Number(val).toLocaleString()}${changeHtml}</div>
+      </div>`;
+    };
+
+    // ── 先月列 ──
+    let pastCol = '<div style="font-size:11px;color:#7a7a8a;text-align:center;padding:20px 0;">データなし</div>';
+    if(lastCfg){
+      const pMkt = lastH.marketBudget || 0;
+      pastCol = costRow('🍋','レモン', lastCfg.costLemon||'—') +
+                costRow('🍬','砂糖',   lastCfg.costSugar||'—') +
+                costRow('👨‍🍳','バリスタ',lastCfg.costBarista||'—') +
+                marketRow(pMkt);
+    }
+
+    // ── 今月列（コスト確定・市場は予測） ──
+    const nowMktEst = fc && fc.nowMarket ? fc.nowMarket : (gdata.market ? gdata.market.base : 0);
+    // 今月の市場予算は history に今月分がまだないので forecast から取る
+    const nowHasResult = history.some(h=>h.month === currentMonth);
+    const nowMktActual = nowHasResult ? (history.find(h=>h.month===currentMonth)||{}).marketBudget : null;
+
+    // 今月市場規模の予測レンジ（集計前のみ表示）
+    const nowMarketRangeRow = () => {
+      const mktSettings = gdata.market || {};
+      if(!mktSettings.costMode || mktSettings.costMode==='fixed') return marketRow(nowMktEst, false);
+      const mktUnc = Math.max(0.05, (mktSettings.range||30)/100 * 0.3);
+      const lo = Math.round(nowMktEst*(1-mktUnc)/1000)*1000;
+      const hi = Math.round(nowMktEst*(1+mktUnc)/1000)*1000;
+      return `<div style="text-align:center;margin-top:8px;padding:8px;
+        background:rgba(55,138,221,.12);border-radius:6px;">
+        <div style="font-size:10px;color:#7a7a8a;margin-bottom:2px;">🏪 市場規模（予測）</div>
+        <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--accent);">
+          ¥${lo.toLocaleString()}〜¥${hi.toLocaleString()}</div>
+      </div>`;
+    };
+
+    let lemonChange = lastCfg ? Math.round((C.costLemon - lastCfg.costLemon) / lastCfg.costLemon * 100) : null;
+    let sugarChange = lastCfg ? Math.round((C.costSugar - lastCfg.costSugar) / lastCfg.costSugar * 100) : null;
+    let baristaChange = lastCfg ? Math.round((C.costBarista - lastCfg.costBarista) / lastCfg.costBarista * 100) : null;
+
+    const nowCol = costRow('🍋','レモン',   C.costLemon,   false, lemonChange) +
+                   costRow('🍬','砂糖',     C.costSugar,   false, sugarChange) +
+                   costRow('👨‍🍳','バリスタ', C.costBarista, false, baristaChange) +
+                   (nowMktActual !== null
+                     ? marketRow(nowMktActual, false) // 集計済みなら確定値
+                     : nowMarketRangeRow()); // 集計前なら予測レンジ
+
+    // ── 来月列（レンジで表示）──
+    let futureCol = '<div style="font-size:11px;color:#7a7a8a;text-align:center;padding:20px 0;">最終月</div>';
+    if(fc && currentMonth < (gdata.maxMonths||12)){
+      const R = fc.range || {};
+      const mkt = gdata.market || {};
+      // レンジ表示ヘルパー
+      const rangeStr = (r) => {
+        if(!r) return '—';
+        if(r.lo === r.hi) return `¥${r.lo.toLocaleString()}`;
+        return `¥${r.lo.toLocaleString()}〜¥${r.hi.toLocaleString()}`;
+      };
+      const rangeChange = (r, base) => {
+        if(!r || !base || r.lo===r.hi) return null;
+        const midChange = Math.round((r.mid - base)/base*100);
+        return midChange;
+      };
+
+      futureCol =
+        rangeRow('🍋','レモン',   rangeStr(R.lemon),   rangeChange(R.lemon,   C.costLemon)) +
+        rangeRow('🍬','砂糖',     rangeStr(R.sugar),   rangeChange(R.sugar,   C.costSugar)) +
+        rangeRow('👨‍🍳','バリスタ', rangeStr(R.barista), rangeChange(R.barista, C.costBarista)) +
+        rangeMarketRow(R.market, rangeChange(R.market, nowMktActual||(mkt.base)||20000)) +
+        `<div style="font-size:10px;color:rgba(249,115,22,.6);text-align:center;margin-top:6px;">
+          実際の値はこの範囲内に収まります</div>`;
+    }
+
+    // ── 全体の市場トレンド表示 ──
+    const trendIcon = fc ? (fc.hint||'') : '';
+    const trendDetail = fc ? (fc.detail||'') : '';
+
+    card.style.display = 'block';
+    el.innerHTML = `
+      ${trendIcon ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 12px;
+        background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);border-radius:8px;">
+        <span style="font-size:18px;">${trendIcon.split(' ')[0]}</span>
+        <div>
+          <div style="font-weight:700;font-size:13px;">${trendIcon}</div>
+          <div style="font-size:12px;color:var(--muted);">${trendDetail}</div>
+        </div>
+      </div>` : ''}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div style="${colStyle('past')}">
+          <div style="${labelStyle}${labelColor.past}">先月<br><span style="font-weight:400;font-size:9px;">実測値</span></div>
+          ${pastCol}
+        </div>
+        <div style="${colStyle('now')}">
+          <div style="${labelStyle}${labelColor.now}">今月<br><span style="font-weight:400;font-size:9px;">コスト確定・市場は予測</span></div>
+          ${nowCol}
+        </div>
+        <div style="${colStyle('future')}">
+          <div style="${labelStyle}${labelColor.future}">来月<br><span style="font-weight:400;font-size:9px;">すべて予測範囲</span></div>
+          ${futureCol}
+        </div>
+      </div>`;
+  });
+}
+
+function calcMake(lemon, sugar, barista, C){
+  // 在庫があれば追加購入と合算して計算
+  const stockL = (SC && SC.stockLemon) ? SC.stockLemon : 0;
+  const stockS = (SC && SC.stockSugar) ? SC.stockSugar : 0;
+  const totalLemon = lemon + stockL;
+  const totalSugar = sugar + stockS;
+  const capBarista    = barista * C.baristaCapacity;
+  const capLemon      = C.recipeLemon>0 ? Math.floor(totalLemon/C.recipeLemon) : 999999;
+  const capSugar      = C.recipeSugar>0 ? Math.floor(totalSugar/C.recipeSugar) : 999999;
+  const capIngredient = Math.min(capLemon, capSugar);
+  const maxMake       = Math.min(capBarista, capIngredient);
+  return { capBarista, capLemon, capSugar, capIngredient, maxMake, stockL, stockS, totalLemon, totalSugar };
+}
+
+function sUpdate(){
+  if(!SC) return;
+  const C = SC.config;
+  const lemon=sVal('s-lemon'), sugar=sVal('s-sugar'), barista=sVal('s-barista');
+  const price=sVal('s-price'), maxSell=sVal('s-max');
+
+  const calcResult = calcMake(lemon, sugar, barista, C);
+  const { capBarista, capLemon, capSugar, capIngredient, maxMake } = calcResult;
+
+  const cL=lemon*C.costLemon, cS=sugar*C.costSugar, cB=barista*C.costBarista;
+  const total=cL+cS+cB;
+  const effSell=Math.min(maxSell, maxMake);
+  const rev=effSell*price, profit=rev-total;
+
+  set('sc-lemon',  `\u00a5${cL.toLocaleString()}`);
+  set('sc-sugar',  `\u00a5${cS.toLocaleString()}`);
+  set('sc-barista',`\u00a5${cB.toLocaleString()}`);
+  set('sc-total',  `\u00a5${total.toLocaleString()}`);
+  set('sc-rev',    `\u00a5${rev.toLocaleString()}`);
+  const pe = document.getElementById('sc-profit');
+  pe.textContent = `${profit>=0?'+':''}\u00a5${profit.toLocaleString()}`;
+  pe.style.color = profit>=0?'var(--green)':'var(--red)';
+
+  // ① 材料ヒント（在庫含む）
+  const makeHintEl = document.getElementById('s-make-hint');
+  const { stockL, stockS, totalLemon, totalSugar } = calcResult;
+  let hintText = `材料から作れる数: ${capIngredient}杯`;
+  if(stockL > 0 || stockS > 0){
+    hintText += ` (在庫含む: 🍋${totalLemon}個・🍬${totalSugar}袋)`;
+  }
+  if(capLemon <= capSugar){
+    hintText += ` — レモンが上限`;
+  } else {
+    hintText += ` — 砂糖が上限`;
+  }
+  makeHintEl.textContent = hintText;
+
+  // ② バリスタヒント：実際の製造上限を明示
+  const capEl = document.getElementById('s-cap-hint');
+  if(barista===0){
+    capEl.className='warn';
+    capEl.textContent='⚠️ バリスタが0人のため製造できません。';
+  } else if(capBarista < capIngredient){
+    capEl.className='caution';
+    capEl.innerHTML=`📦 バリスタ ${barista}人×${C.baristaCapacity}杯/人 = <strong>${capBarista}杯</strong>が上限（材料は${capIngredient}杯分あるが今月はここまで）`;
+  } else {
+    capEl.className='tip';
+    capEl.innerHTML=`✓ バリスタ ${barista}人×${C.baristaCapacity}杯/人 = ${capBarista}杯（材料上限${capIngredient}杯より余裕あり）`;
+  }
+
+  // ③ 販売設定ヒント
+  const swEl = document.getElementById('s-sell-hint');
+  if(maxMake===0){
+    swEl.className='warn';
+    swEl.textContent='⚠️ 製造できる数が0です。材料またはバリスタを増やしてください。';
+  } else if(maxSell > maxMake){
+    swEl.className='caution';
+    swEl.innerHTML=`📦 販売数${maxSell}杯 > 製造上限${maxMake}杯。実際に販売できるのは最大 <strong>${maxMake}杯</strong>です。`;
+  } else {
+    swEl.className='tip';
+    swEl.textContent=`✓ 販売設定: \u00a5${price}/杯 × 最大${maxSell}杯（製造上限${maxMake}杯の範囲内）`;
+  }
+}
+
+// 静観（今月は何もしない）
+function submitWatching(){
+  if(!SC){ toast('ゲームコードを先に入力してください',true); return; }
+  if(!confirm('今月は購入・販売をせず市場を静観しますか？\n（在庫・バリスタ費用はかかりません）')) return;
+  const data = {
+    team: SC.teamName, month: SC.month,
+    lemonQty:0, sugarQty:0, baristaCount:0,
+    price:0, maxSell:0, isWatching:true,
+    submitOrder: Date.now(),
+  };
+  DB.ref('games/'+SC.gameId+'/submissions/'+encodeKey(SC.teamName)).set(data)
+    .then(()=>{
+      toast('👀 今月は静観を選択しました');
+      document.getElementById('s-submit-summary').innerHTML =
+        `👀 <strong>静観</strong><br>
+         今月は購入・販売なし。費用ゼロ・収益ゼロ。<br>
+         在庫はそのまま翌月に繰り越されます。<br>
+         <span style="color:var(--muted);font-size:11px;">GMが集計を実行するまでお待ちください</span>`;
+      show('s-code-out');
+    })
+    .catch(e=>{ toast('送信エラー: '+e.message, true); });
+}
+
+// ━━━ SALES TEAM: GENERATE SUBMIT CODE ━━━
+function generateSubmitCode(){
+  if(!SC){ toast('ゲームコードを先に入力してください',true); return; }
+  const C=SC.config;
+  const lemon=sVal('s-lemon'),sugar=sVal('s-sugar'),barista=sVal('s-barista');
+  const price=sVal('s-price'),maxSell=sVal('s-max');
+  const { maxMake } = calcMake(lemon, sugar, barista, C);
+  const effSell=Math.min(maxSell, maxMake);
+
+  // 静観（購入・販売ゼロ）は許可する
+  // 価格チェックは販売する場合のみ
+  if(effSell > 0 && price <= 0){ toast('販売する場合は価格を入力してください',true); return; }
+
+  const data = {
+    team: SC.teamName, month: SC.month,
+    lemonQty:lemon, sugarQty:sugar, baristaCount:barista,
+    price: effSell > 0 ? price : 0,
+    maxSell: effSell,
+    isWatching: effSell === 0, // 静観フラグ
+    submitOrder: Date.now(),
+  };
+  const total=lemon*C.costLemon+sugar*C.costSugar+barista*C.costBarista;
+  // Firebase に直接書き込み（コードのやりとり不要）
+  DB.ref('games/'+SC.gameId+'/submissions/'+encodeKey(SC.teamName)).set(data)
+    .then(()=>{
+      toast(`${SC.teamName} の提出が完了しました！`);
+      document.getElementById('s-submit-summary').innerHTML =
+        `✅ <strong>提出完了</strong><br>
+         レモン${lemon}個 / 砂糖${sugar}袋 / バリスタ${barista}人<br>
+         製造上限${maxMake}杯 / 価格¥${price}/杯 / 最大${effSell}杯<br>
+         総費用¥${total.toLocaleString()} / 全売利益予想¥${(effSell*price-total).toLocaleString()}<br>
+         <span style="color:var(--muted);font-size:11px;">GMが集計を実行するまでお待ちください</span>`;
+      show('s-code-out');
+      document.getElementById('s-code-out').scrollIntoView({behavior:'smooth'});
+    })
+    .catch(e=>{ toast('送信エラー: '+e.message, true); });
+}
+
+// Firebaseキーに使えない文字をエスケープ
+function encodeKey(s){ return s.replace(/[.#$\[\]]/g,'_'); }
+
+// ━━━ CSV ━━━
+function exportCSV(){
+  if(!G||!G.history.length){ toast('データがありません',true); return; }
+  let csv='月,チーム,価格,上限,販売数,収益,費用,利益,残高\n';
+  G.history.forEach(h=>h.teamResults.forEach(t=>{
+    csv+=`${h.month},${t.name},${t.price},${t.maxSell},${t.sold},${t.revenue},${t.cost},${t.profit},${t.balance}\n`;
+  }));
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download='lemonade_result.csv'; a.click();
+  toast('CSVを出力しました');
+}
+
+function resetAll(){
+  if(!confirm('ゲームをリセットしますか？全データが消えます。')) return;
+  localStorage.removeItem(LS_KEY);
+  G=null; goHome();
+}
+
+// ━━━ UTILS ━━━
+function show(id){ document.getElementById(id).classList.remove('hidden'); }
+function hide(id){ document.getElementById(id).classList.add('hidden'); }
+function set(id,v){ const e=document.getElementById(id); if(e) e.textContent=v; }
+function copyEl(el){
+  navigator.clipboard.writeText(el.textContent).then(()=>{
+    const orig=el.textContent; el.textContent='✓ コピーしました！';
+    setTimeout(()=>el.textContent=orig,1500);
+  });
+}
+function toast(msg,isErr=false){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.style.background=isErr?'var(--red)':'var(--green)';
+  el.style.color=isErr?'#fff':'#051b0e';
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// AUDIENCE MODE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let AUD_GAME_ID = null;
+let AUD_CHART_INST = null;
+const AUD_COLORS = ['#f5c842','#4ade80','#f97316','#a78bfa','#f472b6','#22d3ee','#f87171','#34d399'];
+
+function loadAudienceGame(){
+  const raw = document.getElementById('aud-game-code').value.trim().replace(/-/g,'').toUpperCase();
+  if(raw.length < 6){ toast('コードを入力してください',true); return; }
+  toast('検索中...');
+  findGameByJoinCode(raw, (gid, gdata)=>{
+    if(!gid){
+      toast('コードが見つかりません。GMに確認してください',true);
+      return;
+    }
+    AUD_GAME_ID = gid;
+    hide('aud-code-entry');
+    show('aud-dashboard');
+    toast('観戦を開始します');
+    startAudienceListener();
+  });
+}
+
+function startAudienceListener(){
+  if(!DB || !AUD_GAME_ID) return;
+  DB.ref('games/'+AUD_GAME_ID).on('value', snap=>{
+    const gdata = snap.val();
+    if(!gdata) return;
+    // ゲーム終了フラグを検知したら最終レポートに自動切替
+    if(gdata.gameOver){
+      renderAudienceDashboard(gdata); // 背景も更新
+      showAudienceFinalReport(gdata);
+    } else {
+      renderAudienceDashboard(gdata);
+    }
+  });
+}
+
+function renderAudienceDashboard(gdata){
+  const month = gdata.month || 1;
+  const C = gdata.config || {};
+  const IC = gdata.initialConfig || C;
+  const history = Array.isArray(gdata.history) ? gdata.history : [];
+  const teams = Array.isArray(gdata.teams) ? gdata.teams : [];
+  const subs = gdata.submissions || {};
+  const forecast = gdata.forecast;
+
+  // ── ヘッダーバッジ ──
+  document.getElementById('aud-badge').textContent = `第${month}月`;
+  document.getElementById('aud-month').textContent = `${month}月`;
+
+  // ── 市場規模 ──
+  const autoMkt = calcNextMonthValues(month, gdata);
+  const mktDisplay = forecast && forecast.range && forecast.range.market
+    ? `¥${forecast.range.market.lo.toLocaleString()}〜¥${forecast.range.market.hi.toLocaleString()}`
+    : `¥${autoMkt.marketBudget.toLocaleString()}`;
+  document.getElementById('aud-market').textContent = mktDisplay;
+  document.getElementById('aud-market-hint').textContent = '';
+  // トレンドアイコン
+  if(forecast && forecast.hint){
+    const icon = forecast.hint.split(' ')[0];
+    const word = forecast.hint.split(' ').slice(1).join(' ');
+    document.getElementById('aud-trend-icon').textContent = icon;
+    document.getElementById('aud-trend-text').textContent = word;
+  }
+
+  // ── コスト横並び（コンパクト） ──
+  const costs = [
+    { icon:'🍋', label:'レモン', val:C.costLemon, init:IC.costLemon },
+    { icon:'🍬', label:'砂糖',   val:C.costSugar, init:IC.costSugar },
+    { icon:'👨‍🍳', label:'バリスタ',val:C.costBarista,init:IC.costBarista },
+  ];
+  document.getElementById('aud-costs-inline').innerHTML = costs.map(({icon,label,val,init})=>{
+    const change = init ? Math.round((val-init)/init*100) : 0;
+    const col = change > 0 ? 'var(--red)' : change < 0 ? 'var(--green)' : 'var(--muted)';
+    const arrow = change > 0 ? '▲' : change < 0 ? '▼' : '';
+    return `<div style="text-align:center;">
+      <div style="font-size:15px;">${icon}</div>
+      <div style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);">¥${val}</div>
+      <div style="font-size:10px;color:var(--muted);">${label}</div>
+      ${change!==0?`<div style="font-size:10px;color:${col};">${arrow}${Math.abs(change)}%</div>`:'<div style="font-size:10px;color:var(--muted);">±0%</div>'}
+    </div>`;
+  }).join('');
+
+  // ── 提出状況 ──
+  const done = teams.filter(t=> subs[encodeKey(t.name)] || subs[t.name]).length;
+  const countEl = document.getElementById('aud-submit-count');
+  countEl.textContent = `${done}/${teams.length}`;
+  countEl.style.color = done===teams.length ? 'var(--green)' : 'var(--accent)';
+  // ドット表示（各チームの状態を●で表現）
+  document.getElementById('aud-progress-dots').innerHTML = teams.map((t,ti)=>{
+    const sub = subs[encodeKey(t.name)] || subs[t.name];
+    const col = sub ? AUD_COLORS[ti%AUD_COLORS.length] : 'var(--border)';
+    const glow = sub ? `box-shadow:0 0 5px ${AUD_COLORS[ti%AUD_COLORS.length]};` : '';
+    return `<div title="${t.name}" style="width:10px;height:10px;border-radius:50%;background:${col};${glow}"></div>`;
+  }).join('');
+
+  // ── チームカード（入札額は非表示） ──
+  document.getElementById('aud-team-status').innerHTML = teams.map((t,ti)=>{
+    const sub = subs[encodeKey(t.name)] || subs[t.name];
+    const col = AUD_COLORS[ti % AUD_COLORS.length];
+    const profitColor = (t.totalProfit||0) >= 0 ? 'var(--green)' : 'var(--red)';
+    // 提出状況：価格・数量は隠す（ゲームとして公平性を保つ）
+    const subStatus = sub
+      ? '✅ 提出完了'
+      : '⏳ 入力中...';
+    const subColor = sub ? 'var(--green)' : 'var(--muted)';
+    return `<div style="border-radius:8px;padding:12px;border-left:3px solid ${col};background:var(--surface2);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-weight:700;font-size:14px;">${t.name}</span>
+        <span style="font-size:11px;color:${subColor};">${subStatus}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+        <div>
+          <div style="font-size:10px;color:var(--muted);">累計損益</div>
+          <div style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace;color:${profitColor};">
+            ${(t.totalProfit||0)>=0?'+':''}¥${(t.totalProfit||0).toLocaleString()}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:10px;color:var(--muted);">残高</div>
+          <div style="font-size:15px;font-weight:600;font-family:'DM Mono',monospace;">
+            ¥${(t.balance||0).toLocaleString()}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // ── 前月結果（販売価格・数量は表示OK。入札前の戦略だけ隠す） ──
+  if(history.length > 0){
+    const lastResult = history[history.length-1];
+    const sorted = [...lastResult.teamResults].sort((a,b)=>b.profit-a.profit);
+    document.getElementById('aud-result-content').innerHTML =
+      `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">第${lastResult.month}月</div>` +
+      sorted.map(t=>{
+        const ti = teams.findIndex(tm=>tm.name===t.name);
+        const col = AUD_COLORS[ti % AUD_COLORS.length];
+        return `<div style="display:flex;justify-content:space-between;align-items:center;
+          padding:5px 0;border-bottom:1px solid var(--border);">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0;"></div>
+            <span style="font-size:12px;font-weight:600;">${t.name}</span>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
+              color:${t.profit>=0?'var(--green)':'var(--red)'};">
+              ${t.profit>=0?'+':''}¥${t.profit.toLocaleString()}</span>
+            <div style="font-size:10px;color:var(--muted);">${t.sold}杯販売</div>
+          </div>
+        </div>`;
+      }).join('');
+  }
+
+  // ── グラフ ──
+  _renderAudienceChart(teams, history);
+}
+
+function _renderAudienceChart(teams, history){
+  const canvas = document.getElementById('aud-chart');
+  if(!canvas || !window.Chart) return;
+
+  // 月ラベル
+  const allMonths = history.map(h=>h.month+'月');
+  if(allMonths.length === 0) return;
+
+  // チームごとの残高推移
+  const datasets = teams.map((t,ti)=>({
+    label: t.name,
+    data: history.map(h=>{
+      const tr = (h.teamResults||[]).find(r=>r.name===t.name);
+      return tr ? tr.balance : null;
+    }),
+    borderColor: AUD_COLORS[ti % AUD_COLORS.length],
+    backgroundColor: AUD_COLORS[ti % AUD_COLORS.length]+'33',
+    pointBackgroundColor: AUD_COLORS[ti % AUD_COLORS.length],
+    pointRadius: 5,
+    pointHoverRadius: 7,
+    tension: 0.3,
+    fill: false,
+  }));
+
+  if(AUD_CHART_INST){
+    AUD_CHART_INST.data.labels = allMonths;
+    AUD_CHART_INST.data.datasets = datasets;
+    AUD_CHART_INST.update('none');
+  } else {
+    AUD_CHART_INST = new Chart(canvas, {
+      type: 'line',
+      data: { labels: allMonths, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 500 },
+        interaction: { mode:'index', intersect:false },
+        plugins: {
+          legend: { labels:{ color:'#e8e8ea', font:{size:11}, boxWidth:10, padding:10 } },
+          tooltip: { callbacks: { label: ctx=>`${ctx.dataset.label}: ¥${ctx.raw.toLocaleString()}` } }
+        },
+        scales: {
+          x: { ticks:{color:'#7a7a8a',font:{size:10}}, grid:{color:'#2e2e35'} },
+          y: {
+            ticks:{ color:'#7a7a8a', font:{size:10}, callback:v=>'¥'+v.toLocaleString() },
+            grid:{ color:'#2e2e35' },
+          }
+        }
+      }
+    });
+  }
+}
+
+
+// ━━━ AUDIENCE: FINAL REPORT ━━━
+let AUD_FINAL_CHART = null;
+
+function showAudienceFinalReport(gdata){
+  const overlay = document.getElementById('aud-final-overlay');
+  if(!overlay) return;
+  overlay.style.display = 'flex';
+  _buildAudienceFinalReport(gdata);
+}
+
+function hideFinalReport(){
+  const overlay = document.getElementById('aud-final-overlay');
+  if(overlay) overlay.style.display = 'none';
+}
+
+function _buildAudienceFinalReport(gdata){
+  const teams   = Array.isArray(gdata.teams)   ? gdata.teams   : [];
+  const history = Array.isArray(gdata.history) ? gdata.history : [];
+  const medals  = ['🥇','🥈','🥉','4','5','6','7','8','9','10','11','12'];
+
+  // ── A: ランキングバー ──
+  const ranked = [...teams].sort((a,b)=>b.totalProfit-a.totalProfit);
+  const maxProfit = Math.max(...ranked.map(t=>Math.abs(t.totalProfit||0)),1);
+
+  document.getElementById('aud-final-ranking').innerHTML = ranked.map((t,i)=>{
+    const ti    = teams.findIndex(tm=>tm.name===t.name);
+    const col   = AUD_COLORS[ti % AUD_COLORS.length];
+    const pct   = Math.round(Math.abs(t.totalProfit||0)/maxProfit*100);
+    const isPos = (t.totalProfit||0) >= 0;
+    const profitCol = isPos ? 'var(--green)' : 'var(--red)';
+
+    return `<div style="flex:1;padding:0 12px;border-right:1px solid var(--border);
+      display:flex;flex-direction:column;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+        <span style="font-size:20px;">${medals[i]||i+1}</span>
+        <span style="font-size:14px;font-weight:700;">${t.name}</span>
+      </div>
+      <!-- 累計損益バー -->
+      <div>
+        <div style="height:14px;background:var(--surface2);border-radius:7px;overflow:hidden;margin-bottom:4px;">
+          <div style="height:100%;width:${pct}%;background:${col};border-radius:7px;
+            transition:width .8s ease;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;">
+          <div>
+            <div style="font-size:10px;color:var(--muted);">累計損益</div>
+            <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:${profitCol};">
+              ${isPos?'+':''}¥${(t.totalProfit||0).toLocaleString()}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:var(--muted);">最終残高</div>
+            <div style="font-family:'DM Mono',monospace;font-size:14px;">
+              ¥${(t.balance||0).toLocaleString()}</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // ── B: 月別損益推移グラフ ──
+  const canvas = document.getElementById('aud-final-chart');
+  if(canvas && window.Chart && history.length > 0){
+    if(AUD_FINAL_CHART){ AUD_FINAL_CHART.destroy(); AUD_FINAL_CHART=null; }
+    const labels = history.map(h=>h.month+'月');
+    const datasets = teams.map((t,ti)=>({
+      label: t.name,
+      data: history.map(h=>{
+        const tr=(h.teamResults||[]).find(r=>r.name===t.name);
+        return tr ? tr.profit : 0;
+      }),
+      backgroundColor: AUD_COLORS[ti%AUD_COLORS.length]+'99',
+      borderColor:     AUD_COLORS[ti%AUD_COLORS.length],
+      borderWidth: 2,
+      borderRadius: 3,
+    }));
+    AUD_FINAL_CHART = new Chart(canvas, {
+      type: 'bar',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode:'index', intersect:false },
+        plugins: {
+          legend: { labels:{ color:'#e8e8ea', font:{size:10}, boxWidth:10, padding:8 } },
+          tooltip: { callbacks:{
+            label: ctx=>`${ctx.dataset.label}: ${ctx.raw>=0?'+':''}¥${ctx.raw.toLocaleString()}`
+          }}
+        },
+        scales: {
+          x: { ticks:{color:'#7a7a8a',font:{size:10}}, grid:{color:'#2e2e35'},
+               stacked: false },
+          y: { ticks:{color:'#7a7a8a',font:{size:10},callback:v=>'¥'+v.toLocaleString()},
+               grid:{color:'#2e2e35'} }
+        }
+      }
+    });
+  }
+
+  // ── C: ヒートマップ（月別達成率 + 市場規模） ──
+  const heatEl = document.getElementById('aud-final-heatmap');
+  if(!heatEl || history.length===0) return;
+
+  // 色スケール（達成率 0%=赤 50%=黄 100%=緑）
+  const achColor = (pct) => {
+    if(pct >= 90) return '#4ade80';
+    if(pct >= 60) return '#f5c842';
+    if(pct >= 30) return '#f97316';
+    return '#f87171';
+  };
+
+  const teamNames = teams.map(t=>t.name);
+  // ヘッダー行
+  let table = `<table style="width:100%;border-collapse:collapse;font-size:11px;">
+    <thead><tr>
+      <th style="padding:4px 6px;text-align:left;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);">月</th>
+      <th style="padding:4px 6px;text-align:right;color:#378ADD;font-weight:600;border-bottom:1px solid var(--border);">市場</th>
+      ${teamNames.map((n,i)=>`<th style="padding:4px 6px;text-align:center;color:${AUD_COLORS[i%AUD_COLORS.length]};font-weight:600;border-bottom:1px solid var(--border);">${n}</th>`).join('')}
+    </tr></thead><tbody>`;
+
+  history.forEach(h=>{
+    table += `<tr style="border-bottom:1px solid #1e1e22;">
+      <td style="padding:4px 6px;color:var(--muted);">${h.month}月</td>
+      <td style="padding:4px 6px;text-align:right;font-family:'DM Mono',monospace;color:#378ADD;font-size:10px;">
+        ¥${(h.marketBudget||0).toLocaleString()}</td>
+      ${teamNames.map(name=>{
+        const tr=(h.teamResults||[]).find(r=>r.name===name);
+        if(!tr) return `<td style="padding:4px 6px;text-align:center;color:var(--muted);">—</td>`;
+        const ach = tr.maxSell > 0 ? Math.round(tr.sold/tr.maxSell*100) : 0;
+        const bg  = achColor(ach)+'33';
+        const fg  = achColor(ach);
+        return `<td style="padding:3px 4px;text-align:center;">
+          <div style="background:${bg};border:1px solid ${fg}33;border-radius:4px;padding:2px 4px;
+            font-family:'DM Mono',monospace;font-size:10px;color:${fg};">${ach}%</div>
+        </td>`;
+      }).join('')}
+    </tr>`;
+  });
+
+  table += `</tbody></table>`;
+  heatEl.innerHTML = table;
+}
+
+function closeModal(){ document.getElementById('modal-bg').classList.remove('open'); }
+
+// ━━━ INIT ━━━
+// Firebase SDK読み込み後に初期化
+window.addEventListener('load', initFirebase);
+
+</script>
+</body>
+</html>
