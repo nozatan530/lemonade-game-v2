@@ -122,3 +122,28 @@ export interface MonthResult {
   prices: UnitPrices;
   teamResults: TeamMonthResult[];
 }
+
+// ---- CPU チーム ----
+
+// 初級の CPU の作戦
+export type CpuType = 'discount' | 'premium' | 'follower' | 'cautious';
+
+// CPU が判断に使ってよい情報。人のチーム画面に出ている情報だけを入れる。
+// 今月の市場予算・シード・ほかのチームの今月の決定は入れない（入れようとすると型エラーになる）。
+export interface CpuView {
+  month: number;
+  quarterStart: boolean; // バリスタの人数を決める月か
+  prices: UnitPrices; // 今月の単価
+  rules: {
+    baristaCapacity: number;
+    recipe: Recipe;
+    teamCount: number;
+  };
+  me: TeamState; // 自分の資金・在庫・バリスタ人数
+  history: MonthResult[]; // 締め切った月の結果（全チームの値段・売れた数・もうけ、その月の市場予算）
+}
+
+export interface CpuDecision {
+  monthlyDecision: MonthlyDecision;
+  quarterlyDecision?: QuarterlyDecision;
+}
