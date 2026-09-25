@@ -56,6 +56,7 @@ export function defaultConfig(teamCount: number, seed: string): GameConfig {
     startCalendarMonth: 4,
     initialPrices: { lemon: 80, sugar: 10, barista: 2000 },
     baristaCapacity: 50,
+    initialBaristaCount: 1,
     recipe: { lemon: 1, sugar: 1 },
     startFund: 10000,
     market: {

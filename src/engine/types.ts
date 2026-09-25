@@ -35,6 +35,7 @@ export interface GameConfig {
   startCalendarMonth: number; // 期の開始月（4 = 4月始まり）
   initialPrices: UnitPrices; // 原価変動の基準。変動は常にここから計算する
   baristaCapacity: number; // バリスタ1人の月間製造上限（杯）
+  initialBaristaCount: number; // 期のはじめに雇っているバリスタの人数
   recipe: Recipe;
   startFund: number;
   market: MarketSettings;

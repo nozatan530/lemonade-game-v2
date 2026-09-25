@@ -5,11 +5,12 @@ import { isQuarterStart } from './config';
 import { nextStock, offeredCups, productionCapacity, sanitizeDecision } from './inventory';
 import { allocatePriceSegment, type Offer } from './market';
 import type {
-  GameConfig, MonthConditions, MonthlyDecision, MonthResult, Submission, TeamMonthResult, TeamState,
+  GameConfig, MonthConditions, MonthlyDecision, MonthResult, Submission, TeamMonthResult, TeamState, UnitPrices,
 } from './types';
+import { monthConditions } from './demand';
 
 export function initialTeamState(teamId: string, name: string, config: GameConfig): TeamState {
-  return { teamId, name, balance: config.startFund, totalProfit: 0, stock: { lemon: 0, sugar: 0 }, baristaCount: 0 };
+  return { teamId, name, balance: config.startFund, totalProfit: 0, stock: { lemon: 0, sugar: 0 }, baristaCount: config.initialBaristaCount };
 }
 
 // 締切までに提出しなかったチームは、前月と同じ月の決定で処理する（前月がなければ静観）。
@@ -18,14 +19,14 @@ export function initialTeamState(teamId: string, name: string, config: GameConfi
 export function fillMissingSubmissions(
   teams: TeamState[],
   submissions: Submission[],
-  previousDecisions: ReadonlyMap<string, MonthlyDecision>,
+  previousDecisions: Readonly<Record<string, MonthlyDecision>>,
 ): Submission[] {
   const submitted = new Set(submissions.map((s) => s.teamId));
   let order = submissions.reduce((max, s) => Math.max(max, s.order), 0);
   const filled = [...submissions];
   for (const t of teams) {
     if (submitted.has(t.teamId)) continue;
-    const prev = previousDecisions.get(t.teamId);
+    const prev = previousDecisions[t.teamId];
     filled.push({
       teamId: t.teamId,
       monthlyDecision: prev ? { ...prev } : { lemonQty: 0, sugarQty: 0, price: 0, watching: true },
@@ -104,4 +105,48 @@ export function resolveMonth(
       teamResults,
     },
   };
+}
+
+// 締切の処理：未提出チームを補ってから1か月を処理する。
+// decided は補完後の実際の決定。翌月に未提出だったとき「前月と同じ」に使う。
+export function closeMonth(
+  config: GameConfig,
+  teams: TeamState[],
+  conditions: MonthConditions,
+  submissions: Submission[],
+  previousDecisions: Readonly<Record<string, MonthlyDecision>>,
+): { teams: TeamState[]; result: MonthResult; decided: Record<string, MonthlyDecision> } {
+  const filled = fillMissingSubmissions(teams, submissions, previousDecisions);
+  const { teams: next, result } = resolveMonth(config, teams, conditions, filled);
+  const decided: Record<string, MonthlyDecision> = {};
+  for (const s of filled) decided[s.teamId] = sanitizeDecision(s.monthlyDecision);
+  return { teams: next, result, decided };
+}
+
+// 期のはじめ：全チームの初期状態と、1か月目の条件
+export function startTerm(
+  config: GameConfig,
+  teams: { teamId: string; name: string }[],
+): { teams: TeamState[]; conditions: MonthConditions } {
+  return {
+    teams: teams.map((t) => initialTeamState(t.teamId, t.name, config)),
+    conditions: monthConditions(1, config, teams.length, config.initialPrices),
+  };
+}
+
+// 最終月かどうか
+export function isFinalMonth(month: number, config: GameConfig): boolean {
+  return month >= config.months;
+}
+
+// 翌月の条件。usedPrices には、その月に実際に使った単価（GM が上書きしたならその値）を渡す。
+// 最終月の次はないので null を返す。
+export function openNextMonth(
+  config: GameConfig,
+  month: number,
+  teamCount: number,
+  usedPrices: UnitPrices,
+): MonthConditions | null {
+  if (isFinalMonth(month, config)) return null;
+  return monthConditions(month + 1, config, teamCount, usedPrices);
 }

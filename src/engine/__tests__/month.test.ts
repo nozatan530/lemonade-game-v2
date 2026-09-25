@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { defaultConfig } from '../config';
-import { fillMissingSubmissions, initialTeamState, resolveMonth } from '../month';
+import { monthConditions } from '../demand';
+import {
+  closeMonth, fillMissingSubmissions, initialTeamState, isFinalMonth, openNextMonth, resolveMonth, startTerm,
+} from '../month';
 import type { MonthConditions, MonthlyDecision, Submission } from '../types';
 
 const config = defaultConfig(2, 'test');
@@ -109,12 +112,88 @@ describe('fillMissingSubmissions（未提出チーム）', () => {
   const teams = ['A', 'B', 'C'].map((id) => initialTeamState(id, id, config));
 
   it('未提出のチームは前月と同じ決定、前月がなければ静観。順番は提出済みの後', () => {
-    const prev = new Map<string, MonthlyDecision>([['B', { lemonQty: 10, sugarQty: 10, price: 150 }]]);
+    const prev: Record<string, MonthlyDecision> = { B: { lemonQty: 10, sugarQty: 10, price: 150 } };
     const filled = fillMissingSubmissions(teams, [sub('A', { lemonQty: 1, sugarQty: 1, price: 100 }, 5)], prev);
     expect(filled).toEqual([
       sub('A', { lemonQty: 1, sugarQty: 1, price: 100 }, 5),
       { teamId: 'B', monthlyDecision: { lemonQty: 10, sugarQty: 10, price: 150 }, order: 6 },
       { teamId: 'C', monthlyDecision: { lemonQty: 0, sugarQty: 0, price: 0, watching: true }, order: 7 },
     ]);
+  });
+});
+
+describe('最初のバリスタ人数', () => {
+  it('期のはじめから設定の人数（初期値1人）を雇っている', () => {
+    expect(initialTeamState('A', 'A', config).baristaCount).toBe(1);
+  });
+
+  it('1か月目に提出しなかったチームも、バリスタがいるので翌月から販売できる', () => {
+    const teams = [initialTeamState('A', 'A', config), initialTeamState('B', 'B', config)];
+    const m1 = closeMonth(config, teams, cond(1, 100000), [sub('A', { lemonQty: 10, sugarQty: 10, price: 100 }, 1)], {});
+    expect(m1.teams[1]!.baristaCount).toBe(1);
+    // 1か月目は静観（前月がないため）。人件費はかかる
+    expect(m1.result.teamResults[1]!.offered).toBe(0);
+    expect(m1.result.teamResults[1]!.costBarista).toBe(2000);
+    const m2 = closeMonth(config, m1.teams, cond(2, 100000), [
+      sub('A', { lemonQty: 10, sugarQty: 10, price: 100 }, 1),
+      sub('B', { lemonQty: 20, sugarQty: 20, price: 100 }, 2),
+    ], m1.decided);
+    expect(m2.result.teamResults[1]!.sold).toBe(20);
+  });
+});
+
+describe('closeMonth（締切の処理）', () => {
+  const teams = [initialTeamState('A', 'A', config), initialTeamState('B', 'B', config)];
+
+  it('未提出チームを前月と同じ決定で補って処理し、実際の決定を返す', () => {
+    const prev: Record<string, MonthlyDecision> = { B: { lemonQty: 30, sugarQty: 30, price: 120, maxSell: 20 } };
+    const r = closeMonth(config, teams, cond(2, 100000), [sub('A', { lemonQty: 10, sugarQty: 10, price: 100 }, 1)], prev);
+    expect(r.result.teamResults[1]!.offered).toBe(20);
+    expect(r.decided).toEqual({
+      A: { lemonQty: 10, sugarQty: 10, price: 100 },
+      B: { lemonQty: 30, sugarQty: 30, price: 120, maxSell: 20 },
+    });
+  });
+
+  it('補った決定は、翌月も未提出なら同じものが続く', () => {
+    const r1 = closeMonth(config, teams, cond(1, 100000), [
+      sub('A', { lemonQty: 10, sugarQty: 10, price: 100 }, 1),
+      sub('B', { lemonQty: 5, sugarQty: 5, price: 150 }, 2),
+    ], {});
+    const r2 = closeMonth(config, r1.teams, cond(2, 100000), [], r1.decided);
+    const r3 = closeMonth(config, r2.teams, cond(3, 100000), [], r2.decided);
+    expect(r3.decided).toEqual(r1.decided);
+    expect(r3.result.teamResults.map((t) => t.sold)).toEqual([10, 5]);
+  });
+
+  it('入力を整えた値を記録する（負の数は0に）', () => {
+    const r = closeMonth(config, teams, cond(1, 0), [
+      sub('A', { lemonQty: -5, sugarQty: 3, price: 100 }, 1),
+      sub('B', { lemonQty: 1, sugarQty: 1, price: 1, watching: true }, 2),
+    ], {});
+    expect(r.decided.A).toEqual({ lemonQty: 0, sugarQty: 3, price: 100 });
+    expect(r.decided.B).toEqual({ lemonQty: 0, sugarQty: 0, price: 0, maxSell: 0, watching: true });
+  });
+});
+
+describe('startTerm / openNextMonth / isFinalMonth', () => {
+  it('期のはじめは全チームが初期資金・在庫なし・1か月目の条件', () => {
+    const { teams, conditions } = startTerm(config, [{ teamId: 'A', name: 'A' }, { teamId: 'B', name: 'B' }]);
+    expect(teams.map((t) => t.balance)).toEqual([10000, 10000]);
+    expect(conditions).toEqual(monthConditions(1, config, 2, config.initialPrices));
+  });
+
+  it('翌月の条件は、その月に実際に使った単価を引き継ぐ（原価が固定のとき）', () => {
+    const overridden = { lemon: 120, sugar: 15, barista: 2500 };
+    expect(openNextMonth(config, 3, 2, overridden)?.prices).toEqual(overridden);
+    expect(openNextMonth(config, 3, 2, overridden)?.month).toBe(4);
+  });
+
+  it('最終月の次はない', () => {
+    expect(isFinalMonth(11, config)).toBe(false);
+    expect(isFinalMonth(12, config)).toBe(true);
+    expect(openNextMonth(config, 12, 2, prices)).toBeNull();
+    const short = { ...config, months: 6 };
+    expect(openNextMonth(short, 6, 2, prices)).toBeNull();
   });
 });
