@@ -4,7 +4,7 @@ import { onValue, ref, type Database } from 'firebase/database';
 import type { MonthResult, TeamState } from '../engine/types';
 import { asArray, asRecord } from './codec';
 import { gamePath } from './game';
-import { monthKey, type Clock, type GameMeta, type SubmissionDoc, type TeamSlot } from './schema';
+import { monthKey, type Clock, type GameMeta, type PublicConfig, type SubmissionDoc, type TeamSlot } from './schema';
 
 type Unsubscribe = () => void;
 
@@ -14,6 +14,9 @@ function watchPath<T>(db: Database, path: string, cb: (value: T | null) => void)
 
 export const watchMeta = (db: Database, code: string, cb: (v: GameMeta | null) => void) =>
   watchPath(db, gamePath(code, 'meta'), cb);
+
+export const watchPublic = (db: Database, code: string, cb: (v: PublicConfig | null) => void) =>
+  watchPath(db, gamePath(code, 'public'), cb);
 
 export const watchClock = (db: Database, code: string, cb: (v: Clock | null) => void) =>
   watchPath(db, gamePath(code, 'clock'), cb);

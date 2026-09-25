@@ -8,12 +8,12 @@ import { watchClock, watchServerOffset, watchSubmitted, watchTeams } from '../..
 
 const DEV_GM = { email: 'dev-gm@example.com', password: 'dev-password' };
 
-export async function renderDev(root: HTMLElement): Promise<void> {
+export async function renderDev(root: HTMLElement, params: URLSearchParams): Promise<void> {
   if (import.meta.env.VITE_USE_EMULATOR !== 'true') {
     root.textContent = 'このページはエミュレーター接続時だけ使えます。';
     return;
   }
-  const { auth, db } = firebase();
+  const { auth, db } = firebase('gm');
   const cred = await signInWithEmailAndPassword(auth, DEV_GM.email, DEV_GM.password)
     .catch(() => createUserWithEmailAndPassword(auth, DEV_GM.email, DEV_GM.password));
   const uid = cred.user.uid;
@@ -25,7 +25,7 @@ export async function renderDev(root: HTMLElement): Promise<void> {
   root.innerHTML = `
     <main style="font-family:sans-serif;max-width:640px;margin:16px auto;padding:0 16px">
       <h1>開発用：ゲームの操作</h1>
-      <p><button id="create">4チームのゲームを作って開始</button></p>
+      <p><button id="create">4チームのゲームを作る</button></p>
       <div id="game"></div>
     </main>`;
   const gameEl = root.querySelector<HTMLDivElement>('#game')!;
@@ -37,22 +37,29 @@ export async function renderDev(root: HTMLElement): Promise<void> {
       timer: DEFAULT_TIMER,
       now: now(),
     });
-    await startGame(db, code, now());
     showGame(code);
   });
 
+  const saved = params.get('code');
+  if (saved) showGame(saved);
+
   function showGame(code: string) {
-    const teamUrl = `${location.origin}${location.pathname}#/team?code=${code}`;
+    // 読み込み直しても同じゲームを表示できるように、URL にコードを残す（画面は切り替えない）
+    history.replaceState(null, '', `#/dev?code=${code}`);
+    const teamUrl = (device: string) => `${location.origin}${location.pathname}#/team?code=${code}&device=${device}`;
     gameEl.innerHTML = `
       <p>ゲームコード：<strong style="font-size:1.5em">${code}</strong></p>
-      <p>チーム画面：<a href="${teamUrl}" target="_blank">${teamUrl}</a></p>
+      <p>チーム画面（1つのブラウザで別の端末のふりをする）：<br>
+        ${['1', '2', '3', '4'].map((d) => `<a href="${teamUrl(d)}" target="_blank">端末${d}</a>`).join('　')}</p>
       <p id="clock"></p>
       <p id="teams"></p>
       <p>
+        <button id="start">開始</button>
         <button id="close">締め切る</button>
         <button id="next">次の月へ</button>
         <button id="extend">＋30秒</button>
       </p>`;
+    gameEl.querySelector('#start')!.addEventListener('click', () => startGame(db, code, now()));
     gameEl.querySelector('#close')!.addEventListener('click', () => closeCurrentMonth(db, code));
     gameEl.querySelector('#next')!.addEventListener('click', () => startNextMonth(db, code, now()));
     gameEl.querySelector('#extend')!.addEventListener('click', () => extendDeadline(db, code, 30));

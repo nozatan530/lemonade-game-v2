@@ -4,15 +4,23 @@
 //   #/screen?code=…     全体表示
 //   #/dev               開発用（エミュレーター接続時だけ）
 
+import './ui/style.css';
+
 const root = document.querySelector<HTMLDivElement>('#app')!;
 
 async function route() {
-  const [path] = location.hash.replace(/^#/, '').split('?');
+  const [path, query] = location.hash.replace(/^#/, '').split('?');
+  const params = new URLSearchParams(query ?? '');
   root.innerHTML = '';
   switch (path) {
+    case '/team': {
+      const { renderTeam } = await import('./screens/team/team');
+      await renderTeam(root, params);
+      break;
+    }
     case '/dev': {
       const { renderDev } = await import('./screens/dev/dev');
-      await renderDev(root);
+      await renderDev(root, params);
       break;
     }
     default:

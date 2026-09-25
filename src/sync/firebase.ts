@@ -45,13 +45,18 @@ export function connectFirebase(options: {
   return { app, auth, db };
 }
 
-let handles: FirebaseHandles | null = null;
+const handles = new Map<string, FirebaseHandles>();
 
-// アプリ全体で1つだけ接続する（Spark プランの同時接続数を節約するため）
-export function firebase(): FirebaseHandles {
-  if (!handles) {
+// 役割ごとに1つだけ接続する（Spark プランの同時接続数を節約するため）。
+// ログイン状態は役割ごとに別に保存されるので、同じブラウザで GM とチームを開いても混ざらない。
+// 開発中は device を変えると、1つのブラウザで別の端末のふりができる（複数チームの確認用）。
+export function firebase(role: 'gm' | 'team' | 'screen', device = ''): FirebaseHandles {
+  const name = device ? `${role}-${device}` : role;
+  let h = handles.get(name);
+  if (!h) {
     const useEmulator = import.meta.env.VITE_USE_EMULATOR === 'true';
-    handles = connectFirebase({ useEmulator, emulatorHost: location.hostname });
+    h = connectFirebase({ useEmulator, emulatorHost: location.hostname, appName: name });
+    handles.set(name, h);
   }
-  return handles;
+  return h;
 }

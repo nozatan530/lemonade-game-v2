@@ -36,10 +36,32 @@ export interface SubmissionDoc {
   submittedAt: number; // サーバー時刻。提出順に使う
 }
 
+// チームにも見せる設定。シードを含む config は GM だけが読める（市場予算を先読みされないように）
+export interface PublicConfig {
+  months: number;
+  startCalendarMonth: number;
+  baristaCapacity: number;
+  initialBaristaCount: number;
+  recipe: { lemon: number; sugar: number };
+  startFund: number;
+}
+
+export function publicConfigOf(c: GameConfig): PublicConfig {
+  return {
+    months: c.months,
+    startCalendarMonth: c.startCalendarMonth,
+    baristaCapacity: c.baristaCapacity,
+    initialBaristaCount: c.initialBaristaCount,
+    recipe: { ...c.recipe },
+    startFund: c.startFund,
+  };
+}
+
 // games/{gameCode} の中身
 export interface GameDoc {
   meta: GameMeta;
   config: GameConfig;
+  public: PublicConfig;
   settings: { timer: TimerSettings };
   clock: Clock;
   teams: Record<string, TeamSlot>;

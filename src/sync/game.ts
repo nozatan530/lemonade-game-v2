@@ -9,7 +9,7 @@ import type {
   GameConfig, MonthConditions, MonthlyDecision, MonthResult, QuarterlyDecision, Submission, TeamState, TimerSettings,
 } from '../engine/types';
 import { asArray, asRecord, stripUndefined } from './codec';
-import { monthKey, type Clock, type GameMeta, type SubmissionDoc, type TeamSlot } from './schema';
+import { monthKey, publicConfigOf, type Clock, type GameMeta, type SubmissionDoc, type TeamSlot } from './schema';
 
 // ゲームコード：読み間違えやすい文字（0/O, 1/I/L）を除いた6文字
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -66,6 +66,7 @@ export async function createGame(
   };
   const updates: Record<string, unknown> = {
     config: input.config,
+    public: publicConfigOf(input.config),
     settings: { timer: input.timer },
     clock: lobby,
   };

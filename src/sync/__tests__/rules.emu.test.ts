@@ -29,7 +29,8 @@ async function seed(clock: Partial<Record<string, unknown>> = {}) {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await ctx.database().ref(G).set({
       meta: { gmUid: 'gm', createdAt: 1, status: 'active' },
-      config: { months: 12 },
+      config: { months: 12, market: { seed: 'secret' } },
+      public: { months: 12 },
       clock: {
         month: 2, monthKey: 'm02', phase: 'input', deadlineAt: Date.now() + 60000, quarterStart: false,
         prices: { lemon: 80, sugar: 10, barista: 2000 }, ...clock,
@@ -81,6 +82,12 @@ describe('読み取り', () => {
     await assertSucceeds(teamA().ref(`${G}/clock`).once('value'));
     await assertSucceeds(teamA().ref(`${G}/teams`).once('value'));
     await assertSucceeds(teamA().ref(`${G}/results`).once('value'));
+  });
+
+  it('チームは設定のうち公開分だけ読める（シードを含む config は読めない）', async () => {
+    await assertSucceeds(teamA().ref(`${G}/public`).once('value'));
+    await assertFails(teamA().ref(`${G}/config`).once('value'));
+    await assertSucceeds(gm().ref(`${G}/config`).once('value'));
   });
 
   it('チームは市場予算と、補った決定を読めない', async () => {
