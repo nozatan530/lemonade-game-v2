@@ -25,7 +25,9 @@ export function mountInputView(
   initial: InputContext,
   startValues: { decision: MonthlyDecision; baristaCount: number },
   onSubmit: (decision: MonthlyDecision, baristaCount: number | undefined) => Promise<void>,
+  options: { submitLabel?: string } = {}, // ソロモードでは「この決定で1か月すすめる」
 ): InputView {
+  const submitLabel = options.submitLabel ?? '提出する';
   let ctx = initial;
   const v = {
     lemon: startValues.decision.watching ? DEFAULT_DECISION.lemonQty : startValues.decision.lemonQty,
@@ -52,7 +54,7 @@ export function mountInputView(
     <div class="card" id="inputs"><h2>今月の決定</h2></div>
     <div class="card" id="preview"></div>
     <div id="status"></div>
-    <button class="btn" id="submit" type="button">提出する</button>
+    <button class="btn" id="submit" type="button">${esc(submitLabel)}</button>
     <button class="btn secondary" id="watch" type="button">今月は静観する（売らない）</button>
   `;
   const inputs = container.querySelector<HTMLElement>('#inputs')!;
@@ -130,7 +132,7 @@ export function mountInputView(
       : sub
         ? `<div class="notice">✅ 提出しました（${sub.monthlyDecision.watching ? '静観' : `${yen(sub.monthlyDecision.price)}で販売`}）。締切までは出し直せます。</div>`
         : '';
-    submitBtn.textContent = sub ? '出し直す' : '提出する';
+    submitBtn.textContent = sub ? '出し直す' : submitLabel;
     submitBtn.disabled = ctx.closed;
     watchBtn.disabled = ctx.closed;
     steppers.forEach((s) => s.setDisabled(ctx.closed));

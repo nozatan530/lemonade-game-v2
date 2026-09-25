@@ -2,6 +2,7 @@
 //   #/team?code=XXXXXX  販売チーム
 //   #/gm                GM
 //   #/screen?code=…     全体表示
+//   #/solo              ソロモード（ブラウザの中だけ。Firebase を使わない）
 //   #/dev               開発用（エミュレーター接続時だけ）
 
 import './ui/style.css';
@@ -26,6 +27,11 @@ async function route() {
       cleanup = await renderGm(root, params);
       break;
     }
+    case '/solo': {
+      const { renderSolo } = await import('./screens/solo/solo');
+      cleanup = renderSolo(root);
+      break;
+    }
     case '/screen': {
       const { renderDashboard } = await import('./screens/dashboard/dashboard');
       cleanup = await renderDashboard(root, params);
@@ -44,7 +50,9 @@ async function route() {
     default:
       root.innerHTML = `<div class="page"><h1>🍋 レモネードスタンド</h1>
         <div class="card"><a class="btn" href="#/team">チームで参加する</a>
-        <a class="btn secondary" href="#/gm">GM（進行役）</a></div></div>`;
+        <a class="btn secondary" href="#/gm">GM（進行役）</a></div>
+        <div class="card"><p class="muted" style="margin:0">ひとりで、CPU のお店と1年間競争できます。</p>
+        <a class="btn secondary" href="#/solo">ひとりで練習する（ソロモード）</a></div></div>`;
   }
 }
 

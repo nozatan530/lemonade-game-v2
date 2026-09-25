@@ -9,6 +9,7 @@ export function renderMonthResult(
   result: MonthResult,
   teamId: string,
   teams: Record<string, TeamSlot>,
+  options: { onNext?: () => void; nextLabel?: string } = {}, // ソロモードでは「次の月へ」ボタンを出す
 ): void {
   const r = result.teamResults.find((t) => t.teamId === teamId);
   if (!r) {
@@ -48,7 +49,10 @@ export function renderMonthResult(
         ${rows}
       </table>
     </div>
-    <p class="muted center">GMが次の月を始めるまで待ってください。</p>`;
+    ${options.onNext
+      ? `<button class="btn" id="next" type="button">${esc(options.nextLabel ?? '次の月へ')}</button>`
+      : '<p class="muted center">GMが次の月を始めるまで待ってください。</p>'}`;
+  if (options.onNext) container.querySelector('#next')!.addEventListener('click', options.onNext);
 }
 
 export function renderFinal(
