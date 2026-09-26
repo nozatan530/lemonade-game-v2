@@ -3,6 +3,7 @@
 //   #/gm                GM
 //   #/screen?code=…     全体表示
 //   #/guide             はじめに（遊び方の説明）
+//   #/survey            感想を送る（アンケート）
 //   #/solo              ソロモード（ブラウザの中だけ。Firebase を使わない）
 //   #/dev               開発用（エミュレーター接続時だけ）
 
@@ -42,6 +43,11 @@ async function route() {
     case '/guide': {
       const { renderGuide } = await import('./screens/guide/guide');
       cleanup = renderGuide(root);
+      break;
+    }
+    case '/survey': {
+      const { renderSurveyPage } = await import('./screens/survey/survey-page');
+      cleanup = renderSurveyPage(root);
       break;
     }
     case '/solo': {
@@ -84,7 +90,8 @@ function renderHome() {
            <a class="btn secondary" href="#/gm">GM（進行役）</a>`
         : `<button class="btn secondary" type="button" disabled>チームで参加する（開発中）</button>
            <button class="btn secondary" type="button" disabled>GM（進行役）（開発中）</button>`}
-    </div></div>`;
+    </div>
+    <p class="center"><a href="#/survey">✉️ 感想を送る</a></p></div>`;
 }
 
 function renderComingSoon() {

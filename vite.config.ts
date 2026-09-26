@@ -3,6 +3,10 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   // 相対パスでビルドする（Firebase Hosting / GitHub Pages の両方で動かすため）
   base: './',
+  // ビルドした日を版として埋め込む（アンケートで、どの版で遊んだかを記録する）
+  define: {
+    __APP_VERSION__: JSON.stringify(new Date().toISOString().slice(0, 10)),
+  },
   build: {
     outDir: 'dist',
   },

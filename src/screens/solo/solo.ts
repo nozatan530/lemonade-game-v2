@@ -14,6 +14,7 @@ import { maybeStartInputCoach } from '../team/input-coach';
 import { DEFAULT_DECISION, mountInputView } from '../team/input-view';
 import { renderMonthResult } from '../team/result-view';
 import { renderTermReport } from '../report/report';
+import { mountSurveyForm } from '../survey/survey-form';
 
 export function renderSolo(root: HTMLElement): () => void {
   let state: SoloState | null = null;
@@ -149,8 +150,18 @@ export function renderSolo(root: HTMLElement): () => void {
             <span class="muted">${esc(CPU_TYPE_INFO[type].description)}</span></td></tr>`).join('')}</table>
         <p class="muted">あなたの作戦は、どのお店に近かったでしょうか。どの月にもうけが増えたか、減ったかも振り返ってみましょう。</p>
       </div>
+      <div class="card"><h2>✉️ 感想を聞かせてください（1分）</h2><div id="survey"></div></div>
       <button class="btn" id="again">もう一度あそぶ</button>`;
     view.appendChild(reveal);
+    const ranked = [...s.teams].sort((a, b) => b.balance - a.balance);
+    mountSurveyForm(reveal.querySelector('#survey')!, {
+      source: 'solo-final',
+      pattern: s.config.market.pattern,
+      difficulty: s.difficulty,
+      rank: ranked.findIndex((t) => t.teamId === HUMAN_ID) + 1,
+      teams: s.teams.length,
+      profit: s.teams.find((t) => t.teamId === HUMAN_ID)!.totalProfit,
+    }, `solo-${s.config.market.seed}`);
     reveal.querySelector('#again')!.addEventListener('click', () => { clearSolo(); state = null; renderStart(null); });
   }
 

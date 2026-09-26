@@ -286,3 +286,21 @@ a.btn { text-align: center; text-decoration: none; line-height: 52px; }
 .coach-count { font-size: 0.8rem; color: var(--muted); }
 .coach-buttons { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .coach-buttons .btn { width: auto; min-height: 44px; padding: 0 22px; margin: 0; }
+
+/* アンケート */
+.survey-q { font-weight: 700; margin: 14px 0 6px; }
+.survey-q:first-child { margin-top: 0; }
+.choice-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.scale-ends { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+.choice {
+  min-height: 44px; padding: 6px 12px; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text); font: inherit; font-size: 1rem; cursor: pointer;
+}
+.scale .choice { font-size: 1.3rem; padding: 6px 0; }
+.choice.on { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 800; }
+.survey textarea {
+  width: 100%; padding: 8px 10px; font: inherit; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text);
+}
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }

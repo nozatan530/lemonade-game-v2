@@ -53,6 +53,7 @@ lemonade-game/
 │   │   └── __tests__/
 │   ├── sync/                  # Firebaseとのやりとり（engineの外側）
 │   ├── solo/                  # ソロモードの進行（Firebaseを使わず、ブラウザの中だけで engine を呼ぶ）
+│   ├── survey/                # アンケートの回答の組み立てと送信（GAS へ）
 │   ├── ai/                    # GAS中継の呼び出しと、Geminiオフ時のテンプレート文
 │   ├── screens/
 │   │   ├── gm/                # GM画面（設定・進行・強制締切・終了と削除）
@@ -61,12 +62,14 @@ lemonade-game/
 │   │   ├── report/            # 期末レポート
 │   │   ├── solo/              # ソロモード（人1チーム vs CPU 3チーム）
 │   │   ├── guide/             # はじめに（遊び方の説明）
+│   │   ├── survey/            # アンケートの画面
 │   │   └── dev/               # 開発用ページ（エミュレーター接続時だけ）
 │   ├── ui/                    # 共通部品（スライダー、タイマー、グラフ）
 │   └── main.ts
 ├── gas/                       # Gemini中継用のGAS（clasp管理）
 │   ├── Code.gs
-│   └── appsscript.json
+│   ├── appsscript.json
+│   └── survey/                # アンケートを受け取ってスプレッドシートに保存するGAS（Gemini中継とは別）
 ├── legacy/                    # 旧版の単一HTML（参照用。編集しない）
 ├── database.rules.json        # Realtime Databaseのセキュリティルール
 ├── firebase.json
