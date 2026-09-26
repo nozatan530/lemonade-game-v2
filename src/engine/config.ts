@@ -1,5 +1,6 @@
 // 難易度・実施モード・初期値。数値は docs/game-design.md の初期値（要調整）。
 
+import { seededRand } from './random';
 import type { Difficulty, GameConfig, PlayMode, TimerSettings } from './types';
 
 export const PLAY_MODES: Record<PlayMode, { months: number; minutes: number }> = {
@@ -86,9 +87,33 @@ export function inputSecondsFor(month: number, timer: TimerSettings): number {
 }
 
 // チーム数が変わったときの設定（開始時に未参加のチームを外したとき）。
-// 市場予算の基準が標準（チーム数 × 20,000円）のままなら、新しいチーム数に合わせる。
-// GM が基準を変えていたら、その値を残す。
+// 1チームあたりの額（basePerTeam）があれば、それ × 新しいチーム数にする。
+// ないときは、基準が標準（チーム数 × 20,000円）のままなら新しいチーム数に合わせ、GM が変えていたらその値を残す。
 export function withTeamCount(config: GameConfig, fromCount: number, toCount: number): GameConfig {
+  const perTeam = config.market.basePerTeam;
+  if (perTeam !== undefined) return { ...config, market: { ...config.market, base: perTeam * toCount } };
   if (config.market.base !== fromCount * MARKET_BASE_PER_TEAM) return config;
   return { ...config, market: { ...config.market, base: toCount * MARKET_BASE_PER_TEAM } };
+}
+
+// ゲームごとに1チームあたりの市場予算を決める（min〜max の間、1,000円単位）。
+// シードで決まるので、同じシードなら同じ大きさになる。チームには見せない（結果で市場予算がわかるだけ）。
+export interface MarketSizeRange {
+  min: number;
+  max: number;
+}
+
+// 対戦モードの「おまかせ」の幅。値はソロの「ふつう」とそろえる（docs/game-design.md）
+export const DEFAULT_MARKET_SIZE: MarketSizeRange = { min: 12000, max: 17000 };
+
+export function pickMarketPerTeam(seed: string, range: MarketSizeRange): number {
+  const steps = Math.floor((range.max - range.min) / 1000);
+  // 月ごとの乱数（月×100＋k）と重ならない番号を使う
+  return range.min + Math.min(steps, Math.floor(seededRand(seed, 999_001) * (steps + 1))) * 1000;
+}
+
+// 市場の大きさをゲームごとにランダムにした設定
+export function withRandomMarketSize(config: GameConfig, teamCount: number, range: MarketSizeRange): GameConfig {
+  const perTeam = pickMarketPerTeam(config.market.seed, range);
+  return { ...config, market: { ...config.market, base: perTeam * teamCount, basePerTeam: perTeam } };
 }

@@ -29,7 +29,8 @@ export interface TimerSettings {
 }
 
 export interface MarketSettings {
-  base: number; // 市場予算の基準額（標準はチーム数 × 20,000円）
+  base: number; // 市場予算の基準額（チーム数 × 1チームあたりの額）
+  basePerTeam?: number; // 1チームあたりの額。あればチーム数が変わったときにこれで計算し直す
   range: number; // 市場予算の変動幅（%）
   costMode: CostMode;
   costRange: number; // 原価の変動幅（%）

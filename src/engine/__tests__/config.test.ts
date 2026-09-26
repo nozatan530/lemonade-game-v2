@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_TIMER, defaultConfig, inputSecondsFor, isQuarterStart, withTeamCount } from '../config';
+import {
+  DEFAULT_TIMER, defaultConfig, inputSecondsFor, isQuarterStart, pickMarketPerTeam, withRandomMarketSize, withTeamCount,
+} from '../config';
 
 describe('isQuarterStart', () => {
   it('1・4・7・10か月目が四半期の最初の月', () => {
@@ -53,5 +55,33 @@ describe('withTeamCount（未参加チームを外したとき）', () => {
     const c = defaultConfig(4, 's');
     withTeamCount(c, 4, 2);
     expect(c.market.base).toBe(80000);
+  });
+});
+
+describe('市場の大きさをゲームごとにランダムにする', () => {
+  const range = { min: 12000, max: 17000 };
+
+  it('1チームあたりの額は幅の中で、1,000円単位', () => {
+    for (let i = 0; i < 300; i++) {
+      const v = pickMarketPerTeam(`seed${i}`, range);
+      expect(v).toBeGreaterThanOrEqual(12000);
+      expect(v).toBeLessThanOrEqual(17000);
+      expect(v % 1000).toBe(0);
+    }
+  });
+
+  it('幅の中の値がまんべんなく出る', () => {
+    const seen = new Set(Array.from({ length: 300 }, (_, i) => pickMarketPerTeam(`s${i}`, range)));
+    expect([...seen].sort()).toEqual([12000, 13000, 14000, 15000, 16000, 17000]);
+  });
+
+  it('同じシードなら同じ大きさ', () => {
+    expect(pickMarketPerTeam('same', range)).toBe(pickMarketPerTeam('same', range));
+  });
+
+  it('基準額は 1チームあたりの額 × チーム数。チーム数を減らすと1チームあたりの額で計算し直す', () => {
+    const c = withRandomMarketSize(defaultConfig(4, 'x'), 4, range);
+    expect(c.market.base).toBe(c.market.basePerTeam! * 4);
+    expect(withTeamCount(c, 4, 3).market.base).toBe(c.market.basePerTeam! * 3);
   });
 });
