@@ -5,7 +5,7 @@
 var SHEET_NAME = '回答';
 var HEADERS = ['受付日時', '回答者', '楽しさ', 'わかりやすさ', '難しさ', '学び', '授業で使いたい', '使う場面', 'コメント',
   'きっかけ', '市場のパターン', 'むずかしさ', '順位', 'チーム数', '1年のもうけ', '端末', 'バージョン'];
-var ROLE_LABELS = { elementary: '小学生', junior: '中学生', high: '高校生', adult: '大人', teacher: '先生' };
+var ROLE_LABELS = { elementary: '小学生', junior: '中学生', high: '高校生', adult: '大人', teacher: '教育関係者' };
 var DIFFICULTY_LABELS = { easy: 'やさしすぎ', right: 'ちょうどいい', hard: 'むずかしすぎ' };
 var SCENES = ['小学校', '中学校', '高校', '大学・社会人研修', '家庭・その他'];
 var COMMENT_MAX = 1000;

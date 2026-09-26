@@ -38,7 +38,7 @@ describe('GAS：スプレッドシートに保存する行（toRow_）', () => {
 
   it('正しい回答は1行になる（日本語のラベルで保存）', () => {
     const row = gas.toRow_(JSON.parse(JSON.stringify(build())), now)!;
-    expect(row[1]).toBe('先生');
+    expect(row[1]).toBe('教育関係者');
     expect(row.slice(2, 8)).toEqual([5, 4, 'ちょうどいい', 3, 4, '中学校']);
     expect(row[8]).toBe('たのしかった');
     expect(row.slice(9, 15)).toEqual(['solo-final', 'realistic', 'normal', 2, 4, 45000]);

@@ -11,7 +11,7 @@ export const ROLES: { id: Role; label: string; audience: Audience }[] = [
   { id: 'junior', label: '中学生', audience: 'adult' },
   { id: 'high', label: '高校生', audience: 'adult' },
   { id: 'adult', label: '大人', audience: 'adult' },
-  { id: 'teacher', label: '先生', audience: 'adult' },
+  { id: 'teacher', label: '教育関係者', audience: 'adult' },
 ];
 
 export const SCENES = ['小学校', '中学校', '高校', '大学・社会人研修', '家庭・その他'] as const;
