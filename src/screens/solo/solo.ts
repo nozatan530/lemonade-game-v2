@@ -11,7 +11,8 @@ import {
 import { monthKey, publicConfigOf, type Clock, type TeamSlot } from '../../sync/schema';
 import { esc, monthLabel, yen } from '../../ui/format';
 import { DEFAULT_DECISION, mountInputView } from '../team/input-view';
-import { renderFinal, renderMonthResult } from '../team/result-view';
+import { renderMonthResult } from '../team/result-view';
+import { renderTermReport } from '../report/report';
 
 export function renderSolo(root: HTMLElement): () => void {
   let state: SoloState | null = null;
@@ -123,8 +124,11 @@ export function renderSolo(root: HTMLElement): () => void {
       return;
     }
 
-    // 期末：順位と、CPU の作戦の答え合わせ
-    renderFinal(view, Object.fromEntries(s.teams.map((t) => [t.teamId, t])), HUMAN_ID, slotsOf(s));
+    // 期末：1年の振り返りと、CPU の作戦の答え合わせ
+    renderTermReport(view, {
+      results: s.results, teams: s.teams, names: s.names, meId: HUMAN_ID,
+      startFund: s.config.startFund, startCalendarMonth: s.config.startCalendarMonth, recipe: s.config.recipe,
+    });
     const reveal = document.createElement('div');
     reveal.innerHTML = `<div class="card">
         <h2>答え合わせ：CPU のお店の作戦</h2>
