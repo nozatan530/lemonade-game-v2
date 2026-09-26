@@ -42,6 +42,9 @@ export interface TimerSettings {
   closeWhenAllSubmitted: boolean; // 全チームが提出したら早めに締め切る
 }
 
+// バリスタの人数を決められる間隔。quarterly：3か月ごと（1・4・7・10か月目）／monthly：毎月
+export type BaristaCadence = 'quarterly' | 'monthly';
+
 export interface MarketSettings {
   base: number; // 市場予算の基準額（チーム数 × 1チームあたりの額）
   basePerTeam?: number; // 1チームあたりの額。あればチーム数が変わったときにこれで計算し直す
@@ -61,6 +64,7 @@ export interface GameConfig {
   initialPrices: UnitPrices; // 原価変動の基準。変動は常にここから計算する
   baristaCapacity: number; // バリスタ1人の月間製造上限（杯）
   initialBaristaCount: number; // 期のはじめに雇っているバリスタの人数
+  baristaCadence?: BaristaCadence; // バリスタの人数を決められる間隔（ないときは quarterly）
   recipe: Recipe;
   startFund: number;
   market: MarketSettings;
@@ -152,7 +156,7 @@ export type CpuSkill = 'basic' | 'adaptive';
 // 今月の市場予算・シード・ほかのチームの今月の決定は入れない（入れようとすると型エラーになる）。
 export interface CpuView {
   month: number;
-  quarterStart: boolean; // バリスタの人数を決める月か
+  quarterStart: boolean; // バリスタの人数を決められる月か（毎月決められる設定なら毎月 true）
   prices: UnitPrices; // 今月の単価
   rules: {
     baristaCapacity: number;

@@ -1,7 +1,7 @@
 // 1か月分の処理をまとめる。状態と入力を受け取り、新しい状態と結果を返す。
 
 import { purchaseBasisCosts } from './accounting';
-import { isQuarterStart } from './config';
+import { canChangeBarista } from './config';
 import { nextStock, offeredCups, productionCapacity, sanitizeDecision } from './inventory';
 import { allocatePriceSegment, type Offer } from './market';
 import type {
@@ -49,7 +49,7 @@ export function resolveMonth(
     const sub = byTeam.get(t.teamId);
     if (!sub) throw new Error(`${t.name} の提出がありません`);
     const decision = sanitizeDecision(sub.monthlyDecision);
-    const baristaCount = isQuarterStart(conditions.month) && sub.quarterlyDecision
+    const baristaCount = canChangeBarista(conditions.month, config.baristaCadence) && sub.quarterlyDecision
       ? Math.max(0, Math.floor(sub.quarterlyDecision.baristaCount))
       : t.baristaCount;
     const capacity = productionCapacity(t.stock, decision.lemonQty, decision.sugarQty, baristaCount, config);

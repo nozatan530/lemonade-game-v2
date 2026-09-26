@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  DEFAULT_TIMER, defaultConfig, inputSecondsFor, isQuarterStart, pickMarketPerTeam, withRandomMarketSize, withTeamCount,
+  canChangeBarista, DEFAULT_TIMER, defaultConfig, inputSecondsFor, isQuarterStart, pickMarketPerTeam, withRandomMarketSize, withTeamCount,
 } from '../config';
 
 describe('isQuarterStart', () => {
@@ -83,5 +83,14 @@ describe('市場の大きさをゲームごとにランダムにする', () => {
     const c = withRandomMarketSize(defaultConfig(4, 'x'), 4, range);
     expect(c.market.base).toBe(c.market.basePerTeam! * 4);
     expect(withTeamCount(c, 4, 3).market.base).toBe(c.market.basePerTeam! * 3);
+  });
+});
+
+describe('canChangeBarista', () => {
+  it('3か月ごと（初期値）なら 1・4・7・10か月目、毎月なら毎月', () => {
+    const months = Array.from({ length: 12 }, (_, i) => i + 1);
+    expect(months.filter((m) => canChangeBarista(m))).toEqual([1, 4, 7, 10]);
+    expect(months.filter((m) => canChangeBarista(m, 'quarterly'))).toEqual([1, 4, 7, 10]);
+    expect(months.filter((m) => canChangeBarista(m, 'monthly'))).toEqual(months);
   });
 });

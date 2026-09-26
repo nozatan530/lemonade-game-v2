@@ -1,7 +1,7 @@
 // 難易度・実施モード・初期値。数値は docs/game-design.md の初期値（要調整）。
 
 import { seededRand } from './random';
-import type { Difficulty, GameConfig, MarketPattern, PlayMode, TimerSettings } from './types';
+import type { BaristaCadence, Difficulty, GameConfig, MarketPattern, PlayMode, TimerSettings } from './types';
 
 export const PLAY_MODES: Record<PlayMode, { months: number; minutes: number }> = {
   standard: { months: 12, minutes: 50 },
@@ -46,6 +46,11 @@ export const MARKET_BASE_PER_TEAM = 20000;
 // 四半期の決定をする月（1・4・7・10か月目）
 export function isQuarterStart(month: number): boolean {
   return (month - 1) % 3 === 0;
+}
+
+// バリスタの人数を決められる月か。3か月ごと（初期値）なら四半期の最初の月、毎月なら毎月
+export function canChangeBarista(month: number, cadence: BaristaCadence = 'quarterly'): boolean {
+  return cadence === 'monthly' || isQuarterStart(month);
 }
 
 // 初期設定（旧版の既定値と同じ）

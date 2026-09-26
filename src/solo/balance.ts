@@ -1,7 +1,7 @@
 // ソロモードのバランスを確かめるためのシミュレーション（テストから使う）。
 // 人のかわりに、決まった考え方で遊ぶ「お手本の遊び方」を動かす。
 
-import { isQuarterStart } from '../engine/config';
+import { canChangeBarista } from '../engine/config';
 import type { MarketPattern, MonthlyDecision } from '../engine/types';
 import { HUMAN_ID, newSoloGame, nextSoloMonth, submitHuman, type SoloDifficulty, type SoloState } from './local-game';
 
@@ -23,7 +23,7 @@ export const thinker: Player = (s) => {
   if (mine && mine.offered > 0) {
     const soldOut = mine.sold >= mine.offered;
     price = soldOut ? price + 20 : Math.max(150, price - 30);
-    if (isQuarterStart(s.conditions.month)) {
+    if (canChangeBarista(s.conditions.month, s.config.baristaCadence)) {
       const room = last!.marketBudget - last!.teamResults.reduce((a, t) => a + t.revenue, 0);
       if (soldOut && room > 0) barista = Math.min(3, barista + 1);
       else if (mine.offered - mine.sold >= 20) barista = Math.max(1, barista - 1);
@@ -42,7 +42,7 @@ export const thinker: Player = (s) => {
 
 // よく考えて遊ぶ：先月いちばん安かったライバルより少し安くして、バリスタを増やしてたくさん売る。
 //   値段：ライバルの最安値 − 10円（1杯の原価＋40円は下回らない）
-//   バリスタ（3か月ごと）：最初は3人。20杯以上売れ残ったら1人減らす
+//   バリスタ（決められる月に）：最初は3人。20杯以上売れ残ったら1人減らし、売り切れて市場のお金が余っていたら1人増やす（1〜4人）
 export const undercutter: Player = (s) => {
   const me = s.teams.find((t) => t.teamId === HUMAN_ID)!;
   const last = s.results[s.results.length - 1];
@@ -52,8 +52,12 @@ export const undercutter: Player = (s) => {
   const rivals = last?.teamResults.filter((t) => t.teamId !== HUMAN_ID && t.offered > 0).map((t) => t.price) ?? [];
   const price = rivals.length > 0 ? Math.max(Math.ceil((cupCost + 40) / 10) * 10, Math.min(...rivals) - 10) : 220;
   let barista = me.baristaCount;
-  if (isQuarterStart(s.conditions.month)) {
-    barista = !mine ? 3 : mine.offered - mine.sold >= 20 ? Math.max(1, barista - 1) : barista;
+  if (canChangeBarista(s.conditions.month, s.config.baristaCadence)) {
+    const room = last ? last.marketBudget - last.teamResults.reduce((a, t) => a + t.revenue, 0) : 0;
+    barista = !mine ? 3
+      : mine.offered - mine.sold >= 20 ? Math.max(1, barista - 1)
+      : mine.sold >= mine.offered && room > 0 ? Math.min(4, barista + 1)
+      : barista;
   }
   const cups = barista * s.config.baristaCapacity;
   return {

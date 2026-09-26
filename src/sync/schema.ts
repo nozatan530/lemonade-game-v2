@@ -19,7 +19,7 @@ export interface Clock {
   monthKey: string; // 'm01' など
   phase: Phase;
   deadlineAt: number; // 入力の締切（サーバー時刻・ミリ秒）
-  quarterStart: boolean; // 四半期の最初の月（バリスタを決められる）
+  quarterStart: boolean; // バリスタを決められる月（3か月ごとの設定なら四半期の最初の月、毎月の設定なら毎月）
   prices: UnitPrices; // その月の単価
   message?: string; // シナリオのお知らせ
 }
@@ -42,6 +42,7 @@ export interface PublicConfig {
   startCalendarMonth: number;
   baristaCapacity: number;
   initialBaristaCount: number;
+  baristaCadence?: 'quarterly' | 'monthly';
   recipe: { lemon: number; sugar: number };
   startFund: number;
 }
@@ -52,6 +53,7 @@ export function publicConfigOf(c: GameConfig): PublicConfig {
     startCalendarMonth: c.startCalendarMonth,
     baristaCapacity: c.baristaCapacity,
     initialBaristaCount: c.initialBaristaCount,
+    baristaCadence: c.baristaCadence ?? 'quarterly',
     recipe: { ...c.recipe },
     startFund: c.startFund,
   };

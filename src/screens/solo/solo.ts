@@ -2,7 +2,7 @@
 // 入力画面と結果画面は販売チーム画面のものを使う。
 
 import { CPU_TYPE_INFO } from '../../engine/cpu-teams';
-import { MARKET_PATTERNS } from '../../engine/config';
+import { canChangeBarista, MARKET_PATTERNS } from '../../engine/config';
 import type { MarketPattern } from '../../engine/types';
 import {
   clearSolo, HUMAN_ID, lastHumanDecision, loadSolo, newSoloGame, nextSoloMonth, saveSolo, SOLO_DIFFICULTY, submitHuman,
@@ -109,7 +109,7 @@ export function renderSolo(root: HTMLElement): () => void {
 
     if (s.phase === 'input') {
       const clock: Clock = {
-        month, monthKey: monthKey(month), phase: 'input', deadlineAt: 0, quarterStart: (month - 1) % 3 === 0,
+        month, monthKey: monthKey(month), phase: 'input', deadlineAt: 0, quarterStart: canChangeBarista(month, s.config.baristaCadence),
         prices: s.conditions.prices, ...(s.conditions.message ? { message: s.conditions.message } : {}),
       };
       mountInputView(

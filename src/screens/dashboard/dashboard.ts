@@ -83,7 +83,7 @@ export async function renderDashboard(root: HTMLElement, params: URLSearchParams
         <span>🍋 レモン ${yen(c.prices.lemon)}</span><span>🍬 砂糖 ${yen(c.prices.sugar)}</span>
         <span>👩‍🍳 バリスタ ${yen(c.prices.barista)}</span>
       </div>
-      ${c.quarterStart ? '<p class="screen-label center">今月はバリスタの人数を決める月です</p>' : ''}
+      ${c.quarterStart && S.pub?.baristaCadence !== 'monthly' ? '<p class="screen-label center">今月はバリスタの人数を決める月です</p>' : ''}
       <p class="screen-label center">提出したチーム ${done} / ${slots.length}</p>
       <div class="screen-teams">${slots.map(({ teamId, slot }) =>
         `<div class="team-tile ${S.submitted[teamId] ? 'on' : ''}">${S.submitted[teamId] ? '✅' : '✏️'} ${esc(slot.name)}</div>`).join('')}</div>`;

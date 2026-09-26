@@ -59,11 +59,12 @@ describe('ソロモードの進行', () => {
     for (const r of end.results) expect(r.teamResults.map((t) => t.teamId)).toContain(HUMAN_ID);
   });
 
-  it('人のバリスタ人数は四半期の最初の月だけ変わる', () => {
+  it('ソロでは、人のバリスタ人数を毎月変えられる', () => {
     let s = submitHuman(start(), decision, 2); // 1か月目
     expect(s.teams[0]!.baristaCount).toBe(2);
-    s = submitHuman(nextSoloMonth(s), decision, 3); // 2か月目は無視される
-    expect(s.teams[0]!.baristaCount).toBe(2);
+    s = submitHuman(nextSoloMonth(s), decision, 3); // 2か月目も変えられる
+    expect(s.teams[0]!.baristaCount).toBe(3);
+    expect(s.config.baristaCadence).toBe('monthly');
   });
 
   it('先月の自分の決定を返す（入力欄の初期値用）', () => {

@@ -33,6 +33,8 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
           <option value="15000">ふつう：15,000円</option>
           <option value="12000">小さめ：12,000円（競争がきびしい）</option>
         </select></label>
+      <label class="check" style="margin:0 0 12px"><input type="checkbox" id="baristaMonthly">
+        バリスタの人数を毎月決められるようにする（初期値は3か月ごと。毎月にすると、チームの入力が毎月1つ増えます）</label>
       <fieldset class="field"><legend>入力時間（秒）</legend>
         <div class="row3">
           <label>1か月目<input type="number" id="tFirst" min="30" value="${DEFAULT_TIMER.firstMonth}"></label>
@@ -82,6 +84,7 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
       ? withRandomMarketSize(defaultConfig(names.length, seed), names.length, DEFAULT_MARKET_SIZE)
       : defaultConfig(names.length, seed);
     if (marketSize !== 'auto') config.market = { ...config.market, base: perTeam * names.length, basePerTeam: perTeam };
+    config.baristaCadence = $<HTMLInputElement>('baristaMonthly').checked ? 'monthly' : 'quarterly';
     // 市場のパターン（お客さんの数と材料の値段の動き方）を当てはめる
     Object.assign(config, withMarketPattern(config, $<HTMLSelectElement>('pattern').value as MarketPattern));
     config.startFund = num('fund');

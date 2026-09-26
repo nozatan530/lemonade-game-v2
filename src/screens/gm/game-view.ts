@@ -148,7 +148,7 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
         <span class="chip">🍋 ${yen(c.prices.lemon)}</span><span class="chip">🍬 ${yen(c.prices.sugar)}</span>
         <span class="chip">👩‍🍳 ${yen(c.prices.barista)}</span>
         ${S.budget !== null ? `<span class="chip">市場予算 ${yen(S.budget)}（チームには非公開）</span>` : ''}
-        ${c.quarterStart ? '<span class="chip">バリスタを決める月</span>' : ''}
+        ${c.quarterStart && S.pub?.baristaCadence !== 'monthly' ? '<span class="chip">バリスタを決める月</span>' : ''}
       </div>
       <table class="table">${slots.map(({ teamId, slot }) => `<tr>
         <td>${esc(slot.name)}</td>

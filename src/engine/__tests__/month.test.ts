@@ -197,3 +197,24 @@ describe('startTerm / openNextMonth / isFinalMonth', () => {
     expect(openNextMonth(short, 6, 2, prices)).toBeNull();
   });
 });
+
+describe('バリスタを毎月決められる設定（baristaCadence: monthly）', () => {
+  it('毎月の設定なら、四半期の最初の月でなくても人数を変えられる', () => {
+    const monthly = { ...config, baristaCadence: 'monthly' as const };
+    const teams = [initialTeamState('A', 'A', monthly), initialTeamState('B', 'B', monthly)];
+    const r = resolveMonth(monthly, teams, cond(2, 0), [
+      sub('A', { lemonQty: 0, sugarQty: 0, price: 0 }, 1, 3),
+      sub('B', { lemonQty: 0, sugarQty: 0, price: 0 }, 2),
+    ]);
+    expect(r.teams.map((t) => t.baristaCount)).toEqual([3, 1]);
+  });
+
+  it('設定がなければ、これまでどおり3か月ごと', () => {
+    const teams = [initialTeamState('A', 'A', config), initialTeamState('B', 'B', config)];
+    const r = resolveMonth(config, teams, cond(2, 0), [
+      sub('A', { lemonQty: 0, sugarQty: 0, price: 0 }, 1, 3),
+      sub('B', { lemonQty: 0, sugarQty: 0, price: 0 }, 2),
+    ]);
+    expect(r.teams.map((t) => t.baristaCount)).toEqual([1, 1]);
+  });
+});

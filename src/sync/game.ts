@@ -3,7 +3,7 @@
 import {
   get, ref, remove, serverTimestamp, set, update, type Database,
 } from 'firebase/database';
-import { inputSecondsFor, isQuarterStart, withTeamCount } from '../engine/config';
+import { canChangeBarista, inputSecondsFor, withTeamCount } from '../engine/config';
 import { closeMonth, openNextMonth, startTerm } from '../engine/month';
 import type {
   GameConfig, MonthConditions, MonthlyDecision, MonthResult, QuarterlyDecision, Submission, TeamState, TimerSettings,
@@ -83,13 +83,13 @@ export async function releaseTeam(db: Database, code: string, teamId: string): P
   await remove(ref(db, gamePath(code, `teams/${teamId}/uid`)));
 }
 
-function clockFor(conditions: MonthConditions, timer: TimerSettings, now: number): Clock {
+function clockFor(conditions: MonthConditions, timer: TimerSettings, now: number, config: GameConfig): Clock {
   return stripUndefined({
     month: conditions.month,
     monthKey: monthKey(conditions.month),
     phase: 'input',
     deadlineAt: now + inputSecondsFor(conditions.month, timer) * 1000,
-    quarterStart: isQuarterStart(conditions.month),
+    quarterStart: canChangeBarista(conditions.month, config.baristaCadence),
     prices: conditions.prices,
     message: conditions.message,
   });
@@ -129,7 +129,7 @@ export async function startGame(
     ...(finalConfig !== config ? { config: finalConfig } : {}),
     state,
     [`hidden/${monthKey(1)}`]: { marketBudget: term.conditions.marketBudget },
-    clock: clockFor(term.conditions, settings.timer, now),
+    clock: clockFor(term.conditions, settings.timer, now, finalConfig),
   });
 }
 
@@ -206,7 +206,7 @@ export async function startNextMonth(db: Database, code: string, now: number): P
   }
   await update(ref(db, gamePath(code)), {
     [`hidden/${monthKey(next.month)}`]: { marketBudget: next.marketBudget },
-    clock: clockFor(next, settings.timer, now),
+    clock: clockFor(next, settings.timer, now, config),
   });
   return 'started';
 }

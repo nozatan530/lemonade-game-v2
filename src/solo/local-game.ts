@@ -1,7 +1,7 @@
 // ソロモード：人1チーム vs CPU 3チームを、ブラウザの中だけで進める（Firebase は使わない）。
 // オンラインの sync にあたる役。計算は engine の関数に任せ、ここは状態を持って順に呼ぶだけ。
 
-import { defaultConfig, isQuarterStart, withMarketPattern, withRandomMarketSize, type MarketSizeRange } from '../engine/config';
+import { canChangeBarista, defaultConfig, withMarketPattern, withRandomMarketSize, type MarketSizeRange } from '../engine/config';
 import { CPU_TYPES, cpuViewOf, decideCpu } from '../engine/cpu-teams';
 import { closeMonth, openNextMonth, startTerm } from '../engine/month';
 import { seededRand } from '../engine/random';
@@ -46,6 +46,8 @@ export function newSoloGame(options: {
     withRandomMarketSize(defaultConfig(4, options.seed), 4, SOLO_DIFFICULTY[difficulty].market),
     options.pattern ?? 'stable',
   );
+  // ソロはタイマーがないので、バリスタの人数を毎月決められる
+  config.baristaCadence = 'monthly';
 
   // 4つの作戦から3つを選び、どの店に割り当てるかもシードで決める（毎回ちがう並び）。
   // 「ふつう」「むずかしい」では安売りを必ず入れる（いないと、何も考えなくても勝ててしまうため）
@@ -76,7 +78,7 @@ export function submitHuman(state: SoloState, decision: MonthlyDecision, barista
   const human: Submission = {
     teamId: HUMAN_ID,
     monthlyDecision: decision,
-    ...(isQuarterStart(c.month) && baristaCount !== undefined ? { quarterlyDecision: { baristaCount } } : {}),
+    ...(canChangeBarista(c.month, state.config.baristaCadence) && baristaCount !== undefined ? { quarterlyDecision: { baristaCount } } : {}),
     order: 0,
   };
   const cpuSubs: Submission[] = state.teams
@@ -88,6 +90,7 @@ export function submitHuman(state: SoloState, decision: MonthlyDecision, barista
         rules: { baristaCapacity: state.config.baristaCapacity, recipe: state.config.recipe, teamCount: state.teams.length },
         me: t,
         results: state.results,
+        baristaCadence: state.config.baristaCadence,
       });
       const dice = (k: number) => seededRand(`${seed}:cpu:${t.teamId}`, c.month * 100 + k);
       const skill = SOLO_DIFFICULTY[state.difficulty ?? 'easy'].cpuSkill;

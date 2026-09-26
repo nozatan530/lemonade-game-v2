@@ -3,8 +3,8 @@
 // CPU が見てよい情報は CpuView だけ（今月の市場予算は見ない）。
 // dice は CPU ごとのサイコロ（0 以上 1 未満）。同じ dice なら同じ決定になる。
 
-import { isQuarterStart } from './config';
-import type { CpuDecision, CpuSkill, CpuType, CpuView, MonthResult, Recipe, TeamState, UnitPrices } from './types';
+import { canChangeBarista } from './config';
+import type { BaristaCadence, CpuDecision, CpuSkill, CpuType, CpuView, MonthResult, Recipe, TeamState, UnitPrices } from './types';
 
 export const CPU_TYPES: CpuType[] = ['discount', 'premium', 'follower', 'cautious'];
 
@@ -23,10 +23,11 @@ export function cpuViewOf(input: {
   rules: CpuView['rules'];
   me: TeamState;
   results: MonthResult[];
+  baristaCadence?: BaristaCadence;
 }): CpuView {
   return {
     month: input.month,
-    quarterStart: isQuarterStart(input.month),
+    quarterStart: canChangeBarista(input.month, input.baristaCadence),
     prices: { ...input.prices },
     rules: input.rules,
     me: input.me,

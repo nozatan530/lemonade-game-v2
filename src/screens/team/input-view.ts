@@ -5,7 +5,7 @@
 //   画面の下に固定：いまの資金 − 支出 ＋ 売上 ＝ 月末の資金（売れた数しだいで幅がある）
 // 計算はすべて engine の previewDecision。ここでは表示するだけ。
 
-import { isQuarterStart } from '../../engine/config';
+import { canChangeBarista } from '../../engine/config';
 import { previewDecision } from '../../engine/preview';
 import type { MonthlyDecision, TeamState } from '../../engine/types';
 import type { Clock, PublicConfig, SubmissionDoc } from '../../sync/schema';
@@ -45,9 +45,10 @@ export function mountInputView(
   const { prices } = ctx.clock;
   const { recipe, baristaCapacity } = ctx.pub;
   const canChooseBarista = ctx.clock.quarterStart;
-  // バリスタを決められる月（4・7・10・1月など）
-  const baristaMonths = Array.from({ length: ctx.pub.months }, (_, i) => i + 1)
-    .filter(isQuarterStart)
+  // バリスタを決められる月（3か月ごとなら 4・7・10・1月など。毎月なら「毎月」）
+  const cadence = ctx.pub.baristaCadence ?? 'quarterly';
+  const baristaMonths = cadence === 'monthly' ? '毎月' : Array.from({ length: ctx.pub.months }, (_, i) => i + 1)
+    .filter((m) => canChangeBarista(m, cadence))
     .map((m) => calendarMonth(m, ctx.pub.startCalendarMonth))
     .join('・') + '月';
 
@@ -140,7 +141,7 @@ export function mountInputView(
     // ① 仕入れる
     lemonStep.setHint(times(prices.lemon, v.lemon, '個', p.costs.costLemon));
     sugarStep.setHint(times(prices.sugar, v.sugar, '袋', p.costs.costSugar));
-    const baristaLine = `${times(prices.barista, b, '人', p.costs.costBarista)}<br><span class="muted">人数を決める月：${esc(baristaMonths)}</span>`;
+    const baristaLine = `${times(prices.barista, b, '人', p.costs.costBarista)}<br><span class="muted">${cadence === 'monthly' ? '人数は毎月変えられます' : `人数を決める月：${esc(baristaMonths)}`}</span>`;
     if (baristaStep) baristaStep.setHint(baristaLine);
     else $('baristaFixed').innerHTML = `<div class="fixed-row"><div class="label">👩‍🍳 バリスタ<small>${baristaLine}</small></div></div>`;
     $('spend').textContent = yen(p.costs.totalCost);
