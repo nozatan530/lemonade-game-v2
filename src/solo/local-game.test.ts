@@ -4,7 +4,7 @@ import {
   clearSolo, HUMAN_ID, lastHumanDecision, loadSolo, newSoloGame, nextSoloMonth, saveSolo, submitHuman, type SoloState,
 } from './local-game';
 
-const start = (seed = 'solo') => newSoloGame({ seed, scenario: 'none', costMode: 'fixed' });
+const start = (seed = 'solo') => newSoloGame({ seed });
 const decision = { lemonQty: 50, sugarQty: 50, price: 250 };
 
 function playAll(state: SoloState): SoloState {

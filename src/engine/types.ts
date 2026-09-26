@@ -4,8 +4,21 @@ export type Difficulty = 'beginner' | 'intermediate' | 'advanced';
 export type PlayMode = 'standard' | 'short' | 'extended';
 
 // 原価の変動のしかた（旧版と同じ4種類）
-// seasonal：季節で変わる（レモンは7月が高く1月が安い。砂糖はゲームごとに少しだけ違い、1年間同じ）
-export type CostMode = 'fixed' | 'random' | 'trend' | 'shock' | 'seasonal';
+// 旧版の4種類：fixed / random / trend / shock
+// 市場のパターン用：
+//   mild：レモン・砂糖が毎月 ±costRange% でランダム（給料は変わらない）
+//   seasonal：季節で変わる（レモンは7月が高く1月が安い。砂糖はゲームごとに少しだけ違い、1年間同じ）
+//   volatile：レモン・砂糖が大きくランダムに動き、ときどき急騰・急落する（給料は変わらない）
+export type CostMode = 'fixed' | 'random' | 'trend' | 'shock' | 'mild' | 'seasonal' | 'volatile';
+
+// お客さんの数（市場予算）の変わり方。
+//   random：基準額 ± range%（旧版と同じ）
+//   seasonal：季節の指数 × (1 ± range%)
+//   volatile：基準額 ± range%、ときどき急に半分か1.6倍になる
+export type DemandMode = 'random' | 'seasonal' | 'volatile';
+
+// 市場のパターン（お客さんの数と材料の値段の変わり方の組み合わせ）
+export type MarketPattern = 'stable' | 'mild' | 'realistic' | 'volatile';
 export type ScenarioId = 'none' | 'summer' | 'inflation' | 'chaos';
 
 // その月の単価
@@ -36,6 +49,8 @@ export interface MarketSettings {
   costMode: CostMode;
   costRange: number; // 原価の変動幅（%）
   seed: string;
+  demandMode?: DemandMode; // ないときは random（旧版と同じ）
+  pattern?: MarketPattern; // 画面で選んだパターン（表示用）
 }
 
 export interface GameConfig {

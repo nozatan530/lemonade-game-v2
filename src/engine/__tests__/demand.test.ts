@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { defaultConfig } from '../config';
+import { defaultConfig, withMarketPattern } from '../config';
+import type { MarketPattern, MonthConditions } from '../types';
 import { autoMonthValues, monthConditions } from '../demand';
 
 describe('autoMonthValues（シナリオなしの市場予算と原価）', () => {
@@ -85,5 +86,79 @@ describe('季節で変わる材料の値段（seasonal）', () => {
     expect(first.prices.lemon).toBe(84);
     const july = monthConditions(4, c, 4, first.prices);
     expect(july.prices.lemon).toBe(133);
+  });
+});
+
+describe('市場のパターン', () => {
+  const run = (pattern: MarketPattern, seed = 'pat', start = 4) => {
+    const c = withMarketPattern(defaultConfig(4, seed), pattern);
+    c.startCalendarMonth = start;
+    const months: MonthConditions[] = [];
+    let prev = c.initialPrices;
+    for (let m = 1; m <= 12; m++) {
+      const cond = monthConditions(m, c, 4, prev);
+      months.push(cond);
+      prev = cond.prices;
+    }
+    return months;
+  };
+
+  it('変動なし：お客さんの数も材料の値段も、12か月ずっと同じ', () => {
+    const ms = run('stable');
+    expect(new Set(ms.map((m) => m.marketBudget)).size).toBe(1);
+    expect(ms[0]!.marketBudget).toBe(80000);
+    for (const m of ms) expect(m.prices).toEqual({ lemon: 80, sugar: 10, barista: 2000 });
+  });
+
+  it('多少の変動：お客さんの数は±15%、レモン・砂糖は±10%の中で動く。給料は変わらない', () => {
+    for (let i = 0; i < 30; i++) {
+      for (const m of run('mild', `m${i}`)) {
+        expect(m.marketBudget).toBeGreaterThanOrEqual(68000);
+        expect(m.marketBudget).toBeLessThanOrEqual(92000);
+        expect(m.prices.lemon).toBeGreaterThanOrEqual(72);
+        expect(m.prices.lemon).toBeLessThanOrEqual(88);
+        expect(m.prices.sugar).toBeGreaterThanOrEqual(9);
+        expect(m.prices.sugar).toBeLessThanOrEqual(11);
+        expect(m.prices.barista).toBe(2000);
+      }
+    }
+    expect(new Set(run('mild').map((m) => m.marketBudget)).size).toBeGreaterThan(3);
+  });
+
+  it('現実ベース：お客さんは7・8月が多く1月が少ない。1年の平均は市場の大きさとほぼ同じ', () => {
+    const ms = run('realistic', 'real', 1); // 1月始まりで暦の月どおりに並べる
+    const b = ms.map((m) => m.marketBudget);
+    expect(Math.max(...b)).toBeOneOf([b[6], b[7]]);
+    expect(Math.min(...b)).toBe(b[0]);
+    const avg = b.reduce((x, y) => x + y, 0) / 12;
+    expect(avg).toBeGreaterThan(80000 * 0.95);
+    expect(avg).toBeLessThan(80000 * 1.05);
+    // レモンは季節の値段
+    expect(ms.map((m) => m.prices.lemon)).toEqual([44, 53, 66, 84, 102, 119, 133, 119, 75, 62, 53, 49]);
+  });
+
+  it('現実ベース：毎月のお知らせがあり、7月は1年でいちばん売れる時期と伝える', () => {
+    const ms = run('realistic', 'news', 4); // 4月始まり：4か月目が7月
+    for (const m of ms) expect(m.message).toBeTruthy();
+    expect(ms[3]!.message).toContain('いちばん売れる');
+  });
+
+  it('市場が読めない：ときどき急に増えたり減ったりする（半分や1.6倍）', () => {
+    const all = Array.from({ length: 40 }, (_, i) => run('volatile', `v${i}`)).flat();
+    expect(all.some((m) => m.marketBudget < 80000 * 0.45)).toBe(true);
+    expect(all.some((m) => m.marketBudget > 80000 * 1.5)).toBe(true);
+    expect(all.some((m) => m.prices.lemon > 80 * 1.5)).toBe(true);
+    expect(all.some((m) => m.prices.lemon < 80 * 0.6)).toBe(true);
+    for (const m of all) expect(m.prices.barista).toBe(2000);
+  });
+
+  it('お知らせは現実ベースのときだけ', () => {
+    for (const p of ['stable', 'mild', 'volatile'] as const) {
+      for (const m of run(p)) expect(m.message).toBeUndefined();
+    }
+  });
+
+  it('同じシードなら同じ動き', () => {
+    for (const p of ['stable', 'mild', 'realistic', 'volatile'] as const) expect(run(p, 'same')).toEqual(run(p, 'same'));
   });
 });

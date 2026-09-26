@@ -1,7 +1,7 @@
 // 難易度・実施モード・初期値。数値は docs/game-design.md の初期値（要調整）。
 
 import { seededRand } from './random';
-import type { Difficulty, GameConfig, PlayMode, TimerSettings } from './types';
+import type { Difficulty, GameConfig, MarketPattern, PlayMode, TimerSettings } from './types';
 
 export const PLAY_MODES: Record<PlayMode, { months: number; minutes: number }> = {
   standard: { months: 12, minutes: 50 },
@@ -121,4 +121,37 @@ export function withRandomMarketSize(config: GameConfig, teamCount: number, rang
 // 期の何か月目かを暦の月に直す（4月始まりなら 1か月目 = 4月）
 export function calendarMonthOf(month: number, startCalendarMonth: number): number {
   return ((startCalendarMonth - 1 + month - 1) % 12) + 1;
+}
+
+// 市場のパターン：お客さんの数（市場予算）と材料の値段の変わり方の組み合わせ。値は docs/game-design.md
+export const MARKET_PATTERNS: Record<MarketPattern, {
+  label: string;
+  description: string;
+  market: Pick<GameConfig['market'], 'range' | 'demandMode' | 'costMode' | 'costRange'>;
+}> = {
+  stable: {
+    label: '変動なし',
+    description: 'お客さんの数も材料の値段も、1年間ずっと同じ。',
+    market: { range: 0, demandMode: 'random', costMode: 'fixed', costRange: 0 },
+  },
+  mild: {
+    label: '多少の変動',
+    description: 'お客さんの数は毎月±15%、レモンと砂糖の値段は毎月±10%くらい変わる。',
+    market: { range: 15, demandMode: 'random', costMode: 'mild', costRange: 10 },
+  },
+  realistic: {
+    label: '現実ベースの変動',
+    description: 'お客さんは夏（7・8月）に多く冬に少ない。レモンは7月が高く1月が安い。毎月のお知らせが手がかり。',
+    market: { range: 5, demandMode: 'seasonal', costMode: 'seasonal', costRange: 0 },
+  },
+  volatile: {
+    label: '市場が読めない',
+    description: 'お客さんの数も材料の値段も大きく動き、ときどき急に増えたり減ったりする。',
+    market: { range: 40, demandMode: 'volatile', costMode: 'volatile', costRange: 30 },
+  },
+};
+
+// 市場のパターンを設定に当てはめる（シナリオは使わない）
+export function withMarketPattern(config: GameConfig, pattern: MarketPattern): GameConfig {
+  return { ...config, scenario: 'none', market: { ...config.market, ...MARKET_PATTERNS[pattern].market, pattern } };
 }

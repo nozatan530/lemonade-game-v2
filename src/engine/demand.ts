@@ -3,19 +3,10 @@
 import { calendarMonthOf } from './config';
 import { monthRandom, seededRand, type SeededRand } from './random';
 import { SCENARIOS } from './scenarios';
+import { lemonSeasonMultiplier, marketSeasonMultiplier, SEASON_NEWS } from './scenarios/seasonal';
 import type { GameConfig, MonthConditions, UnitPrices } from './types';
 
-// 季節で変わるレモンの値段の形（暦の1月〜12月）。7月がいちばん高く、8月から下がりはじめ、9月に急に下がり、
-// 1月がいちばん安い（7月の1/3）。平均が 1 になるように割って使うので、1年の平均は初期単価（80円）になる。
-const LEMON_SEASON = [1.0, 1.2, 1.5, 1.9, 2.3, 2.7, 3.0, 2.7, 1.7, 1.4, 1.2, 1.1];
-const LEMON_SEASON_MEAN = LEMON_SEASON.reduce((a, b) => a + b, 0) / LEMON_SEASON.length;
-
-// 季節の倍率（暦の月 1〜12）
-export function lemonSeasonMultiplier(calendarMonth: number): number {
-  return LEMON_SEASON[calendarMonth - 1]! / LEMON_SEASON_MEAN;
-}
-
-// 砂糖はゲームごとに初期単価の ±10% で1つ決め、1年間変えない
+// 砂糖はゲームごとに初期単価の ±10% で1つ決め、1年間変えない（季節で変わるモード）
 function seasonalSugar(config: GameConfig, rand: SeededRand): number {
   const f = 1 + (rand(config.market.seed, 999_002) * 2 - 1) * 0.1;
   return Math.max(1, Math.round(config.initialPrices.sugar * f));
@@ -33,7 +24,16 @@ export function autoMonthValues(month: number, config: GameConfig, rand: SeededR
   const M = config.market;
   const r = monthRandom(M.seed, month, rand);
   const marketVariance = ((r(1) * 2 - 1) * M.range) / 100;
-  const marketBudget = Math.round((M.base * (1 + marketVariance)) / 1000) * 1000;
+  const calMonth = calendarMonthOf(month, config.startCalendarMonth);
+  let demand = M.base * (1 + marketVariance);
+  if (M.demandMode === 'seasonal') {
+    demand = M.base * marketSeasonMultiplier(calMonth) * (1 + marketVariance);
+  } else if (M.demandMode === 'volatile') {
+    // ときどき（2割）急に半分か1.6倍になる
+    const shock = r(7) < 0.2 ? (r(8) < 0.5 ? 0.5 : 1.6) : 1;
+    demand = M.base * (1 + marketVariance) * shock;
+  }
+  const marketBudget = Math.round(demand / 1000) * 1000;
 
   const IC = config.initialPrices;
   let lemon = IC.lemon, sugar = IC.sugar, barista = IC.barista;
@@ -56,10 +56,19 @@ export function autoMonthValues(month: number, config: GameConfig, rand: SeededR
     lemon = Math.max(10, Math.round(IC.lemon * mult));
     sugar = Math.max(5, Math.round(IC.sugar * (isShock ? mult : 1 + (r(3) * 2 - 1) * cr * 0.1)));
     barista = Math.max(500, Math.round(IC.barista));
+  } else if (M.costMode === 'mild') {
+    // 多少の変動：レモン・砂糖が ±変動幅 でランダム。給料は変わらない
+    lemon = Math.max(1, Math.round(IC.lemon * (1 + (r(2) * 2 - 1) * cr)));
+    sugar = Math.max(1, Math.round(IC.sugar * (1 + (r(3) * 2 - 1) * cr)));
   } else if (M.costMode === 'seasonal') {
     // 季節で変わる：レモンは暦の月で決まる形。砂糖はゲームごとに少しだけ違う。給料は変わらない
-    lemon = Math.max(1, Math.round(IC.lemon * lemonSeasonMultiplier(calendarMonthOf(month, config.startCalendarMonth))));
+    lemon = Math.max(1, Math.round(IC.lemon * lemonSeasonMultiplier(calMonth)));
     sugar = seasonalSugar(config, rand);
+  } else if (M.costMode === 'volatile') {
+    // 読めない：レモンは ±変動幅 で大きく動き、ときどき（2割）急騰・急落。砂糖は ±変動幅の2/3。給料は変わらない
+    const shock = r(5) < 0.2 ? (r(6) < 0.5 ? 0.6 : 1.6) : 1;
+    lemon = Math.max(1, Math.round(IC.lemon * (1 + (r(2) * 2 - 1) * cr) * shock));
+    sugar = Math.max(1, Math.round(IC.sugar * (1 + ((r(3) * 2 - 1) * cr * 2) / 3)));
   }
   return { marketBudget, prices: { lemon, sugar, barista } };
 }
@@ -99,15 +108,19 @@ export function monthConditions(
   rand: SeededRand = seededRand,
 ): MonthConditions {
   const auto = autoMonthValues(month, config, rand);
+  // 季節のお知らせ（お客さんの数が季節で変わるとき）
+  const news = config.market.demandMode === 'seasonal'
+    ? SEASON_NEWS[calendarMonthOf(month, config.startCalendarMonth) - 1]
+    : undefined;
   if (month === 1) {
-    // 旧版と同じく1か月目は初期単価。ただし季節で変わるモードは、1か月目もその月の値段にする
-    const prices = config.market.costMode === 'seasonal' && config.scenario === 'none' ? auto.prices : { ...config.initialPrices };
-    return { month, marketBudget: auto.marketBudget, prices };
+    // 旧版と同じく1か月目は初期単価。市場のパターン用の変わり方（mild / seasonal / volatile）は、1か月目もその月の値段にする
+    const patternCost = ['mild', 'seasonal', 'volatile'].includes(config.market.costMode) && config.scenario === 'none';
+    return { month, marketBudget: auto.marketBudget, prices: patternCost ? auto.prices : { ...config.initialPrices }, ...(news ? { message: news } : {}) };
   }
   const scenario = scenarioMonthValues(month, config, teamCount);
   if (scenario) {
     return { month, marketBudget: scenario.marketBudget, prices: scenario.prices, message: scenario.message };
   }
   const prices = config.market.costMode === 'fixed' ? { ...prevPrices } : auto.prices;
-  return { month, marketBudget: auto.marketBudget, prices };
+  return { month, marketBudget: auto.marketBudget, prices, ...(news ? { message: news } : {}) };
 }

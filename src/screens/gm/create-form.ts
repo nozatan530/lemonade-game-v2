@@ -1,8 +1,7 @@
 // 新しいゲームの設定フォーム
 
-import { DEFAULT_MARKET_SIZE, DEFAULT_TIMER, defaultConfig, withRandomMarketSize } from '../../engine/config';
-import { SCENARIOS } from '../../engine/scenarios';
-import type { CostMode, GameConfig, ScenarioId, TimerSettings } from '../../engine/types';
+import { DEFAULT_MARKET_SIZE, DEFAULT_TIMER, defaultConfig, MARKET_PATTERNS, withMarketPattern, withRandomMarketSize } from '../../engine/config';
+import type { GameConfig, MarketPattern, TimerSettings } from '../../engine/types';
 import { esc } from '../../ui/format';
 
 const DEFAULT_NAMES = 'ABCDEFGHIJKL'.split('').map((c) => `${c}チーム`);
@@ -22,10 +21,10 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
         <input type="number" id="teams" min="2" max="12" value="4"></label>
       <label class="field">チーム名（1行に1チーム）
         <textarea id="names" rows="4"></textarea></label>
-      <label class="field">シナリオ（1年の市場の流れ）
-        <select id="scenario">
-          <option value="none">なし（毎月少しずつ変わる）</option>
-          ${Object.entries(SCENARIOS).map(([id, sc]) => `<option value="${id}">${esc(sc.name)}：${esc(sc.desc)}</option>`).join('')}
+      <label class="field">市場のパターン（お客さんの数と材料の値段の動き方）
+        <select id="pattern">
+          ${(Object.keys(MARKET_PATTERNS) as MarketPattern[]).map((p) =>
+            `<option value="${p}">${esc(MARKET_PATTERNS[p].label)}：${esc(MARKET_PATTERNS[p].description)}</option>`).join('')}
         </select></label>
       <label class="field">市場の大きさ（お客さんが使うお金。1チームあたり）
         <select id="marketSize">
@@ -33,14 +32,6 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
           <option value="20000">大きめ：20,000円（旧版と同じ。売り切れやすい）</option>
           <option value="15000">ふつう：15,000円</option>
           <option value="12000">小さめ：12,000円（競争がきびしい）</option>
-        </select></label>
-      <label class="field">原価の変わり方（シナリオなしのとき）
-        <select id="costMode">
-          <option value="fixed">変わらない</option>
-          <option value="random">毎月ランダムに変わる</option>
-          <option value="trend">だんだん上がる</option>
-          <option value="shock">ときどき大きく変わる</option>
-          <option value="seasonal">季節で変わる（レモンは7月が高く1月が安い。現実に近い）</option>
         </select></label>
       <fieldset class="field"><legend>入力時間（秒）</legend>
         <div class="row3">
@@ -58,8 +49,6 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
           <label>バリスタ（円/人・月）<input type="number" id="pBarista" value="${base.initialPrices.barista}"></label>
           <label>バリスタ1人の上限（杯）<input type="number" id="capacity" value="${base.baristaCapacity}"></label>
           <label>最初のバリスタ（人）<input type="number" id="initBarista" min="0" value="${base.initialBaristaCount}"></label>
-          <label>市場予算の変動（±%）<input type="number" id="range" value="${base.market.range}"></label>
-          <label>原価の変動（±%）<input type="number" id="costRange" value="${base.market.costRange}"></label>
           <label>シード（空欄なら自動）<input type="text" id="seed" placeholder="例：class-3a"></label>
         </div>
         <p class="muted">市場予算の基準は「チーム数 × 1チームあたりの額」。シードが同じなら、同じ市場の動きになります。</p>
@@ -93,10 +82,8 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
       ? withRandomMarketSize(defaultConfig(names.length, seed), names.length, DEFAULT_MARKET_SIZE)
       : defaultConfig(names.length, seed);
     if (marketSize !== 'auto') config.market = { ...config.market, base: perTeam * names.length, basePerTeam: perTeam };
-    config.scenario = $<HTMLSelectElement>('scenario').value as ScenarioId;
-    config.market.costMode = $<HTMLSelectElement>('costMode').value as CostMode;
-    config.market.range = num('range');
-    config.market.costRange = num('costRange');
+    // 市場のパターン（お客さんの数と材料の値段の動き方）を当てはめる
+    Object.assign(config, withMarketPattern(config, $<HTMLSelectElement>('pattern').value as MarketPattern));
     config.startFund = num('fund');
     config.initialPrices = { lemon: num('pLemon'), sugar: num('pSugar'), barista: num('pBarista') };
     config.baristaCapacity = num('capacity');

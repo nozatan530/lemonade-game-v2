@@ -2,8 +2,8 @@
 // 入力画面と結果画面は販売チーム画面のものを使う。
 
 import { CPU_TYPE_INFO } from '../../engine/cpu-teams';
-import { SCENARIOS } from '../../engine/scenarios';
-import type { CostMode, ScenarioId } from '../../engine/types';
+import { MARKET_PATTERNS } from '../../engine/config';
+import type { MarketPattern } from '../../engine/types';
 import {
   clearSolo, HUMAN_ID, lastHumanDecision, loadSolo, newSoloGame, nextSoloMonth, saveSolo, SOLO_DIFFICULTY, submitHuman,
   type SoloDifficulty, type SoloState,
@@ -28,7 +28,7 @@ export function renderSolo(root: HTMLElement): () => void {
     setTimeout(() => { renderGame(); window.scrollTo(0, 0); }, 0);
   }
 
-  function renderStart(saved: SoloState | null, prev?: { difficulty: SoloDifficulty; scenario: ScenarioId; costMode: CostMode }) {
+  function renderStart(saved: SoloState | null, prev?: { difficulty: SoloDifficulty; pattern: MarketPattern }) {
     root.innerHTML = `<div class="page">
       <h1>🍋 ひとりで練習（ソロモード）</h1>
       <div class="card">
@@ -38,7 +38,7 @@ export function renderSolo(root: HTMLElement): () => void {
       </div>
       ${saved ? `<div class="card">
         <h2>続きがあります</h2>
-        <p>${saved.difficulty ? `むずかしさ：${esc(SOLO_DIFFICULTY[saved.difficulty].label)}。` : ''}${saved.phase === 'final' ? '1年の結果が出ています。' : `${monthLabel(saved.conditions.month, saved.config.startCalendarMonth)}まで進んでいます。`}</p>
+        <p>${saved.difficulty ? `むずかしさ：${esc(SOLO_DIFFICULTY[saved.difficulty].label)}。` : ''}${saved.config.market.pattern ? `市場：${esc(MARKET_PATTERNS[saved.config.market.pattern].label)}。` : ''}${saved.phase === 'final' ? '1年の結果が出ています。' : `${monthLabel(saved.conditions.month, saved.config.startCalendarMonth)}まで進んでいます。`}</p>
         <button class="btn" id="resume">続きから</button>
       </div>` : ''}
       <div class="card">
@@ -49,27 +49,19 @@ export function renderSolo(root: HTMLElement): () => void {
             <span><strong>${esc(SOLO_DIFFICULTY[d].label)}</strong><br><span class="muted">${esc(SOLO_DIFFICULTY[d].description)}</span></span>
           </label>`).join('')}
         </fieldset>
-        <label class="field">1年の市場の流れ（シナリオ）
-          <select id="scenario">
-            <option value="none">なし（毎月少しずつ変わる）</option>
-            ${Object.entries(SCENARIOS).map(([id, sc]) => `<option value="${id}">${esc(sc.name)}</option>`).join('')}
-          </select></label>
-        <label class="field">材料の値段の変わり方（シナリオなしのとき）
-          <select id="costMode">
-            <option value="fixed">変わらない</option>
-            <option value="random">毎月ランダムに変わる</option>
-            <option value="trend">だんだん上がる</option>
-            <option value="shock">ときどき大きく変わる</option>
-            <option value="seasonal">季節で変わる（レモンは7月が高く1月が安い。現実に近い）</option>
-          </select></label>
+        <fieldset class="field"><legend>市場のパターン（お客さんの数と材料の値段の動き方）</legend>
+          ${(Object.keys(MARKET_PATTERNS) as MarketPattern[]).map((p) => `<label class="radio">
+            <input type="radio" name="pattern" value="${p}" ${p === 'stable' ? 'checked' : ''}>
+            <span><strong>${esc(MARKET_PATTERNS[p].label)}</strong><br><span class="muted">${esc(MARKET_PATTERNS[p].description)}</span></span>
+          </label>`).join('')}
+        </fieldset>
         <button class="btn ${saved ? 'secondary' : ''}" id="start">${saved ? '最初からやり直す' : 'はじめる'}</button>
       </div>
       <p class="center"><a href="#/">トップにもどる</a></p></div>`;
 
     if (prev) {
       root.querySelector<HTMLInputElement>(`input[name="difficulty"][value="${prev.difficulty}"]`)!.checked = true;
-      root.querySelector<HTMLSelectElement>('#scenario')!.value = prev.scenario;
-      root.querySelector<HTMLSelectElement>('#costMode')!.value = prev.costMode;
+      root.querySelector<HTMLInputElement>(`input[name="pattern"][value="${prev.pattern}"]`)!.checked = true;
     }
     root.querySelector('#resume')?.addEventListener('click', () => { state = saved; renderGame(); });
     root.querySelector('#start')!.addEventListener('click', () => {
@@ -77,8 +69,7 @@ export function renderSolo(root: HTMLElement): () => void {
       clearSolo();
       const s = newSoloGame({
         seed: `solo-${Date.now()}`,
-        scenario: root.querySelector<HTMLSelectElement>('#scenario')!.value as ScenarioId,
-        costMode: root.querySelector<HTMLSelectElement>('#costMode')!.value as CostMode,
+        pattern: (root.querySelector<HTMLInputElement>('input[name="pattern"]:checked')?.value ?? 'stable') as MarketPattern,
         difficulty: (root.querySelector<HTMLInputElement>('input[name="difficulty"]:checked')?.value ?? 'normal') as SoloDifficulty,
       });
       state = s;
@@ -112,7 +103,7 @@ export function renderSolo(root: HTMLElement): () => void {
       if (!confirm('いまのゲームを消して、最初からやり直しますか？')) return;
       clearSolo();
       state = null;
-      renderStart(null, { difficulty: s.difficulty ?? 'normal', scenario: s.config.scenario, costMode: s.config.market.costMode });
+      renderStart(null, { difficulty: s.difficulty ?? 'normal', pattern: s.config.market.pattern ?? 'stable' });
     });
     const view = root.querySelector<HTMLElement>('#view')!;
 

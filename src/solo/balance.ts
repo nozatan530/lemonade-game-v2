@@ -2,7 +2,7 @@
 // 人のかわりに、決まった考え方で遊ぶ「お手本の遊び方」を動かす。
 
 import { isQuarterStart } from '../engine/config';
-import type { CostMode, MonthlyDecision, ScenarioId } from '../engine/types';
+import type { MarketPattern, MonthlyDecision } from '../engine/types';
 import { HUMAN_ID, newSoloGame, nextSoloMonth, submitHuman, type SoloDifficulty, type SoloState } from './local-game';
 
 export type Player = (s: SoloState) => { decision: MonthlyDecision; barista: number };
@@ -68,11 +68,9 @@ export const undercutter: Player = (s) => {
 
 export function playSolo(
   player: Player,
-  options: { seed: string; difficulty: SoloDifficulty; scenario?: ScenarioId; costMode?: CostMode },
+  options: { seed: string; difficulty: SoloDifficulty; pattern?: MarketPattern },
 ): { rank: number; state: SoloState } {
-  let s = newSoloGame({
-    seed: options.seed, difficulty: options.difficulty, scenario: options.scenario ?? 'none', costMode: options.costMode ?? 'fixed',
-  });
+  let s = newSoloGame({ seed: options.seed, difficulty: options.difficulty, pattern: options.pattern ?? 'stable' });
   while (s.phase !== 'final') {
     if (s.phase === 'input') {
       const { decision, barista } = player(s);
@@ -90,9 +88,9 @@ export function winRate(
   player: Player,
   difficulty: SoloDifficulty,
   n: number,
-  scenario: ScenarioId = 'none',
+  pattern: MarketPattern = 'stable',
 ): { firstRate: number; ranks: number[] } {
   const ranks = [0, 0, 0, 0];
-  for (let i = 0; i < n; i++) ranks[playSolo(player, { seed: `balance-${i}`, difficulty, scenario }).rank - 1]!++;
+  for (let i = 0; i < n; i++) ranks[playSolo(player, { seed: `balance-${i}`, difficulty, pattern }).rank - 1]!++;
   return { firstRate: ranks[0]! / n, ranks };
 }

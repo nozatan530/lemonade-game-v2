@@ -1,12 +1,12 @@
 // ソロモード：人1チーム vs CPU 3チームを、ブラウザの中だけで進める（Firebase は使わない）。
 // オンラインの sync にあたる役。計算は engine の関数に任せ、ここは状態を持って順に呼ぶだけ。
 
-import { defaultConfig, isQuarterStart, withRandomMarketSize, type MarketSizeRange } from '../engine/config';
+import { defaultConfig, isQuarterStart, withMarketPattern, withRandomMarketSize, type MarketSizeRange } from '../engine/config';
 import { CPU_TYPES, cpuViewOf, decideCpu } from '../engine/cpu-teams';
 import { closeMonth, openNextMonth, startTerm } from '../engine/month';
 import { seededRand } from '../engine/random';
 import type {
-  CostMode, CpuSkill, CpuType, GameConfig, MonthConditions, MonthlyDecision, MonthResult, ScenarioId, Submission, TeamState,
+  CpuSkill, CpuType, GameConfig, MarketPattern, MonthConditions, MonthlyDecision, MonthResult, Submission, TeamState,
 } from '../engine/types';
 
 export const HUMAN_ID = 't1';
@@ -37,15 +37,15 @@ export interface SoloState {
 
 export function newSoloGame(options: {
   seed: string;
-  scenario: ScenarioId;
-  costMode: CostMode;
+  pattern?: MarketPattern; // 市場のパターン（初期値：変動なし）
   difficulty?: SoloDifficulty;
 }): SoloState {
   const difficulty = options.difficulty ?? 'normal';
-  // お客さんの数（市場の大きさ）はゲームごとにランダム。幅は難易度で決まる
-  const config = withRandomMarketSize(defaultConfig(4, options.seed), 4, SOLO_DIFFICULTY[difficulty].market);
-  config.scenario = options.scenario;
-  config.market.costMode = options.costMode;
+  // お客さんの数（市場の大きさ）はゲームごとにランダム。幅は難易度で決まる。動き方は市場のパターンで決まる
+  const config = withMarketPattern(
+    withRandomMarketSize(defaultConfig(4, options.seed), 4, SOLO_DIFFICULTY[difficulty].market),
+    options.pattern ?? 'stable',
+  );
 
   // 4つの作戦から3つを選び、どの店に割り当てるかもシードで決める（毎回ちがう並び）。
   // 「ふつう」「むずかしい」では安売りを必ず入れる（いないと、何も考えなくても勝ててしまうため）
