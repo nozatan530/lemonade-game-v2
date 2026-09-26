@@ -9,6 +9,7 @@ import {
   watchClock, watchOwnSubmission, watchPublic, watchResults, watchServerOffset, watchState, watchTeams,
 } from '../../sync/watch';
 import { esc, mmss, monthLabel, secondsLeft, yen } from '../../ui/format';
+import { maybeStartInputCoach } from './input-coach';
 import { DEFAULT_DECISION, mountInputView, type InputView } from './input-view';
 import { renderFinal, renderMonthResult } from './result-view';
 
@@ -128,6 +129,7 @@ export async function renderTeam(root: HTMLElement, params: URLSearchParams): Pr
         await submitDecision(db, code, clock.month, teamId, decision,
           baristaCount !== undefined ? { baristaCount } : undefined);
       });
+      if (clock.month === 1) maybeStartInputCoach(view, '提出する');
       return;
     }
 

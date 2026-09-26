@@ -254,3 +254,35 @@ a.btn { text-align: center; text-decoration: none; line-height: 52px; }
 .report-table tr.worst td:first-child::after { content: ' ▼'; color: var(--bad); }
 .report-table tr.sum td { font-weight: 800; border-top: 2px solid var(--text); }
 .game-actions { display: flex; justify-content: flex-end; gap: 6px; margin: -4px 0 10px; }
+
+/* はじめに */
+.guide ul, .guide ol { padding-left: 1.3em; margin: 0.4em 0; }
+.guide li { margin: 0.3em 0; }
+.guide-mock { border: 2px dashed var(--border); border-radius: var(--radius); padding: 10px; margin-bottom: 10px; font-size: 0.9rem; }
+.mock-block { position: relative; background: var(--surface2); border-radius: 10px; padding: 8px 10px 8px 40px; margin-bottom: 8px; }
+.mock-block:last-child { margin-bottom: 0; }
+.mock-cash { border-top: 2px solid var(--accent); }
+.mock-no {
+  position: absolute; left: 8px; top: 8px; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-text); font-weight: 800; text-align: center; line-height: 24px;
+}
+.mock-row { display: flex; justify-content: space-between; gap: 8px; }
+.guide-terms dt { font-weight: 800; margin-top: 8px; }
+.guide-terms dd { margin: 2px 0 0; }
+
+/* 最初の案内（コーチマーク） */
+.coach-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); z-index: 40; }
+.coach-target { z-index: 41; box-shadow: 0 0 0 4px var(--accent), 0 0 0 9999px rgba(0, 0, 0, 0); background: var(--surface); }
+.coach-target:not(.cashbar) { position: relative; }
+.coach-bubble {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 16px; z-index: 42;
+  width: min(440px, calc(100% - 32px)); background: var(--surface); color: var(--text);
+  border: 2px solid var(--accent); border-radius: var(--radius); padding: 12px 14px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+.coach-bubble.top { top: 16px; bottom: auto; }
+.coach-bubble h3 { margin: 2px 0 4px; font-size: 1.05rem; }
+.coach-bubble p { margin: 0 0 8px; }
+.coach-count { font-size: 0.8rem; color: var(--muted); }
+.coach-buttons { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.coach-buttons .btn { width: auto; min-height: 44px; padding: 0 22px; margin: 0; }

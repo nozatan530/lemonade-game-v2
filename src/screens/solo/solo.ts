@@ -10,6 +10,7 @@ import {
 } from '../../solo/local-game';
 import { monthKey, publicConfigOf, type Clock, type TeamSlot } from '../../sync/schema';
 import { esc, monthLabel, yen } from '../../ui/format';
+import { maybeStartInputCoach } from '../team/input-coach';
 import { DEFAULT_DECISION, mountInputView } from '../team/input-view';
 import { renderMonthResult } from '../team/result-view';
 import { renderTermReport } from '../report/report';
@@ -34,7 +35,7 @@ export function renderSolo(root: HTMLElement): () => void {
       <div class="card">
         <p>CPU の3つのお店と、1年間（12か月）もうけを競います。お客さんの数はゲームごとにちがいます。毎月の結果から読み取りましょう。<br>
         それぞれのお店には<strong>作戦</strong>があります。どんな作戦か、結果から読み取ってみましょう。答えは1年の最後に発表します。</p>
-        <p class="muted">このモードはこの端末の中だけで動きます。途中の状態はこのブラウザに保存されます。</p>
+        <p class="muted">このモードはこの端末の中だけで動きます。途中の状態はこのブラウザに保存されます。はじめての人は<a href="#/guide">「はじめに」</a>を読んでね。</p>
       </div>
       ${saved ? `<div class="card">
         <h2>続きがあります</h2>
@@ -119,6 +120,8 @@ export function renderSolo(root: HTMLElement): () => void {
         async (decision, baristaCount) => update(submitHuman(s, decision, baristaCount)),
         { submitLabel: 'この決定で1か月すすめる' },
       );
+      // 最初の1回だけ、1か月目に手順を案内する
+      if (month === 1) maybeStartInputCoach(view, 'この決定で1か月すすめる');
       return;
     }
 

@@ -2,6 +2,7 @@
 //   #/team?code=XXXXXX  販売チーム
 //   #/gm                GM
 //   #/screen?code=…     全体表示
+//   #/guide             はじめに（遊び方の説明）
 //   #/solo              ソロモード（ブラウザの中だけ。Firebase を使わない）
 //   #/dev               開発用（エミュレーター接続時だけ）
 
@@ -38,6 +39,11 @@ async function route() {
       cleanup = await renderDashboard(root, params);
       break;
     }
+    case '/guide': {
+      const { renderGuide } = await import('./screens/guide/guide');
+      cleanup = renderGuide(root);
+      break;
+    }
     case '/solo': {
       const { renderSolo } = await import('./screens/solo/solo');
       cleanup = renderSolo(root);
@@ -60,6 +66,11 @@ async function route() {
 
 function renderHome() {
   root.innerHTML = `<div class="page"><h1>🍋 レモネードスタンド</h1>
+    <div class="card">
+      <h2>はじめての人へ</h2>
+      <p style="margin:0 0 4px">どんなゲームか、毎月なにを決めるのかを説明します（2分くらい）。</p>
+      <a class="btn secondary" href="#/guide">はじめに</a>
+    </div>
     <div class="card">
       <h2>ひとりで遊ぶ（ソロモード）</h2>
       <p style="margin:0 0 4px">CPU の3つのお店と、1年間（12か月）もうけを競います。材料を仕入れて、値段を決めて、レモネードを売りましょう。</p>
