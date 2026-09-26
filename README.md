@@ -41,6 +41,7 @@ npm run deploy
 ```
 
 公開先：https://lemonade-game-v2.web.app
-- GM：`#/gm` ／ チーム：`#/team` ／ 全体表示：`#/screen?code=XXXXXX`
+- ソロモード：`#/solo`
+- 対戦（GM：`#/gm` ／ チーム：`#/team` ／ 全体表示：`#/screen?code=XXXXXX`）は、本番ではまだ「開発中」の表示になる。`npm run dev` では使える。対戦を公開するときは `.env.production` に `VITE_ENABLE_MULTIPLAYER=true` を書く。
 
 GitHub Pages で公開する場合は、`dist/` をそのまま置けばよい（相対パスでビルドしている）。そのときは Firebase コンソールの Authentication →「設定」→「承認済みドメイン」に GitHub Pages のドメインを追加する（Google ログインのため）。
