@@ -9,6 +9,7 @@ export function renderGuide(root: HTMLElement): () => void {
     <div class="card">
       <h2>このゲームでやること</h2>
       <p>あなたはレモネード屋さんの店長です。<strong>1年（12か月）</strong>のあいだ、毎月レモネードを作って売ります。</p>
+      <p>ほかの3つのお店は、<strong>🤖 ロボット店長</strong>がルールにしたがって決めています（ソロモード）。先月の結果を見て、作戦を変えるロボットもいます。</p>
       <p style="margin-bottom:0">はじめのお金は <strong>10,000円</strong>。1年たったときに、<strong>いちばんお金を増やしたお店の勝ち</strong>です。</p>
     </div>
 

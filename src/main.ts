@@ -79,7 +79,7 @@ function renderHome() {
     </div>
     <div class="card">
       <h2>ひとりで遊ぶ（ソロモード）</h2>
-      <p style="margin:0 0 4px">CPU の3つのお店と、1年間（12か月）もうけを競います。材料を仕入れて、値段を決めて、レモネードを売りましょう。</p>
+      <p style="margin:0 0 4px">🤖 ロボット店長の3つのお店と、1年間（12か月）もうけを競います。材料を仕入れて、値段を決めて、レモネードを売りましょう。</p>
       <a class="btn" href="#/solo">はじめる</a>
     </div>
     <div class="card">

@@ -34,8 +34,8 @@ export function renderSolo(root: HTMLElement): () => void {
     root.innerHTML = `<div class="page">
       <h1>🍋 ひとりで練習（ソロモード）</h1>
       <div class="card">
-        <p>CPU の3つのお店と、1年間（12か月）もうけを競います。お客さんの数はゲームごとにちがいます。毎月の結果から読み取りましょう。<br>
-        それぞれのお店には<strong>作戦</strong>があります。どんな作戦か、結果から読み取ってみましょう。答えは1年の最後に発表します。</p>
+        <p>🤖 ロボット店長が決めている3つのお店と、1年間（12か月）もうけを競います。お客さんの数はゲームごとにちがいます。毎月の結果から読み取りましょう。<br>
+        ロボット店長には、それぞれ<strong>作戦</strong>があります。どんな作戦か、結果から読み取ってみましょう。答えは1年の最後に発表します。</p>
         <p class="muted">このモードはこの端末の中だけで動きます。途中の状態はこのブラウザに保存されます。はじめての人は<a href="#/guide">「はじめに」</a>を読んでね。</p>
       </div>
       ${saved ? `<div class="card">
@@ -143,7 +143,7 @@ export function renderSolo(root: HTMLElement): () => void {
     });
     const reveal = document.createElement('div');
     reveal.innerHTML = `<div class="card">
-        <h2>答え合わせ：CPU のお店の作戦</h2>
+        <h2>答え合わせ：ロボット店長の作戦</h2>
         <table class="table">${Object.entries(s.cpu).map(([id, type]) => `<tr>
           <td>${esc(s.names[id] ?? id)}</td>
           <td style="text-align:left"><strong>${esc(CPU_TYPE_INFO[type].label)}</strong><br>

@@ -17,9 +17,9 @@ export type SoloDifficulty = 'easy' | 'normal' | 'hard';
 
 // 難易度：市場の大きさ（1チームあたりの額の幅）と CPU の強さ。数値は src/solo/balance.test.ts で確かめて決めた
 export const SOLO_DIFFICULTY: Record<SoloDifficulty, { label: string; description: string; market: MarketSizeRange; cpuSkill: CpuSkill }> = {
-  easy: { label: 'やさしい', description: 'お客さんが多め。CPU は作戦どおりに動くだけ', market: { min: 17000, max: 22000 }, cpuSkill: 'basic' },
-  normal: { label: 'ふつう', description: 'お客さんの数はゲームごとにちがう。CPU は先月の結果を見て作戦を変える', market: { min: 12000, max: 17000 }, cpuSkill: 'adaptive' },
-  hard: { label: 'むずかしい', description: 'お客さんが少なめ。CPU は先月の結果を見て作戦を変える', market: { min: 10000, max: 14000 }, cpuSkill: 'adaptive' },
+  easy: { label: 'やさしい', description: 'お客さんが多め。ロボット店長は作戦どおりに動くだけ', market: { min: 17000, max: 22000 }, cpuSkill: 'basic' },
+  normal: { label: 'ふつう', description: 'お客さんの数はゲームごとにちがう。ロボット店長は先月の結果を見て作戦を変える', market: { min: 12000, max: 17000 }, cpuSkill: 'adaptive' },
+  hard: { label: 'むずかしい', description: 'お客さんが少なめ。ロボット店長は先月の結果を見て作戦を変える', market: { min: 10000, max: 14000 }, cpuSkill: 'adaptive' },
 };
 
 export interface SoloState {
@@ -64,7 +64,7 @@ export function newSoloGame(options: {
   const cpu: Record<string, CpuType> = {};
   CPU_IDS.forEach((id, i) => { cpu[id] = shuffled[i]!; });
 
-  const names: Record<string, string> = { t1: 'あなたのお店', t2: 'Bスタンド', t3: 'Cスタンド', t4: 'Dスタンド' };
+  const names: Record<string, string> = { t1: 'あなたのお店', t2: '🤖 Bスタンド', t3: '🤖 Cスタンド', t4: '🤖 Dスタンド' };
   const { teams, conditions } = startTerm(config, Object.entries(names).map(([teamId, name]) => ({ teamId, name })));
   return { version: 1, difficulty, config, names, cpu, teams, conditions, results: [], decided: {}, phase: 'input' };
 }
