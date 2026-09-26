@@ -2,6 +2,7 @@
 
 import type { MonthResult, TeamState } from '../../engine/types';
 import type { TeamSlot } from '../../sync/schema';
+import { t as tr } from '../../i18n';
 import { esc, signedYen, yen } from '../../ui/format';
 
 export function renderMonthResult(
@@ -13,7 +14,7 @@ export function renderMonthResult(
 ): void {
   const r = result.teamResults.find((t) => t.teamId === teamId);
   if (!r) {
-    container.innerHTML = '<div class="card">結果がありません。</div>';
+    container.innerHTML = `<div class="card">${tr('result.none')}</div>`;
     return;
   }
   const watching = r.offered === 0;
@@ -21,37 +22,37 @@ export function renderMonthResult(
     .sort((a, b) => (teams[a.teamId]?.order ?? 0) - (teams[b.teamId]?.order ?? 0))
     .map((t) => `<tr class="${t.teamId === teamId ? 'me' : ''}">
       <td>${esc(teams[t.teamId]?.name ?? t.teamId)}</td>
-      <td>${t.offered === 0 ? '静観' : yen(t.price)}</td>
-      <td>${t.sold}/${t.offered}杯</td>
+      <td>${t.offered === 0 ? tr('result.sat') : yen(t.price)}</td>
+      <td>${tr('result.soldCell', { sold: t.sold, offered: t.offered })}</td>
       <td class="${t.profit >= 0 ? 'good' : 'bad'}">${signedYen(t.profit)}</td></tr>`)
     .join('');
 
   container.innerHTML = `
     <div class="card">
-      <h2>今月の結果</h2>
-      ${watching ? '<p>今月は静観しました（売っていません）。</p>' : ''}
+      <h2>${tr('result.h2')}</h2>
+      ${watching ? `<p>${tr('result.watched')}</p>` : ''}
       <table class="pl">
-        <tr><td>売上<span class="explain">${r.sold}杯 × ${yen(r.price)}</span></td><td>${yen(r.revenue)}</td></tr>
-        <tr><td>− 材料費（原価）<span class="explain">今月買ったレモン${r.lemonBought}個・砂糖${r.sugarBought}袋の代金</span></td><td>${yen(r.costLemon + r.costSugar)}</td></tr>
-        <tr><td>− 人件費<span class="explain">バリスタ${r.baristaCount}人の給料</span></td><td>${yen(r.costBarista)}</td></tr>
-        <tr class="total"><td>＝ もうけ（利益）</td><td class="${r.profit >= 0 ? 'good' : 'bad'}">${signedYen(r.profit)}</td></tr>
+        <tr><td>${tr('result.sales')}<span class="explain">${tr('result.salesExplain', { sold: r.sold, price: yen(r.price) })}</span></td><td>${yen(r.revenue)}</td></tr>
+        <tr><td>${tr('result.material')}<span class="explain">${tr('result.materialExplain', { l: r.lemonBought, s: r.sugarBought })}</span></td><td>${yen(r.costLemon + r.costSugar)}</td></tr>
+        <tr><td>${tr('result.labor')}<span class="explain">${tr('result.laborExplain', { n: r.baristaCount })}</span></td><td>${yen(r.costBarista)}</td></tr>
+        <tr class="total"><td>${tr('result.profit')}</td><td class="${r.profit >= 0 ? 'good' : 'bad'}">${signedYen(r.profit)}</td></tr>
       </table>
-      <p style="margin:10px 0 0">売れた数 <strong>${r.sold}杯</strong> ／ お店に出した数 ${r.offered}杯
-        ${r.unsold > 0 ? `<br><span class="bad">売れ残り ${r.unsold}杯（捨てることになりました）</span>` : ''}</p>
-      <p style="margin:6px 0 0">お金の残り <strong class="num">${yen(r.balance)}</strong></p>
-      <p class="muted" style="margin:4px 0 0">来月に残る材料：🍋${r.stock.lemon}個・🍬${r.stock.sugar}袋</p>
+      <p style="margin:10px 0 0">${tr('result.soldLine', { sold: r.sold, offered: r.offered })}
+        ${r.unsold > 0 ? `<br><span class="bad">${tr('result.unsold', { n: r.unsold })}</span>` : ''}</p>
+      <p style="margin:6px 0 0">${tr('result.balance')} <strong class="num">${yen(r.balance)}</strong></p>
+      <p class="muted" style="margin:4px 0 0">${tr('result.carry', { l: r.stock.lemon, s: r.stock.sugar })}</p>
     </div>
     <div class="card">
-      <h2>みんなの結果</h2>
-      <p class="muted" style="margin:0 0 6px">今月お客さんが使えたお金（市場の大きさ）：${yen(result.marketBudget)}。安いお店から順に、このお金がなくなるまで買います。</p>
+      <h2>${tr('result.all.h2')}</h2>
+      <p class="muted" style="margin:0 0 6px">${tr('result.all.market', { budget: yen(result.marketBudget) })}</p>
       <table class="table">
-        <tr><th>チーム</th><th>値段</th><th>売れた数</th><th>もうけ</th></tr>
+        <tr><th>${tr('result.col.team')}</th><th>${tr('result.col.price')}</th><th>${tr('result.col.sold')}</th><th>${tr('result.col.profit')}</th></tr>
         ${rows}
       </table>
     </div>
     ${options.onNext
-      ? `<button class="btn" id="next" type="button">${esc(options.nextLabel ?? '次の月へ')}</button>`
-      : '<p class="muted center">GMが次の月を始めるまで待ってください。</p>'}`;
+      ? `<button class="btn" id="next" type="button">${esc(options.nextLabel ?? tr('solo.next'))}</button>`
+      : `<p class="muted center">${tr('result.waitGm')}</p>`}`;
   if (options.onNext) container.querySelector('#next')!.addEventListener('click', options.onNext);
 }
 

@@ -4,7 +4,7 @@
 
 var SHEET_NAME = '回答';
 var HEADERS = ['受付日時', '回答者', '楽しさ', 'わかりやすさ', '難しさ', '学び', '授業で使いたい', '使う場面', 'コメント',
-  'きっかけ', '市場のパターン', 'むずかしさ', '順位', 'チーム数', '1年のもうけ', '端末', 'バージョン'];
+  'きっかけ', '市場のパターン', 'むずかしさ', '順位', 'チーム数', '1年のもうけ', '端末', 'バージョン', '言語'];
 var ROLE_LABELS = { elementary: '小学生', junior: '中学生', high: '高校生', adult: '大人', teacher: '教育関係者' };
 var DIFFICULTY_LABELS = { easy: 'やさしすぎ', right: 'ちょうどいい', hard: 'むずかしすぎ' };
 var SCENES = ['小学校', '中学校', '高校', '大学・社会人研修', '家庭・その他'];
@@ -60,6 +60,7 @@ function toRow_(d, now) {
     int_(c.profit),
     text_(c.device, 10),
     text_(c.appVersion, 40),
+    c.lang === 'en' ? '英語' : '日本語',
   ];
 }
 
@@ -90,6 +91,10 @@ function sheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
   if (sh.getLastRow() === 0) sh.appendRow(HEADERS);
+  // 列が増えたとき（例：「言語」）に、見出しの行を最新にそろえる
+  else if (sh.getRange(1, HEADERS.length).getValue() !== HEADERS[HEADERS.length - 1]) {
+    sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+  }
   return sh;
 }
 

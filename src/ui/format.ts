@@ -1,5 +1,10 @@
 // 表示用の整形（計算はしない）
 
+import { lang, t } from '../i18n';
+
+const MONTHS_EN_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const MONTHS_EN_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 export function yen(n: number): string {
   return `${n < 0 ? '−' : ''}¥${Math.abs(n).toLocaleString('ja-JP')}`;
 }
@@ -13,8 +18,16 @@ export function calendarMonth(month: number, startCalendarMonth: number): number
   return ((startCalendarMonth - 1 + month - 1) % 12) + 1;
 }
 
+// 「4月（1か月目）」／「April (Month 1)」
 export function monthLabel(month: number, startCalendarMonth: number): string {
-  return `${calendarMonth(month, startCalendarMonth)}月（${month}か月目）`;
+  const cal = calendarMonth(month, startCalendarMonth);
+  return t('month.label', { cal: lang() === 'en' ? MONTHS_EN_LONG[cal - 1]! : cal, n: month });
+}
+
+// 「4月」／「Apr」（グラフや表で使う短い形）
+export function monthShort(month: number, startCalendarMonth: number): string {
+  const cal = calendarMonth(month, startCalendarMonth);
+  return t('month.short', { cal: lang() === 'en' ? MONTHS_EN_SHORT[cal - 1]! : cal });
 }
 
 // HTML に埋め込む文字列（チーム名など）をエスケープする

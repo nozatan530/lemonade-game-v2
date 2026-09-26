@@ -44,6 +44,13 @@ describe('GAS：スプレッドシートに保存する行（toRow_）', () => {
     expect(row.slice(9, 15)).toEqual(['solo-final', 'realistic', 'normal', 2, 4, 45000]);
   });
 
+  it('答えた言語を最後の列に保存する（英語／日本語）', () => {
+    const enRow = gas.toRow_(JSON.parse(JSON.stringify(build({ context: { source: 'top', lang: 'en' } }))), now)!;
+    expect(enRow[enRow.length - 1]).toBe('英語');
+    const jaRow = gas.toRow_(JSON.parse(JSON.stringify(build())), now)!;
+    expect(jaRow[jaRow.length - 1]).toBe('日本語');
+  });
+
   it('子どもの回答（授業で使いたいか・場面なし）も保存できる', () => {
     const row = gas.toRow_(JSON.parse(JSON.stringify(build({ role: 'elementary' }))), now)!;
     expect(row[1]).toBe('小学生');

@@ -1,6 +1,7 @@
 // 最初の1回だけ、1か月目の入力画面で手順を順に案内する（ソロ・チーム画面で共通）。
 // 一度見たら（またはスキップしたら）ブラウザに記録して、次からは出さない。
 
+import { t } from '../../i18n';
 import { startCoach, type CoachStep } from '../../ui/coach';
 
 const KEY = 'lemonade-input-coach-v1';
@@ -34,26 +35,10 @@ export function maybeStartInputCoach(container: HTMLElement, submitLabel: string
   if (seen()) return;
   const q = (sel: string) => container.querySelector<HTMLElement>(sel);
   const steps: CoachStep[] = [
-    {
-      target: q('#buy')?.closest('.card') ?? null,
-      title: '① 仕入れる',
-      text: 'レモンと砂糖を何個買うか決めます。1杯＝レモン1個＋砂糖1袋。「＋」「−」で数を変えると、使うお金がすぐ計算されます。',
-    },
-    {
-      target: q('input[aria-label="👩‍🍳 バリスタ"]')?.closest('.stepper') ?? q('#baristaFixed'),
-      title: '👩‍🍳 バリスタ',
-      text: 'レモネードを作る人です。1人で1か月に50杯まで作れます。給料は、売れても売れなくても毎月かかります。',
-    },
-    {
-      target: q('#sell')?.closest('.card') ?? null,
-      title: '② 値段を決める',
-      text: 'お客さんは安いお店から順に買います。「1杯あたりの原価」より高くしないと、売るほど損します。「元がとれる数」も見てみよう。',
-    },
-    {
-      target: q('.cashbar'),
-      title: '③ 月末のお金を確かめる',
-      text: `売れた数しだいで、月末のお金は「1杯も売れなかったら〜全部売れたら」の間になります。決めたら「${submitLabel}」を押そう。`,
-    },
+    { target: q('#buy')?.closest('.card') ?? null, title: t('coach.buy.title'), text: t('coach.buy.text') },
+    { target: q('[data-field="barista"]') ?? q('#baristaFixed'), title: t('coach.barista.title'), text: t('coach.barista.text') },
+    { target: q('#sell')?.closest('.card') ?? null, title: t('coach.sell.title'), text: t('coach.sell.text') },
+    { target: q('.cashbar'), title: t('coach.cash.title'), text: t('coach.cash.text', { submit: submitLabel }) },
   ].filter((s): s is CoachStep => s.target !== null);
   startCoach(steps, markSeen);
 }

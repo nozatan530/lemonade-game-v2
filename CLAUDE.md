@@ -54,6 +54,7 @@ lemonade-game/
 │   ├── sync/                  # Firebaseとのやりとり（engineの外側）
 │   ├── solo/                  # ソロモードの進行（Firebaseを使わず、ブラウザの中だけで engine を呼ぶ）
 │   ├── survey/                # アンケートの回答の組み立てと送信（GAS へ）
+│   ├── i18n/                  # 日本語・英語の辞書と t()（公開中の画面で使う）
 │   ├── ai/                    # GAS中継の呼び出しと、Geminiオフ時のテンプレート文
 │   ├── screens/
 │   │   ├── gm/                # GM画面（設定・進行・強制締切・終了と削除）

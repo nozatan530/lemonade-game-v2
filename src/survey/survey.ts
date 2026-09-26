@@ -37,6 +37,7 @@ export interface SurveyContext {
   rank?: number;
   teams?: number;
   profit?: number;
+  lang?: 'ja' | 'en'; // 答えた言語
 }
 
 export interface SurveyPayload {

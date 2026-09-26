@@ -1,6 +1,7 @@
 // 画面の一部を順に光らせて説明する案内（コーチマーク）。
 // 背景を暗くし、説明している場所だけを前に出して枠で囲む。「次へ」「スキップ」で進める。
 
+import { t } from '../i18n';
 import { esc } from './format';
 
 export interface CoachStep {
@@ -51,8 +52,8 @@ export function startCoach(steps: CoachStep[], onFinish: () => void): void {
       <h3>${esc(step.title)}</h3>
       <p>${esc(step.text)}</p>
       <div class="coach-buttons">
-        <button type="button" class="small" data-act="skip">スキップ</button>
-        <button type="button" class="btn" data-act="next">${i === steps.length - 1 ? 'はじめる' : '次へ'}</button>
+        <button type="button" class="small" data-act="skip">${t('coach.skip')}</button>
+        <button type="button" class="btn" data-act="next">${i === steps.length - 1 ? t('coach.start') : t('coach.next')}</button>
       </div>`;
     bubble.querySelector<HTMLButtonElement>('[data-act="next"]')!.focus();
   };

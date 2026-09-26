@@ -3,6 +3,7 @@
 import { esc } from './format';
 
 export interface StepperOptions {
+  field?: string; // 画面の中での名前（言語に関係なく要素を探すため。data-field に入る）
   label: string;
   hint?: string;
   value: number;
@@ -24,6 +25,7 @@ export function stepper(opts: StepperOptions): Stepper {
   const max = opts.max ?? 100000;
   const el = document.createElement('div');
   el.className = 'stepper';
+  if (opts.field) el.dataset.field = opts.field;
   el.innerHTML = `
     <div class="label">${esc(opts.label)}<small class="hint">${opts.hint ? esc(opts.hint) : ''}</small></div>
     <div class="ctrl">

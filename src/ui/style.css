@@ -304,3 +304,7 @@ a.btn { text-align: center; text-decoration: none; line-height: 52px; }
   background: var(--surface); color: var(--text);
 }
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+
+/* 言語の切り替え */
+.lang-bar { display: flex; justify-content: flex-end; margin: 0 0 4px; }
+.lang-toggle { white-space: nowrap; }

@@ -8,6 +8,8 @@
 //   #/dev               開発用（エミュレーター接続時だけ）
 
 import './ui/style.css';
+import { applyDocumentLang, t } from './i18n';
+import { bindLangToggle, langToggleHtml } from './ui/lang-toggle';
 
 const root = document.querySelector<HTMLDivElement>('#app')!;
 let cleanup: (() => void) | void = undefined;
@@ -15,7 +17,8 @@ let cleanup: (() => void) | void = undefined;
 // 対戦（GM・チーム・全体表示）はまだ開発中。本番のビルドには含めない（Firebase も読み込まない）
 const MULTIPLAYER = import.meta.env.VITE_ENABLE_MULTIPLAYER === 'true';
 
-async function route() {
+// resume：言語を切り替えたときは、遊んでいる途中のゲームにそのまま戻る
+async function route(opts: { resume?: boolean } = {}) {
   const [path, query] = location.hash.replace(/^#/, '').split('?');
   const params = new URLSearchParams(query ?? '');
   cleanup?.();
@@ -52,7 +55,7 @@ async function route() {
     }
     case '/solo': {
       const { renderSolo } = await import('./screens/solo/solo');
-      cleanup = renderSolo(root);
+      cleanup = renderSolo(root, opts);
       break;
     }
     case '/dev': {
@@ -71,38 +74,46 @@ async function route() {
 }
 
 function renderHome() {
-  root.innerHTML = `<div class="page"><h1>🍋 レモネードスタンド</h1>
+  root.innerHTML = `<div class="page">
+    <div class="lang-bar">${langToggleHtml()}</div>
+    <h1>${t('home.h1')}</h1>
     <div class="card">
-      <h2>はじめての人へ</h2>
-      <p style="margin:0 0 4px">どんなゲームか、毎月なにを決めるのかを説明します（2分くらい）。</p>
-      <a class="btn secondary" href="#/guide">はじめに</a>
+      <h2>${t('home.guide.h2')}</h2>
+      <p style="margin:0 0 4px">${t('home.guide.p')}</p>
+      <a class="btn secondary" href="#/guide">${t('home.guide.btn')}</a>
     </div>
     <div class="card">
-      <h2>ひとりで遊ぶ（ソロモード）</h2>
-      <p style="margin:0 0 4px">🤖 ロボット店長の3つのお店と、1年間（12か月）もうけを競います。材料を仕入れて、値段を決めて、レモネードを売りましょう。</p>
-      <a class="btn" href="#/solo">はじめる</a>
+      <h2>${t('home.solo.h2')}</h2>
+      <p style="margin:0 0 4px">${t('home.solo.p')}</p>
+      <a class="btn" href="#/solo">${t('home.solo.btn')}</a>
     </div>
     <div class="card">
-      <h2>みんなで対戦 ${MULTIPLAYER ? '' : '<span class="chip">開発中</span>'}</h2>
-      <p class="muted" style="margin:0 0 4px">ゲームマスター（進行役）が進めて、チームどうしで競います。${MULTIPLAYER ? '' : 'いま準備中です。'}</p>
+      <h2>${t('home.multi.h2')} ${MULTIPLAYER ? '' : `<span class="chip">${t('home.multi.badge')}</span>`}</h2>
+      <p class="muted" style="margin:0 0 4px">${t('home.multi.p')}${MULTIPLAYER ? '' : t('home.multi.soon')}</p>
       ${MULTIPLAYER
-        ? `<a class="btn secondary" href="#/team">チームで参加する</a>
-           <a class="btn secondary" href="#/gm">GM（進行役）</a>`
-        : `<button class="btn secondary" type="button" disabled>チームで参加する（開発中）</button>
-           <button class="btn secondary" type="button" disabled>GM（進行役）（開発中）</button>`}
+        ? `<a class="btn secondary" href="#/team">${t('home.multi.team')}</a>
+           <a class="btn secondary" href="#/gm">${t('home.multi.gm')}</a>`
+        : `<button class="btn secondary" type="button" disabled>${t('home.multi.teamSoon')}</button>
+           <button class="btn secondary" type="button" disabled>${t('home.multi.gmSoon')}</button>`}
     </div>
-    <p class="center"><a href="#/survey">✉️ 感想を送る</a></p></div>`;
+    <p class="center"><a href="#/survey">${t('home.survey')}</a></p></div>`;
+  bindLangToggle(root);
 }
 
 function renderComingSoon() {
-  root.innerHTML = `<div class="page"><h1>🍋 レモネードスタンド</h1>
+  root.innerHTML = `<div class="page">
+    <div class="lang-bar">${langToggleHtml()}</div>
     <div class="card center">
-      <h2>みんなで対戦するモードは開発中です</h2>
-      <p>いまは、ひとりで 🤖 ロボット店長のお店と競うソロモードで遊べます。</p>
-      <a class="btn" href="#/solo">ソロモードで遊ぶ</a>
-      <p><a href="#/">トップにもどる</a></p>
+      <h2>${t('soon.h2')}</h2>
+      <p>${t('soon.p')}</p>
+      <a class="btn" href="#/solo">${t('soon.btn')}</a>
+      <p><a href="#/">${t('common.backTop')}</a></p>
     </div></div>`;
+  bindLangToggle(root);
 }
 
-window.addEventListener('hashchange', route);
+applyDocumentLang();
+window.addEventListener('hashchange', () => route());
+// 言語を切り替えたら、いまの画面を作り直す
+window.addEventListener('langchange', () => route({ resume: true }));
 route();
