@@ -5,7 +5,8 @@ import { CPU_TYPE_INFO } from '../../engine/cpu-teams';
 import { SCENARIOS } from '../../engine/scenarios';
 import type { CostMode, ScenarioId } from '../../engine/types';
 import {
-  clearSolo, HUMAN_ID, lastHumanDecision, loadSolo, newSoloGame, nextSoloMonth, saveSolo, submitHuman, type SoloState,
+  clearSolo, HUMAN_ID, lastHumanDecision, loadSolo, newSoloGame, nextSoloMonth, saveSolo, SOLO_DIFFICULTY, submitHuman,
+  type SoloDifficulty, type SoloState,
 } from '../../solo/local-game';
 import { monthKey, publicConfigOf, type Clock, type TeamSlot } from '../../sync/schema';
 import { esc, monthLabel, yen } from '../../ui/format';
@@ -30,17 +31,23 @@ export function renderSolo(root: HTMLElement): () => void {
     root.innerHTML = `<div class="page">
       <h1>🍋 ひとりで練習（ソロモード）</h1>
       <div class="card">
-        <p>CPU の3つのお店と、1年間（12か月）もうけを競います。<br>
+        <p>CPU の3つのお店と、1年間（12か月）もうけを競います。お客さんの数はゲームごとにちがいます。毎月の結果から読み取りましょう。<br>
         それぞれのお店には<strong>作戦</strong>があります。どんな作戦か、結果から読み取ってみましょう。答えは1年の最後に発表します。</p>
         <p class="muted">このモードはこの端末の中だけで動きます。途中の状態はこのブラウザに保存されます。</p>
       </div>
       ${saved ? `<div class="card">
         <h2>続きがあります</h2>
-        <p>${saved.phase === 'final' ? '1年の結果が出ています。' : `${monthLabel(saved.conditions.month, saved.config.startCalendarMonth)}まで進んでいます。`}</p>
+        <p>${saved.difficulty ? `むずかしさ：${esc(SOLO_DIFFICULTY[saved.difficulty].label)}。` : ''}${saved.phase === 'final' ? '1年の結果が出ています。' : `${monthLabel(saved.conditions.month, saved.config.startCalendarMonth)}まで進んでいます。`}</p>
         <button class="btn" id="resume">続きから</button>
       </div>` : ''}
       <div class="card">
         <h2>${saved ? '最初からやり直す' : '新しく始める'}</h2>
+        <fieldset class="field"><legend>むずかしさ</legend>
+          ${(Object.keys(SOLO_DIFFICULTY) as SoloDifficulty[]).map((d) => `<label class="radio">
+            <input type="radio" name="difficulty" value="${d}" ${d === 'normal' ? 'checked' : ''}>
+            <span><strong>${esc(SOLO_DIFFICULTY[d].label)}</strong><br><span class="muted">${esc(SOLO_DIFFICULTY[d].description)}</span></span>
+          </label>`).join('')}
+        </fieldset>
         <label class="field">1年の市場の流れ（シナリオ）
           <select id="scenario">
             <option value="none">なし（毎月少しずつ変わる）</option>
@@ -65,6 +72,7 @@ export function renderSolo(root: HTMLElement): () => void {
         seed: `solo-${Date.now()}`,
         scenario: root.querySelector<HTMLSelectElement>('#scenario')!.value as ScenarioId,
         costMode: root.querySelector<HTMLSelectElement>('#costMode')!.value as CostMode,
+        difficulty: (root.querySelector<HTMLInputElement>('input[name="difficulty"]:checked')?.value ?? 'normal') as SoloDifficulty,
       });
       state = s;
       saveSolo(s);

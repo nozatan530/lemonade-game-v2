@@ -1,6 +1,6 @@
 // 新しいゲームの設定フォーム
 
-import { DEFAULT_TIMER, defaultConfig, MARKET_BASE_PER_TEAM } from '../../engine/config';
+import { DEFAULT_MARKET_SIZE, DEFAULT_TIMER, defaultConfig, withRandomMarketSize } from '../../engine/config';
 import { SCENARIOS } from '../../engine/scenarios';
 import type { CostMode, GameConfig, ScenarioId, TimerSettings } from '../../engine/types';
 import { esc } from '../../ui/format';
@@ -26,6 +26,13 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
         <select id="scenario">
           <option value="none">なし（毎月少しずつ変わる）</option>
           ${Object.entries(SCENARIOS).map(([id, sc]) => `<option value="${id}">${esc(sc.name)}：${esc(sc.desc)}</option>`).join('')}
+        </select></label>
+      <label class="field">市場の大きさ（お客さんが使うお金。1チームあたり）
+        <select id="marketSize">
+          <option value="auto">おまかせ：ゲームごとにランダム（${DEFAULT_MARKET_SIZE.min.toLocaleString()}〜${DEFAULT_MARKET_SIZE.max.toLocaleString()}円）</option>
+          <option value="20000">大きめ：20,000円（旧版と同じ。売り切れやすい）</option>
+          <option value="15000">ふつう：15,000円</option>
+          <option value="12000">小さめ：12,000円（競争がきびしい）</option>
         </select></label>
       <label class="field">原価の変わり方（シナリオなしのとき）
         <select id="costMode">
@@ -54,7 +61,7 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
           <label>原価の変動（±%）<input type="number" id="costRange" value="${base.market.costRange}"></label>
           <label>シード（空欄なら自動）<input type="text" id="seed" placeholder="例：class-3a"></label>
         </div>
-        <p class="muted">市場予算の基準は「チーム数 × ${MARKET_BASE_PER_TEAM.toLocaleString()}円」。シードが同じなら、同じ市場の動きになります。</p>
+        <p class="muted">市場予算の基準は「チーム数 × 1チームあたりの額」。シードが同じなら、同じ市場の動きになります。</p>
       </details>
       <button class="btn" id="create">ゲームを作る</button>
     </div>`;
@@ -79,7 +86,12 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
     if (new Set(names).size !== names.length) { alert('チーム名が重なっています。'); return; }
 
     const seed = $<HTMLInputElement>('seed').value.trim() || `g${Date.now()}`;
-    const config = defaultConfig(names.length, seed);
+    const marketSize = $<HTMLSelectElement>('marketSize').value;
+    const perTeam = Number(marketSize);
+    const config = marketSize === 'auto'
+      ? withRandomMarketSize(defaultConfig(names.length, seed), names.length, DEFAULT_MARKET_SIZE)
+      : defaultConfig(names.length, seed);
+    if (marketSize !== 'auto') config.market = { ...config.market, base: perTeam * names.length, basePerTeam: perTeam };
     config.scenario = $<HTMLSelectElement>('scenario').value as ScenarioId;
     config.market.costMode = $<HTMLSelectElement>('costMode').value as CostMode;
     config.market.range = num('range');

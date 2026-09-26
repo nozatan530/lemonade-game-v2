@@ -229,3 +229,6 @@ a.btn { text-align: center; text-decoration: none; line-height: 52px; }
 .cashbar-spacer { height: 230px; }
 .nowrap { white-space: nowrap; }
 .stepper .label small.hint .muted { font-size: 0.8rem; }
+.radio { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; padding: 8px 0; border-top: 1px solid var(--border); cursor: pointer; }
+.radio:first-of-type { border-top: none; }
+.radio input { margin-top: 4px; width: 20px; height: 20px; flex: none; }
