@@ -129,6 +129,9 @@ export interface MonthResult {
 // 初級の CPU の作戦
 export type CpuType = 'discount' | 'premium' | 'follower' | 'cautious';
 
+// CPU の強さ。basic は作戦どおりに動くだけ。adaptive は先月の結果を見て値段と量を調整する
+export type CpuSkill = 'basic' | 'adaptive';
+
 // CPU が判断に使ってよい情報。人のチーム画面に出ている情報だけを入れる。
 // 今月の市場予算・シード・ほかのチームの今月の決定は入れない（入れようとすると型エラーになる）。
 export interface CpuView {

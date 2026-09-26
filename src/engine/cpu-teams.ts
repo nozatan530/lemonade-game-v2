@@ -4,7 +4,7 @@
 // dice は CPU ごとのサイコロ（0 以上 1 未満）。同じ dice なら同じ決定になる。
 
 import { isQuarterStart } from './config';
-import type { CpuDecision, CpuType, CpuView, MonthResult, Recipe, TeamState, UnitPrices } from './types';
+import type { CpuDecision, CpuSkill, CpuType, CpuView, MonthResult, Recipe, TeamState, UnitPrices } from './types';
 
 export const CPU_TYPES: CpuType[] = ['discount', 'premium', 'follower', 'cautious'];
 
@@ -34,8 +34,13 @@ export function cpuViewOf(input: {
   };
 }
 
-export function decideCpu(type: CpuType, view: CpuView, dice: (k: number) => number): CpuDecision {
-  const plan = PLANNERS[type](view, dice);
+export function decideCpu(
+  type: CpuType,
+  view: CpuView,
+  dice: (k: number) => number,
+  skill: CpuSkill = 'basic',
+): CpuDecision {
+  const plan = (skill === 'adaptive' ? ADAPTIVE_PLANNERS : PLANNERS)[type](view, dice);
   const barista = view.quarterStart ? plan.barista : view.me.baristaCount;
   if (plan.watch) {
     return withQuarter(view, barista, { lemonQty: 0, sugarQty: 0, price: 0, watching: true });
@@ -98,6 +103,60 @@ const PLANNERS: Record<CpuType, (v: CpuView, dice: (k: number) => number) => Pla
     return { price, cups, barista, watch: v.me.balance < monthlyCost };
   },
 };
+
+// ---- 手強い CPU（先月の結果を見て調整する） ----
+// 見るのは先月の結果だけ：自分が売り切れたか、市場のお金が余ったか、ほかの店の値段。
+
+const ADAPTIVE_PLANNERS: Record<CpuType, (v: CpuView, dice: (k: number) => number) => Plan> = {
+  // 安売り：いちばん安い店より10円安く。売れ残ったら作る量を減らす（バリスタは2人まで）
+  discount(v, dice) {
+    const base = PLANNERS.discount(v, dice);
+    const mine = myLastResult(v);
+    const barista = mine && mine.offered - mine.sold > 20 ? 1 : 2;
+    const cups = mine && mine.offered > mine.sold ? mine.sold + 10 : capacityOf(v, barista);
+    return { ...base, barista, cups };
+  },
+
+  // 高値：売り切れたら値上げ、売れ残ったら値下げ（原価の1.3倍は下回らない）
+  premium(v, dice) {
+    const mine = myLastResult(v);
+    const floor = cupCost(v, 1) * 1.3;
+    if (!mine || mine.offered === 0) return PLANNERS.premium(v, dice);
+    const price = mine.sold >= mine.offered ? mine.price + 20 : Math.max(floor, mine.price * 0.9);
+    const cups = mine.sold >= mine.offered ? mine.offered + 10 : Math.max(10, mine.sold);
+    return { price, cups, barista: cups > v.rules.baristaCapacity ? 2 : 1 };
+  },
+
+  // 追随：売り切れた店の値段にそろえ、市場のお金が余っていたら少し高く、多めに作る
+  follower(v, dice) {
+    const base = PLANNERS.follower(v, dice);
+    const last = lastResult(v);
+    if (!last) return base;
+    const room = marketRoom(v);
+    const price = room > 0 ? base.price + 10 : base.price;
+    const expected = (last.marketBudget / v.rules.teamCount / price) * (room > 0 ? 1.3 : 1);
+    const barista = Math.min(3, Math.max(1, Math.ceil(expected / v.rules.baristaCapacity)));
+    return { price, cups: expected, barista };
+  },
+
+  // 慎重：売り切れたら少し値上げ、売れ残ったら少し値下げ。売り切れて市場のお金が余っていたらバリスタを2人に
+  cautious(v, dice) {
+    const base = PLANNERS.cautious(v, dice);
+    const mine = myLastResult(v);
+    if (!mine || mine.offered === 0) return base;
+    const soldOut = mine.sold >= mine.offered;
+    const barista = soldOut && marketRoom(v) > 0 ? 2 : 1;
+    const price = soldOut ? mine.price + 10 : mine.price - 10;
+    return { ...base, barista, price: Math.max(cupCost(v, barista) * 1.2, price), cups: soldOut ? mine.sold + 10 : mine.sold };
+  },
+};
+
+// 先月、市場のお金がどれだけ余ったか（使われなかった額）
+function marketRoom(v: CpuView): number {
+  const last = lastResult(v);
+  if (!last) return 0;
+  return last.marketBudget - last.teamResults.reduce((a, t) => a + t.revenue, 0);
+}
 
 // ---- 計算の部品 ----
 

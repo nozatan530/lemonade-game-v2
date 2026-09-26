@@ -156,3 +156,44 @@ describe('作戦の違いが結果に出る（12か月）', () => {
     }
   });
 });
+
+describe('手強い CPU（adaptive）', () => {
+  const last = (mine: { price: number; offered: number; sold: number }, budget: number, others: { price: number; offered: number; sold: number }[] = []): MonthResult => ({
+    month: 1, marketBudget: budget, prices: { lemon: 80, sugar: 10, barista: 2000 },
+    teamResults: [{ teamId: 'c1', ...mine }, ...others.map((o, i) => ({ teamId: `o${i}`, ...o }))].map((t) => ({
+      ...t, unsold: t.offered - t.sold, revenue: t.sold * t.price, lemonBought: 0, sugarBought: 0, baristaCount: 1,
+      costLemon: 0, costSugar: 0, costBarista: 0, totalCost: 0, profit: 0, usedLemon: 0, usedSugar: 0,
+      stock: { lemon: 0, sugar: 0 }, balance: 0,
+    })),
+  });
+
+  it('同じ情報とサイコロなら同じ決定。決定は0以上の整数', () => {
+    const v = baseView({ month: 2, quarterStart: false, history: [last({ price: 250, offered: 50, sold: 50 }, 80000)] });
+    for (const type of CPU_TYPES) {
+      const a = decideCpu(type, v, dice('x'), 'adaptive');
+      expect(a).toEqual(decideCpu(type, v, dice('x'), 'adaptive'));
+      for (const n of [a.monthlyDecision.lemonQty, a.monthlyDecision.sugarQty, a.monthlyDecision.price]) {
+        expect(Number.isInteger(n) && n >= 0).toBe(true);
+      }
+    }
+  });
+
+  it('高値は、売り切れたら値上げ、売れ残ったら値下げする', () => {
+    const soldOut = baseView({ month: 2, quarterStart: false, history: [last({ price: 300, offered: 30, sold: 30 }, 80000)] });
+    const unsold = baseView({ month: 2, quarterStart: false, history: [last({ price: 300, offered: 30, sold: 5 }, 80000)] });
+    expect(decideCpu('premium', soldOut, dice('x'), 'adaptive').monthlyDecision.price).toBeGreaterThan(300);
+    expect(decideCpu('premium', unsold, dice('x'), 'adaptive').monthlyDecision.price).toBeLessThan(300);
+  });
+
+  it('安売りは、たくさん売れ残ったら作る量を減らす', () => {
+    const unsold = baseView({ month: 2, quarterStart: false, history: [last({ price: 200, offered: 100, sold: 40 }, 80000, [{ price: 250, offered: 50, sold: 0 }])] });
+    unsold.me = { ...unsold.me, baristaCount: 2 };
+    const d = decideCpu('discount', unsold, dice('x'), 'adaptive').monthlyDecision;
+    expect(d.lemonQty).toBe(50); // 売れた40杯＋10杯
+  });
+
+  it('慎重は、売り切れて市場のお金が余っていたら、次の四半期にバリスタを2人にする', () => {
+    const v = baseView({ month: 4, quarterStart: true, history: [last({ price: 210, offered: 50, sold: 50 }, 80000)] });
+    expect(decideCpu('cautious', v, dice('x'), 'adaptive').quarterlyDecision?.baristaCount).toBe(2);
+  });
+});
