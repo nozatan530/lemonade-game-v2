@@ -12,13 +12,20 @@ export interface StepperOptions {
   onChange: (value: number) => void;
 }
 
-export function stepper(opts: StepperOptions): { el: HTMLElement; set: (v: number) => void; setDisabled: (d: boolean) => void } {
+export interface Stepper {
+  el: HTMLElement;
+  set: (v: number) => void;
+  setDisabled: (d: boolean) => void;
+  setHint: (html: string) => void; // 説明の行を書き換える（呼ぶ側でエスケープすること）
+}
+
+export function stepper(opts: StepperOptions): Stepper {
   const min = opts.min ?? 0;
   const max = opts.max ?? 100000;
   const el = document.createElement('div');
   el.className = 'stepper';
   el.innerHTML = `
-    <div class="label">${esc(opts.label)}${opts.hint ? `<small>${esc(opts.hint)}</small>` : ''}</div>
+    <div class="label">${esc(opts.label)}<small class="hint">${opts.hint ? esc(opts.hint) : ''}</small></div>
     <div class="ctrl">
       <button type="button" aria-label="${esc(opts.label)}を減らす">−</button>
       <input type="number" inputmode="numeric" min="${min}" max="${max}" step="${opts.step}" aria-label="${esc(opts.label)}">
@@ -50,5 +57,6 @@ export function stepper(opts: StepperOptions): { el: HTMLElement; set: (v: numbe
     el,
     set: (v) => set(v),
     setDisabled: (d) => el.querySelectorAll('button, input').forEach((x) => ((x as HTMLButtonElement).disabled = d)),
+    setHint: (html) => { el.querySelector('.hint')!.innerHTML = html; },
   };
 }

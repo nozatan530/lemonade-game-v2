@@ -200,3 +200,32 @@ a.btn { text-align: center; text-decoration: none; line-height: 52px; }
 .screen .line-chart .tick { font-size: 17px; }
 .screen .line-chart .end-label { font-size: 19px; }
 .screen .legend { font-size: 1em; }
+
+/* 入力画面：単価 × 数量 ＝ 金額 を読みやすく */
+.stepper .label small.hint { font-size: 0.95rem; color: var(--text); font-variant-numeric: tabular-nums; margin-top: 2px; }
+.stepper .label small.hint strong { font-size: 1.05rem; }
+.fixed-row { padding: 8px 0; border-top: 1px solid var(--border); }
+.fixed-row .label { font-weight: 700; }
+.fixed-row .label small { display: block; font-weight: 400; font-size: 0.95rem; }
+.subtotal {
+  display: flex; justify-content: space-between; align-items: baseline;
+  border-top: 2px solid var(--text); margin-top: 6px; padding-top: 8px; font-weight: 700;
+}
+.subtotal strong { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.pl.compact td { padding: 5px 0; }
+
+/* 画面の下に固定する「月末の資金」 */
+.cashbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  background: var(--surface); border-top: 2px solid var(--accent);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.cashbar-inner { max-width: 480px; margin: 0 auto; padding: 8px 16px 10px; }
+.cash-row { display: flex; justify-content: space-between; gap: 8px; font-variant-numeric: tabular-nums; line-height: 1.45; }
+.cash-row.total { font-size: 1.1rem; font-weight: 800; border-top: 1px solid var(--border); margin-top: 2px; padding-top: 2px; }
+.cash-note { margin: 2px 0 0; font-size: 0.8rem; color: var(--muted); text-align: right; min-height: 1.2em; }
+.cashbar .btn { margin-top: 6px; min-height: 48px; }
+.cashbar-spacer { height: 230px; }
+.nowrap { white-space: nowrap; }
+.stepper .label small.hint .muted { font-size: 0.8rem; }
