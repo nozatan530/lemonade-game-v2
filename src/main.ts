@@ -98,7 +98,7 @@ function renderComingSoon() {
   root.innerHTML = `<div class="page"><h1>🍋 レモネードスタンド</h1>
     <div class="card center">
       <h2>みんなで対戦するモードは開発中です</h2>
-      <p>いまは、ひとりで CPU のお店と競うソロモードで遊べます。</p>
+      <p>いまは、ひとりで 🤖 ロボット店長のお店と競うソロモードで遊べます。</p>
       <a class="btn" href="#/solo">ソロモードで遊ぶ</a>
       <p><a href="#/">トップにもどる</a></p>
     </div></div>`;
