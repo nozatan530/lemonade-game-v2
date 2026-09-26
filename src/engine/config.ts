@@ -117,3 +117,8 @@ export function withRandomMarketSize(config: GameConfig, teamCount: number, rang
   const perTeam = pickMarketPerTeam(config.market.seed, range);
   return { ...config, market: { ...config.market, base: perTeam * teamCount, basePerTeam: perTeam } };
 }
+
+// 期の何か月目かを暦の月に直す（4月始まりなら 1か月目 = 4月）
+export function calendarMonthOf(month: number, startCalendarMonth: number): number {
+  return ((startCalendarMonth - 1 + month - 1) % 12) + 1;
+}

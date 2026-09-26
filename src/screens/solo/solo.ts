@@ -28,7 +28,7 @@ export function renderSolo(root: HTMLElement): () => void {
     setTimeout(() => { renderGame(); window.scrollTo(0, 0); }, 0);
   }
 
-  function renderStart(saved: SoloState | null) {
+  function renderStart(saved: SoloState | null, prev?: { difficulty: SoloDifficulty; scenario: ScenarioId; costMode: CostMode }) {
     root.innerHTML = `<div class="page">
       <h1>🍋 ひとりで練習（ソロモード）</h1>
       <div class="card">
@@ -60,11 +60,17 @@ export function renderSolo(root: HTMLElement): () => void {
             <option value="random">毎月ランダムに変わる</option>
             <option value="trend">だんだん上がる</option>
             <option value="shock">ときどき大きく変わる</option>
+            <option value="seasonal">季節で変わる（レモンは7月が高く1月が安い。現実に近い）</option>
           </select></label>
         <button class="btn ${saved ? 'secondary' : ''}" id="start">${saved ? '最初からやり直す' : 'はじめる'}</button>
       </div>
       <p class="center"><a href="#/">トップにもどる</a></p></div>`;
 
+    if (prev) {
+      root.querySelector<HTMLInputElement>(`input[name="difficulty"][value="${prev.difficulty}"]`)!.checked = true;
+      root.querySelector<HTMLSelectElement>('#scenario')!.value = prev.scenario;
+      root.querySelector<HTMLSelectElement>('#costMode')!.value = prev.costMode;
+    }
     root.querySelector('#resume')?.addEventListener('click', () => { state = saved; renderGame(); });
     root.querySelector('#start')!.addEventListener('click', () => {
       if (saved && !confirm('いまの続きを消して、最初からやり直しますか？')) return;
@@ -94,9 +100,20 @@ export function renderSolo(root: HTMLElement): () => void {
       <div class="topbar"><span class="team">🍋 ${esc(s.names[HUMAN_ID]!)}</span>
         <span class="muted">${monthLabel(month, s.config.startCalendarMonth)}</span>
         <span class="num">${yen(me.balance)}</span></div>
-      <div id="view"></div>
-      <p class="center muted" style="margin-top:24px"><a href="#" id="quit">やめる（途中は保存されています）</a></p></div>`;
-    root.querySelector('#quit')!.addEventListener('click', (e) => { e.preventDefault(); renderStart(loadSolo()); });
+      <div class="game-actions">
+        <button type="button" class="small" id="quit">いったんやめる</button>
+        <button type="button" class="small" id="reset">最初からやり直す</button>
+      </div>
+      <div id="view"></div></div>`;
+    // いったんやめる：途中は保存されているので、あとで「続きから」遊べる
+    root.querySelector('#quit')!.addEventListener('click', () => renderStart(loadSolo()));
+    // 最初からやり直す：いまのゲームを消して、開始画面へ（前と同じ設定を選んだ状態にする）
+    root.querySelector('#reset')!.addEventListener('click', () => {
+      if (!confirm('いまのゲームを消して、最初からやり直しますか？')) return;
+      clearSolo();
+      state = null;
+      renderStart(null, { difficulty: s.difficulty ?? 'normal', scenario: s.config.scenario, costMode: s.config.market.costMode });
+    });
     const view = root.querySelector<HTMLElement>('#view')!;
 
     if (s.phase === 'input') {

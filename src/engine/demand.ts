@@ -1,8 +1,25 @@
 // 市場予算と、その月の原価。初級は旧版と同じ仕組み（価格重視層のみ）。
 
+import { calendarMonthOf } from './config';
 import { monthRandom, seededRand, type SeededRand } from './random';
 import { SCENARIOS } from './scenarios';
 import type { GameConfig, MonthConditions, UnitPrices } from './types';
+
+// 季節で変わるレモンの値段の形（暦の1月〜12月）。7月がいちばん高く、8月から下がりはじめ、9月に急に下がり、
+// 1月がいちばん安い（7月の1/3）。平均が 1 になるように割って使うので、1年の平均は初期単価（80円）になる。
+const LEMON_SEASON = [1.0, 1.2, 1.5, 1.9, 2.3, 2.7, 3.0, 2.7, 1.7, 1.4, 1.2, 1.1];
+const LEMON_SEASON_MEAN = LEMON_SEASON.reduce((a, b) => a + b, 0) / LEMON_SEASON.length;
+
+// 季節の倍率（暦の月 1〜12）
+export function lemonSeasonMultiplier(calendarMonth: number): number {
+  return LEMON_SEASON[calendarMonth - 1]! / LEMON_SEASON_MEAN;
+}
+
+// 砂糖はゲームごとに初期単価の ±10% で1つ決め、1年間変えない
+function seasonalSugar(config: GameConfig, rand: SeededRand): number {
+  const f = 1 + (rand(config.market.seed, 999_002) * 2 - 1) * 0.1;
+  return Math.max(1, Math.round(config.initialPrices.sugar * f));
+}
 
 interface AutoValues {
   marketBudget: number;
@@ -39,6 +56,10 @@ export function autoMonthValues(month: number, config: GameConfig, rand: SeededR
     lemon = Math.max(10, Math.round(IC.lemon * mult));
     sugar = Math.max(5, Math.round(IC.sugar * (isShock ? mult : 1 + (r(3) * 2 - 1) * cr * 0.1)));
     barista = Math.max(500, Math.round(IC.barista));
+  } else if (M.costMode === 'seasonal') {
+    // 季節で変わる：レモンは暦の月で決まる形。砂糖はゲームごとに少しだけ違う。給料は変わらない
+    lemon = Math.max(1, Math.round(IC.lemon * lemonSeasonMultiplier(calendarMonthOf(month, config.startCalendarMonth))));
+    sugar = seasonalSugar(config, rand);
   }
   return { marketBudget, prices: { lemon, sugar, barista } };
 }
@@ -79,7 +100,9 @@ export function monthConditions(
 ): MonthConditions {
   const auto = autoMonthValues(month, config, rand);
   if (month === 1) {
-    return { month, marketBudget: auto.marketBudget, prices: { ...config.initialPrices } };
+    // 旧版と同じく1か月目は初期単価。ただし季節で変わるモードは、1か月目もその月の値段にする
+    const prices = config.market.costMode === 'seasonal' && config.scenario === 'none' ? auto.prices : { ...config.initialPrices };
+    return { month, marketBudget: auto.marketBudget, prices };
   }
   const scenario = scenarioMonthValues(month, config, teamCount);
   if (scenario) {

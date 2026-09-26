@@ -4,7 +4,8 @@ export type Difficulty = 'beginner' | 'intermediate' | 'advanced';
 export type PlayMode = 'standard' | 'short' | 'extended';
 
 // 原価の変動のしかた（旧版と同じ4種類）
-export type CostMode = 'fixed' | 'random' | 'trend' | 'shock';
+// seasonal：季節で変わる（レモンは7月が高く1月が安い。砂糖はゲームごとに少しだけ違い、1年間同じ）
+export type CostMode = 'fixed' | 'random' | 'trend' | 'shock' | 'seasonal';
 export type ScenarioId = 'none' | 'summer' | 'inflation' | 'chaos';
 
 // その月の単価

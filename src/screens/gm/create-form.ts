@@ -40,6 +40,7 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
           <option value="random">毎月ランダムに変わる</option>
           <option value="trend">だんだん上がる</option>
           <option value="shock">ときどき大きく変わる</option>
+          <option value="seasonal">季節で変わる（レモンは7月が高く1月が安い。現実に近い）</option>
         </select></label>
       <fieldset class="field"><legend>入力時間（秒）</legend>
         <div class="row3">

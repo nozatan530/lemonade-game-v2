@@ -253,3 +253,4 @@ a.btn { text-align: center; text-decoration: none; line-height: 52px; }
 .report-table tr.best td:first-child::after { content: ' ★'; color: var(--good); }
 .report-table tr.worst td:first-child::after { content: ' ▼'; color: var(--bad); }
 .report-table tr.sum td { font-weight: 800; border-top: 2px solid var(--text); }
+.game-actions { display: flex; justify-content: flex-end; gap: 6px; margin: -4px 0 10px; }
