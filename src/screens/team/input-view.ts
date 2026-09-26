@@ -9,7 +9,7 @@ import { canChangeBarista } from '../../engine/config';
 import { previewDecision } from '../../engine/preview';
 import type { MonthlyDecision, TeamState } from '../../engine/types';
 import type { Clock, PublicConfig, SubmissionDoc } from '../../sync/schema';
-import { t } from '../../i18n';
+import { lang, t } from '../../i18n';
 import { newsText } from '../../i18n/content';
 import { esc, monthShort, yen } from '../../ui/format';
 import { stepper } from '../../ui/stepper';
@@ -174,12 +174,12 @@ export function mountInputView(
     // 画面の下：月末の資金
     $('cashNow').textContent = yen(me.balance);
     $('cashSpend').textContent = `− ${yen(p.costs.totalCost)}`;
-    $('cashSales').textContent = p.revenueIfSoldOut > 0 ? `＋ ¥0 〜 ${yen(p.revenueIfSoldOut)}` : '＋ ¥0';
+    $('cashSales').textContent = p.revenueIfSoldOut > 0 ? `＋ ¥0${lang() === 'en' ? ' – ' : ' 〜 '}${yen(p.revenueIfSoldOut)}` : '＋ ¥0';
     const low = p.balanceIfNoneSold;
     const high = p.balanceIfSoldOut;
     $('cashEnd').innerHTML = low === high
       ? `<strong class="${high < 0 ? 'bad' : ''}">${yen(high)}</strong>`
-      : `<strong class="${low < 0 ? 'bad' : ''}">${yen(low)}</strong> 〜 <strong class="good">${yen(high)}</strong>`;
+      : `<strong class="${low < 0 ? 'bad' : ''}">${yen(low)}</strong>${lang() === 'en' ? ' – ' : ' 〜 '}<strong class="good">${yen(high)}</strong>`;
     $('cashNote').innerHTML = high < 0
       ? `<span class="bad">${t('input.cash.negAll')}</span>`
       : low < 0

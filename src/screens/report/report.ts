@@ -29,6 +29,7 @@ export function renderTermReport(container: HTMLElement, input: ReportInput): vo
   const rank = ranked.findIndex((t) => t.teamId === meId) + 1;
   const monthName = (m: number) => monthShort(m, input.startCalendarMonth);
   const name = (id: string) => names[id] ?? id;
+  const slash = lang() === 'en' ? '/' : '／';
 
   const tile = (label: string, value: string, note = '', cls = '') =>
     `<div class="tile"><div class="tile-label">${label}</div><div class="tile-value ${cls}">${value}</div>${note ? `<div class="tile-note">${note}</div>` : ''}</div>`;
@@ -69,11 +70,11 @@ export function renderTermReport(container: HTMLElement, input: ReportInput): vo
             <th>${t('report.th.sales')}</th><th>${t('report.th.material')}</th><th>${t('report.th.labor')}</th><th>${t('report.th.profit')}</th><th>${t('report.th.balance')}</th></tr>
           ${s.rows.map((r) => `<tr class="${r.month === s.bestMonth?.month ? 'best' : r.month === s.worstMonth?.month ? 'worst' : ''}">
             <td>${monthName(r.month)}</td><td>${yen(r.marketBudget)}</td>
-            <td>${r.offered === 0 ? t('result.sat') : yen(r.price)}</td><td>${r.sold}／${r.offered}</td>
+            <td>${r.offered === 0 ? t('result.sat') : yen(r.price)}</td><td>${r.sold}${slash}${r.offered}</td>
             <td class="${r.unsold > 0 ? 'bad' : ''}">${r.unsold}</td>
             <td>${yen(r.revenue)}</td><td>${yen(r.materialCost)}</td><td>${yen(r.laborCost)}</td>
             <td class="${r.profit >= 0 ? 'good' : 'bad'}">${signedYen(r.profit)}</td><td>${yen(r.balance)}</td></tr>`).join('')}
-          <tr class="sum"><td>${t('report.total')}</td><td></td><td></td><td>${s.totalSold}／${s.totalOffered}</td><td>${s.totalUnsold}</td>
+          <tr class="sum"><td>${t('report.total')}</td><td></td><td></td><td>${s.totalSold}${slash}${s.totalOffered}</td><td>${s.totalUnsold}</td>
             <td>${yen(s.totalRevenue)}</td><td>${yen(s.totalMaterialCost)}</td><td>${yen(s.totalLaborCost)}</td>
             <td class="${s.totalProfit >= 0 ? 'good' : 'bad'}">${signedYen(s.totalProfit)}</td><td></td></tr>
         </table>

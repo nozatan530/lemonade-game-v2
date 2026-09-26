@@ -40,6 +40,12 @@ export function setLang(next: Lang): void {
   } catch {
     // 保存できなくても、この画面の中では切り替わる
   }
+  // URL に ?lang= があれば書きかえる（再読み込みしても選んだ言語のままにする）
+  const url = new URL(location.href);
+  if (url.searchParams.has('lang')) {
+    url.searchParams.set('lang', next);
+    history.replaceState(history.state, '', url);
+  }
   applyDocumentLang();
   window.dispatchEvent(new Event('langchange'));
 }

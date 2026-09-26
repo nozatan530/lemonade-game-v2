@@ -89,10 +89,13 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
   }
 
   // お店の名前は、保存された名前ではなく表示するときの言語で出す
-  const names = (s: SoloState): Record<string, string> =>
-    Object.fromEntries(s.teams.map((tm) => [tm.teamId, soloTeamName(tm.teamId)]));
-  const slotsOf = (s: SoloState): Record<string, TeamSlot> =>
-    Object.fromEntries(s.teams.map((tm, i) => [tm.teamId, { name: soloTeamName(tm.teamId), order: i }]));
+  //（resume のときは宣言より前に呼ばれるので、const ではなく function にしている）
+  function names(s: SoloState): Record<string, string> {
+    return Object.fromEntries(s.teams.map((tm) => [tm.teamId, soloTeamName(tm.teamId)]));
+  }
+  function slotsOf(s: SoloState): Record<string, TeamSlot> {
+    return Object.fromEntries(s.teams.map((tm, i) => [tm.teamId, { name: soloTeamName(tm.teamId), order: i }]));
+  }
 
   function renderGame() {
     const s = state;

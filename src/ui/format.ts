@@ -42,3 +42,10 @@ export function secondsLeft(deadlineAt: number, serverNow: number): number {
 export function mmss(sec: number): string {
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 }
+
+// グラフの横軸：目盛りの文字を間引く。最後は必ず出し、最後に近すぎる目盛りは出さない（文字が重ならないように）
+export function showTick(i: number, count: number, every: number): boolean {
+  const last = count - 1;
+  if (i === last || every <= 1) return true;
+  return i % every === 0 && last - i >= Math.max(2, Math.ceil(every / 2));
+}

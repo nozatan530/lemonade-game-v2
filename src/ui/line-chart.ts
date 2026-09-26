@@ -3,7 +3,7 @@
 // 線の端にチーム名を直接書き、凡例も付ける（色だけに頼らない）。
 // 値が null の月は線を切る（静観して値段がない月など）。
 
-import { esc } from './format';
+import { esc, showTick } from './format';
 
 export const MAX_SERIES = 8;
 
@@ -50,7 +50,7 @@ export function lineChartSvg(opts: {
       `<text x="${pad.left - 6}" y="${y(v) + 4}" text-anchor="end" class="tick">${esc(formatY(v))}</text>`);
   }
   const every = Math.ceil(xLabels.length / Math.max(2, Math.floor(iw / 44)));
-  const xTicks = xLabels.map((l, i) => (i % every === 0 || i === xLabels.length - 1)
+  const xTicks = xLabels.map((l, i) => showTick(i, xLabels.length, every)
     ? `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" class="tick">${esc(l)}</text>` : '').join('');
 
   // 線の端のラベル：最後に値がある点の横。重ならないように、上から順に最小間隔をあけて並べる

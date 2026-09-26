@@ -89,16 +89,16 @@ const EN = `    <h1>🍋 How to play</h1>
       <p class="muted" style="margin-top:0">The input screen looks like this. Decide things in number order.</p>
       <div class="guide-mock">
         <div class="mock-block"><span class="mock-no">1</span><strong>Buy supplies</strong>
-          <div class="mock-row">🍋 Lemons <span>¥80 × 50 ＝ ¥4,000</span></div>
-          <div class="mock-row">🍬 Sugar <span>¥10 × 50 ＝ ¥500</span></div>
-          <div class="mock-row">👩‍🍳 Baristas <span>¥2,000 × 1 ＝ ¥2,000</span></div>
+          <div class="mock-row">🍋 Lemons <span>¥80 × 50 = ¥4,000</span></div>
+          <div class="mock-row">🍬 Sugar <span>¥10 × 50 = ¥500</span></div>
+          <div class="mock-row">👩‍🍳 Baristas <span>¥2,000 × 1 = ¥2,000</span></div>
         </div>
         <div class="mock-block"><span class="mock-no">2</span><strong>Set your price</strong>
           <div class="mock-row">💰 Price per cup <span>¥300 × 50 cups</span></div>
           <div class="mock-row muted">Cost per cup ¥130 / Break-even 22 cups</div>
         </div>
         <div class="mock-block mock-cash"><span class="mock-no">3</span><strong>Check your money, then go</strong>
-          <div class="mock-row">Money at month end <span>¥3,500 〜 ¥18,500</span></div>
+          <div class="mock-row">Money at month end <span>¥3,500 – ¥18,500</span></div>
         </div>
       </div>
       <ol class="guide-steps">

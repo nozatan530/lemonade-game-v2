@@ -1,7 +1,7 @@
 // 棒グラフ（月ごとのもうけなど、プラスとマイナスがある値）。SVG の文字列を返す。
 // 0円の線から上がプラス、下がマイナス。プラスとマイナスは色を分け（青と赤の対）、表でも数字を見られるようにする。
 
-import { esc } from './format';
+import { esc, showTick } from './format';
 import { niceStep } from './line-chart';
 
 export function barChartSvg(opts: {
@@ -47,7 +47,7 @@ export function barChartSvg(opts: {
     const path = v >= 0
       ? roundedTop(cx - barW / 2, top, barW, h, r)
       : roundedBottom(cx - barW / 2, y(0), barW, h, r);
-    const label = (i % every === 0 || i === values.length - 1)
+    const label = showTick(i, values.length, every)
       ? `<text x="${cx}" y="${H - 8}" text-anchor="middle" class="tick">${esc(labels[i] ?? '')}</text>` : '';
     return `<g><path d="${path}" class="${cls}"><title>${esc(labels[i] ?? '')}：${esc((opts.formatValue ?? formatY)(v))}</title></path>${label}</g>`;
   }).join('');
