@@ -175,7 +175,9 @@ export const ja = {
   // 月の結果
   'result.none': '結果がありません。',
   'result.h2': '今月の結果',
-  'result.watched': '今月は静観しました（売っていません）。',
+  'result.watched': '今月は静観しました（仕入れも販売もしていません）。バリスタの給料はかかります。',
+  'result.noCups': '材料を仕入れましたが、作れる数が0杯だったので売れませんでした。レモン・砂糖・バリスタの数を確かめましょう。',
+  'result.noSales': '売っていません',
   'result.sales': '売上',
   'result.salesExplain': '{sold}杯 × {price}',
   'result.material': '− 材料費（原価）',

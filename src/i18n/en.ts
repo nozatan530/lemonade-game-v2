@@ -170,7 +170,9 @@ export const en: Record<Key, string> = {
 
   'result.none': 'No results.',
   'result.h2': "This month's results",
-  'result.watched': 'You sat out this month (no sales).',
+  'result.watched': 'You sat out this month (no buying, no selling). You still pay your baristas.',
+  'result.noCups': 'You bought ingredients, but you could make 0 cups, so nothing was sold. Check your lemons, sugar and baristas.',
+  'result.noSales': 'nothing sold',
   'result.sales': 'Sales',
   'result.salesExplain': '{sold} cups × {price}',
   'result.material': '− Ingredient cost',

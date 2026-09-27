@@ -37,13 +37,7 @@ export function mountInputView(
 ): InputView {
   const submitLabel = options.submitLabel ?? t('input.submit');
   let ctx = initial;
-  const v = {
-    lemon: startValues.decision.watching ? DEFAULT_DECISION.lemonQty : startValues.decision.lemonQty,
-    sugar: startValues.decision.watching ? DEFAULT_DECISION.sugarQty : startValues.decision.sugarQty,
-    price: startValues.decision.price > 0 ? startValues.decision.price : DEFAULT_DECISION.price,
-    maxSell: startValues.decision.maxSell as number | undefined,
-    barista: startValues.baristaCount,
-  };
+  const v = initialInputValues(startValues.decision, startValues.baristaCount);
   const { prices } = ctx.clock;
   const { recipe, baristaCapacity } = ctx.pub;
   const canChooseBarista = ctx.clock.quarterStart;
@@ -230,5 +224,17 @@ export function mountInputView(
       ctx = next;
       if (container.contains(submitBtn)) refresh();
     },
+  };
+}
+
+// 入力画面のはじめの値（前月の決定から）。静観の月の後は、ふつうの初期値に戻す
+export function initialInputValues(decision: MonthlyDecision, baristaCount: number) {
+  return {
+    lemon: decision.watching ? DEFAULT_DECISION.lemonQty : decision.lemonQty,
+    sugar: decision.watching ? DEFAULT_DECISION.sugarQty : decision.sugarQty,
+    price: decision.price > 0 ? decision.price : DEFAULT_DECISION.price,
+    // 静観の月は上限0杯で保存されているので、翌月には持ち越さない（持ち越すと仕入れても売れない）
+    maxSell: decision.watching ? undefined : decision.maxSell as number | undefined,
+    barista: baristaCount,
   };
 }

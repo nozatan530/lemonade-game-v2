@@ -12,6 +12,7 @@ import {
   watchTeams,
 } from '../../sync/watch';
 import { esc, mmss, monthLabel, secondsLeft, signedYen, yen } from '../../ui/format';
+import { isWatching } from '../team/result-view';
 
 export function mountGameView(root: HTMLElement, db: Database, gmUid: string, code: string): () => void {
   const S = {
@@ -181,7 +182,7 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
         ${slots.map(({ teamId, slot }) => {
           const r = byId.get(teamId);
           if (!r) return '';
-          return `<tr><td>${esc(slot.name)}</td><td>${r.offered === 0 ? '静観' : yen(r.price)}</td>
+          return `<tr><td>${esc(slot.name)}</td><td>${r.offered === 0 ? (isWatching(r) ? '静観' : '—') : yen(r.price)}</td>
             <td>${r.sold}/${r.offered}杯</td><td>${yen(r.revenue)}</td><td>${yen(r.totalCost)}</td>
             <td class="${r.profit >= 0 ? 'good' : 'bad'}">${signedYen(r.profit)}</td><td>${yen(r.balance)}</td></tr>`;
         }).join('')}

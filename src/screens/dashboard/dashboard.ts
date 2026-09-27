@@ -12,6 +12,7 @@ import {
 } from '../../sync/watch';
 import { calendarMonth, esc, mmss, monthLabel, secondsLeft, signedYen, yen } from '../../ui/format';
 import { legendHtml, lineChartSvg, MAX_SERIES, type Series } from '../../ui/line-chart';
+import { isWatching } from '../team/result-view';
 
 export async function renderDashboard(root: HTMLElement, params: URLSearchParams): Promise<() => void> {
   const code = (params.get('code') ?? '').trim().toUpperCase();
@@ -115,7 +116,7 @@ export async function renderDashboard(root: HTMLElement, params: URLSearchParams
           ${slots.map(({ teamId, slot }) => {
             const r = byId.get(teamId);
             if (!r) return '';
-            return `<tr><td>${esc(slot.name)}</td><td>${r.offered === 0 ? '静観' : yen(r.price)}</td>
+            return `<tr><td>${esc(slot.name)}</td><td>${r.offered === 0 ? (isWatching(r) ? '静観' : '—') : yen(r.price)}</td>
               <td>${r.sold} / ${r.offered}杯</td>
               <td class="${r.profit >= 0 ? 'good' : 'bad'}">${signedYen(r.profit)}</td><td>${yen(r.balance)}</td></tr>`;
           }).join('')}

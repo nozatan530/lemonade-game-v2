@@ -17,12 +17,13 @@ export function renderMonthResult(
     container.innerHTML = `<div class="card">${tr('result.none')}</div>`;
     return;
   }
-  const watching = r.offered === 0;
+  const watching = isWatching(r);
+  const noCups = r.offered === 0 && !watching; // 仕入れたのに1杯も作れなかった（材料がそろわない・バリスタ0人など）
   const rows = [...result.teamResults]
     .sort((a, b) => (teams[a.teamId]?.order ?? 0) - (teams[b.teamId]?.order ?? 0))
     .map((t) => `<tr class="${t.teamId === teamId ? 'me' : ''}">
       <td>${esc(teams[t.teamId]?.name ?? t.teamId)}</td>
-      <td>${t.offered === 0 ? tr('result.sat') : yen(t.price)}</td>
+      <td>${t.offered === 0 ? (isWatching(t) ? tr('result.sat') : '—') : yen(t.price)}</td>
       <td>${tr('result.soldCell', { sold: t.sold, offered: t.offered })}</td>
       <td class="${t.profit >= 0 ? 'good' : 'bad'}">${signedYen(t.profit)}</td></tr>`)
     .join('');
@@ -31,8 +32,9 @@ export function renderMonthResult(
     <div class="card">
       <h2>${tr('result.h2')}</h2>
       ${watching ? `<p>${tr('result.watched')}</p>` : ''}
+      ${noCups ? `<p class="bad">${tr('result.noCups')}</p>` : ''}
       <table class="pl">
-        <tr><td>${tr('result.sales')}<span class="explain">${tr('result.salesExplain', { sold: r.sold, price: yen(r.price) })}</span></td><td>${yen(r.revenue)}</td></tr>
+        <tr><td>${tr('result.sales')}<span class="explain">${r.offered === 0 ? tr('result.noSales') : tr('result.salesExplain', { sold: r.sold, price: yen(r.price) })}</span></td><td>${yen(r.revenue)}</td></tr>
         <tr><td>${tr('result.material')}<span class="explain">${tr('result.materialExplain', { l: r.lemonBought, s: r.sugarBought })}</span></td><td>${yen(r.costLemon + r.costSugar)}</td></tr>
         <tr><td>${tr('result.labor')}<span class="explain">${tr('result.laborExplain', { n: r.baristaCount })}</span></td><td>${yen(r.costBarista)}</td></tr>
         <tr class="total"><td>${tr('result.profit')}</td><td class="${r.profit >= 0 ? 'good' : 'bad'}">${signedYen(r.profit)}</td></tr>
@@ -79,4 +81,9 @@ export function renderFinal(
       <h2>最終順位</h2>
       <table class="table"><tr><th>チーム</th><th>お金の残り</th><th>1年のもうけ</th></tr>${rows}</table>
     </div>`;
+}
+
+// 静観した月か。静観は仕入れも販売もしない月（仕入れたのに作れなかった月は静観ではない）
+export function isWatching(r: { offered: number; lemonBought: number; sugarBought: number }): boolean {
+  return r.offered === 0 && r.lemonBought === 0 && r.sugarBought === 0;
 }

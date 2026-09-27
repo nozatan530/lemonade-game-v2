@@ -70,7 +70,7 @@ export function renderTermReport(container: HTMLElement, input: ReportInput): vo
             <th>${t('report.th.sales')}</th><th>${t('report.th.material')}</th><th>${t('report.th.labor')}</th><th>${t('report.th.profit')}</th><th>${t('report.th.balance')}</th></tr>
           ${s.rows.map((r) => `<tr class="${r.month === s.bestMonth?.month ? 'best' : r.month === s.worstMonth?.month ? 'worst' : ''}">
             <td>${monthName(r.month)}</td><td>${yen(r.marketBudget)}</td>
-            <td>${r.offered === 0 ? t('result.sat') : yen(r.price)}</td><td>${r.sold}${slash}${r.offered}</td>
+            <td>${r.offered === 0 ? (r.materialCost === 0 ? t('result.sat') : '—') : yen(r.price)}</td><td>${r.sold}${slash}${r.offered}</td>
             <td class="${r.unsold > 0 ? 'bad' : ''}">${r.unsold}</td>
             <td>${yen(r.revenue)}</td><td>${yen(r.materialCost)}</td><td>${yen(r.laborCost)}</td>
             <td class="${r.profit >= 0 ? 'good' : 'bad'}">${signedYen(r.profit)}</td><td>${yen(r.balance)}</td></tr>`).join('')}
