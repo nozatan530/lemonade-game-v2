@@ -147,7 +147,9 @@ const EN = `    <h1>🍋 How to play</h1>
 export function renderGuide(root: HTMLElement): () => void {
   root.innerHTML = `<div class="page guide">
     <div class="lang-bar">${langToggleHtml()}</div>
+    <div class="guide-body">
 ${lang() === 'en' ? EN : JA}
+    </div>
     <a class="btn" href="#/solo">${lang() === 'en' ? 'Play solo' : 'ソロモードで遊ぶ'}</a>
     <button class="btn secondary" type="button" id="coachAgain">${lang() === 'en' ? 'Show the first-time guide again' : '最初の案内をもう一度見る'}</button>
     <p class="center"><a href="#/">${t('common.backTop')}</a></p>

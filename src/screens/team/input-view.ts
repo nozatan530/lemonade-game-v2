@@ -48,19 +48,22 @@ export function mountInputView(
     .map((m) => monthShort(m, ctx.pub.startCalendarMonth))
     .join(', ');
 
-  container.innerHTML = `
+  // 横に広い画面では「仕入れる｜売る｜月末の資金」を横に並べる（style.css の .input-layout）
+  container.innerHTML = `<div class="input-layout">
+    <div class="input-head">
     ${ctx.clock.message ? `<div class="notice">📰 ${esc(newsText(ctx.clock.message))}</div>` : ''}
     <p class="muted" style="margin:0 0 10px">${t('input.recipe', { lemon: recipe.lemon, sugar: recipe.sugar, cap: baristaCapacity })}
       <span id="stock"></span></p>
+    </div>
 
-    <div class="card">
+    <div class="card input-buy">
       <h2>${t('input.buy.h2')} <span class="muted">${t('input.buy.sub')}</span></h2>
       <div id="buy"></div>
       <div id="baristaFixed"></div>
       <div class="subtotal"><span>${t('input.spend')}</span><strong id="spend"></strong></div>
     </div>
 
-    <div class="card">
+    <div class="card input-sell">
       <h2>${t('input.sell.h2')} <span class="muted">${t('input.sell.sub')}</span></h2>
       <div id="sell"></div>
       <div id="warn"></div>
@@ -79,6 +82,7 @@ export function mountInputView(
         <span id="leftover"></span></p>
     </div>
 
+    <div class="input-side">
     <div id="status"></div>
     <button class="btn secondary" id="watch" type="button">${t('input.watch')}</button>
     <div class="cashbar-spacer"></div>
@@ -93,7 +97,8 @@ export function mountInputView(
         <button class="btn" id="submit" type="button">${esc(submitLabel)}</button>
       </div>
     </div>
-  `;
+    </div>
+  </div>`;
   const $ = <T extends HTMLElement = HTMLElement>(id: string) => container.querySelector<T>(`#${id}`)!;
   const submitBtn = $<HTMLButtonElement>('submit');
   const watchBtn = $<HTMLButtonElement>('watch');

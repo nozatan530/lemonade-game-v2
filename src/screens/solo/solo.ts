@@ -70,6 +70,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       </div>` : ''}
       <div class="card">
         <h2>${saved ? t('solo.restart') : t('solo.new.h2')}</h2>
+        <div class="start-grid"><div>
         <fieldset class="field"><legend>${t('solo.difficulty')}</legend>
           ${(Object.keys(SOLO_DIFFICULTY) as SoloDifficulty[]).map((d) => `<label class="radio">
             <input type="radio" name="difficulty" value="${d}" ${d === 'normal' ? 'checked' : ''}>
@@ -89,12 +90,14 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
         <label class="check field" style="align-items:flex-start"><input type="checkbox" id="elimination" style="margin-top:4px">
           <span><strong>${t('solo.elimination')}</strong><span class="muted field-help">${t('solo.elimination.help')}</span></span>
         </label>
+        </div><div>
         <fieldset class="field"><legend>${t('solo.pattern')}</legend>
           ${(Object.keys(MARKET_PATTERNS) as MarketPattern[]).map((p) => `<label class="radio">
             <input type="radio" name="pattern" value="${p}" ${p === 'stable' ? 'checked' : ''}>
             <span><strong>${esc(patternLabel(p))}</strong><br><span class="muted">${esc(patternDesc(p))}</span></span>
           </label>`).join('')}
         </fieldset>
+        </div></div>
         <button class="btn ${saved ? 'secondary' : ''}" id="start">${saved ? t('solo.restart') : t('solo.start')}</button>
       </div>
       <p class="center"><a href="#/">${t('common.backTop')}</a></p></div>`;

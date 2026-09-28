@@ -39,9 +39,10 @@ export function renderMonthResult(
       .map(([id, m]) => `<tr class="out"><td>${esc(teams[id]?.name ?? id)}</td><td colspan="3" class="muted">${tr('result.outSince', { m })}</td></tr>`)
       .join('');
 
-  container.innerHTML = `
-    ${r.eliminated ? `<div class="notice bad-notice">${tr('result.youOut')}</div>` : ''}
-    <div class="card">
+  // 横に広い画面では、左に自分の結果とみんなの結果、右に「今月のお客さん」（style.css の .result-layout）
+  container.innerHTML = `<div class="result-layout${options.visual ? ' has-visual' : ''}">
+    ${r.eliminated ? `<div class="notice bad-notice result-notice">${tr('result.youOut')}</div>` : ''}
+    <div class="card result-mine">
       <h2>${tr('result.h2')}</h2>
       ${watching ? `<p>${tr('result.watched')}</p>` : ''}
       ${noCups ? `<p class="bad">${tr('result.noCups')}</p>` : ''}
@@ -57,7 +58,7 @@ export function renderMonthResult(
       <p class="muted" style="margin:4px 0 0">${tr('result.carry', { l: r.stock.lemon, s: r.stock.sugar })}</p>
     </div>
     ${options.visual ? monthVisualHtml(result, teamId, teams, options.visual) : ''}
-    <div class="card">
+    <div class="card result-all">
       <h2>${tr('result.all.h2')}</h2>
       <p class="muted" style="margin:0 0 6px">${tr('result.all.market', { budget: yen(result.marketBudget) })}</p>
       <table class="table">
@@ -65,9 +66,10 @@ export function renderMonthResult(
         ${rows}
       </table>
     </div>
-    ${options.onNext
+    <div class="result-next">${options.onNext
       ? `<button class="btn" id="next" type="button">${esc(options.nextLabel ?? tr('solo.next'))}</button>`
-      : `<p class="muted center">${tr('result.waitGm')}</p>`}`;
+      : `<p class="muted center">${tr('result.waitGm')}</p>`}</div>
+  </div>`;
   if (options.onNext) container.querySelector('#next')!.addEventListener('click', options.onNext);
 }
 

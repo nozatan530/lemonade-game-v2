@@ -41,6 +41,8 @@ export function renderTermReport(container: HTMLElement, input: ReportInput): vo
   const tile = (label: string, value: string, note = '', cls = '') =>
     `<div class="tile"><div class="tile-label">${label}</div><div class="tile-value ${cls}">${value}</div>${note ? `<div class="tile-note">${note}</div>` : ''}</div>`;
 
+  // 横に広い画面では、グラフと順位を2つずつ横に並べる（style.css の .report-layout）
+  container.classList.add('report-layout');
   container.innerHTML = `
     <div class="card center">
       <h2>${input.heading ?? t('report.h2')}</h2>
@@ -62,11 +64,11 @@ export function renderTermReport(container: HTMLElement, input: ReportInput): vo
       </div>
     </div>
 
-    <div class="card"><h2>${t('report.balanceChart')}</h2><div class="chart" id="balanceChart"></div></div>
-    <div class="card"><h2>${t('report.profitChart', { name: esc(name(meId)) })}</h2>
+    <div class="card half"><h2>${t('report.balanceChart')}</h2><div class="chart" id="balanceChart"></div></div>
+    <div class="card half"><h2>${t('report.profitChart', { name: esc(name(meId)) })}</h2>
       <p class="muted" style="margin:0 0 4px">${t('report.profitChart.note')}</p>
       <div class="chart" id="profitChart"></div></div>
-    <div class="card"><h2>${t('report.priceChart')}</h2>
+    <div class="card half"><h2>${t('report.priceChart')}</h2>
       <p class="muted" style="margin:0 0 4px">${t('report.priceChart.note')}</p>
       <div class="chart" id="priceChart"></div></div>
 
@@ -90,7 +92,7 @@ export function renderTermReport(container: HTMLElement, input: ReportInput): vo
       <p class="muted" style="margin:6px 0 0">${t('report.tableNote')}</p>
     </div>
 
-    <div class="card">
+    <div class="card half">
       <h2>${input.heading ? t('report.finalYear') : t('report.final')}</h2>
       <table class="table"><tr><th>${t('report.th.team')}</th><th>${t('result.balance')}</th><th>${t('report.th.yearProfit')}</th></tr>
         ${ranked.map((tm, i) => `<tr class="${tm.teamId === meId ? 'me' : ''}"><td>${i + 1}. ${esc(name(tm.teamId))}${tm.eliminatedMonth !== undefined

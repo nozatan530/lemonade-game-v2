@@ -421,3 +421,60 @@ body.sheet-open { overflow: hidden; }
 .title-card.locked .name { color: var(--muted); }
 .title-progress { height: 8px; border-radius: 999px; background: var(--border); overflow: hidden; margin: 6px 0 10px; }
 .title-progress span { display: block; height: 100%; background: var(--accent); }
+
+/* 肩書きコレクション（TOP）：カードごと折りたためる */
+.home-titles > summary { list-style: none; cursor: pointer; position: relative; padding-right: 28px; }
+.home-titles > summary::-webkit-details-marker { display: none; }
+.home-titles > summary h2 { display: inline; margin-right: 8px; }
+.home-titles > summary::after { content: '▾'; position: absolute; right: 4px; top: 0; font-size: 1.2rem; color: var(--muted); transition: transform 0.15s; }
+.home-titles:not([open]) > summary::after { transform: rotate(-90deg); }
+.home-titles:not([open]) > summary .title-progress { margin-bottom: 0; }
+
+/* ---- 横に広い画面（PC・タブレットの横向き）：全体が見えるように段を組む ---- */
+@media (min-width: 900px) and (min-height: 500px) {
+  .page { max-width: 1120px; padding: 16px 24px 32px; }
+  /* 全幅だと長すぎるボタンは、ほどよい幅で真ん中に */
+  .page > .btn, .report-layout > div > .btn, .result-next .btn, .report-layout > .btn { max-width: 440px; margin-left: auto; margin-right: auto; }
+
+  /* TOP：左にメニュー、右に肩書きコレクション */
+  .home-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start; }
+
+  /* ソロの開始：設定を2列に */
+  .start-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; align-items: start; }
+
+  /* はじめに：2段組み */
+  .guide-body { columns: 2; column-gap: 16px; }
+  .guide-body > * { break-inside: avoid; }
+  .guide-body > h1 { column-span: all; }
+
+  /* 入力：仕入れる｜売る｜月末の資金（下に固定せず、右の列に置く） */
+  .input-layout { display: grid; grid-template-columns: 1fr 1fr 330px; gap: 0 16px; align-items: start; }
+  .input-head { grid-column: 1 / -1; }
+  .input-buy { grid-column: 1; grid-row: 2; }
+  .input-sell { grid-column: 2; grid-row: 2; }
+  .input-side { grid-column: 3; grid-row: 2; position: sticky; top: 12px; display: flex; flex-direction: column; }
+  .input-side .cashbar {
+    order: -1; position: static; margin-bottom: 12px; padding-bottom: 0; box-shadow: none;
+    border: 1px solid var(--border); border-top: 3px solid var(--accent); border-radius: var(--radius);
+  }
+  .input-side .cashbar-inner { max-width: none; padding: 12px 14px; }
+  .cashbar-spacer { display: none; }
+
+  /* 月の結果：左に自分の結果とみんなの結果、右に今月のお客さん */
+  .result-layout.has-visual {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start;
+    grid-template-areas: "notice notice" "mine visual" "all visual" "next next";
+  }
+  .result-notice { grid-area: notice; }
+  .result-mine { grid-area: mine; }
+  .result-layout .month-visual { grid-area: visual; }
+  .result-all { grid-area: all; }
+  .result-next { grid-area: next; }
+
+  /* 期末：グラフと順位を2つずつ横に */
+  .report-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start; }
+  .report-layout > * { grid-column: 1 / -1; }
+  .report-layout > .half { grid-column: auto; }
+  .report-layout .tiles { grid-template-columns: repeat(4, 1fr); }
+  .title-list { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+}

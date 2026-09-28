@@ -81,6 +81,7 @@ function renderHome() {
   root.innerHTML = `<div class="page">
     <div class="lang-bar">${langToggleHtml()}</div>
     <h1>${t('home.h1')}</h1>
+    <div class="home-layout"><div class="home-main">
     <div class="card">
       <h2>${t('home.guide.h2')}</h2>
       <p style="margin:0 0 4px">${t('home.guide.p')}</p>
@@ -91,7 +92,6 @@ function renderHome() {
       <p style="margin:0 0 4px">${t('home.solo.p')}</p>
       <a class="btn" href="#/solo">${t('home.solo.btn')}</a>
     </div>
-    ${titleCollectionHtml()}
     <div class="card">
       <h2>${t('home.multi.h2')} ${MULTIPLAYER ? '' : `<span class="chip">${t('home.multi.badge')}</span>`}</h2>
       <p class="muted" style="margin:0 0 4px">${t('home.multi.p')}${MULTIPLAYER ? '' : t('home.multi.soon')}</p>
@@ -101,28 +101,52 @@ function renderHome() {
         : `<button class="btn secondary" type="button" disabled>${t('home.multi.teamSoon')}</button>
            <button class="btn secondary" type="button" disabled>${t('home.multi.gmSoon')}</button>`}
     </div>
+    </div>
+    ${titleCollectionHtml()}
+    </div>
     <p class="center"><a href="#/survey">${t('home.survey')}</a></p></div>`;
   bindLangToggle(root);
+  root.querySelector<HTMLDetailsElement>('[data-titles]')!.addEventListener('toggle', (e) => {
+    try {
+      localStorage.setItem(TITLES_OPEN_KEY, (e.target as HTMLDetailsElement).open ? '1' : '0');
+    } catch {
+      // 保存できなくても開け閉めはできる
+    }
+  });
 }
 
-// 肩書きコレクション：もらった肩書きは名前つき、まだの肩書きは条件だけ見せる
+// 肩書きコレクション：もらった肩書きは名前つき、まだの肩書きは条件だけ見せる。
+// カードごと折りたためる（開いているかどうかはブラウザに覚える。はじめは広い画面なら開く）
+const TITLES_OPEN_KEY = 'lemonade-titles-open';
+
+function titlesOpen(): boolean {
+  try {
+    const v = localStorage.getItem(TITLES_OPEN_KEY);
+    if (v !== null) return v === '1';
+  } catch {
+    // 保存できない環境
+  }
+  return window.matchMedia('(min-width: 900px) and (min-height: 500px)').matches;
+}
+
 function titleCollectionHtml(): string {
   const got = loadAchievements().titles;
   const n = TITLE_IDS.filter((id) => got[id]).length;
   const total = TITLE_IDS.length;
-  return `<div class="card">
-      <h2>${t('home.titles.h2')}</h2>
-      <p style="margin:0">${t('home.titles.progress', { n, total })}</p>
-      <div class="title-progress"><span style="width:${(n / total) * 100}%"></span></div>
+  return `<details class="card home-titles" data-titles${titlesOpen() ? ' open' : ''}>
+      <summary>
+        <h2>${t('home.titles.h2')}</h2>
+        <span class="muted">${t('home.titles.progress', { n, total })}</span>
+        <div class="title-progress"><span style="width:${(n / total) * 100}%"></span></div>
+      </summary>
       ${n > 0 ? `<p style="margin:0 0 8px;display:flex;flex-wrap:wrap;gap:6px">${TITLE_IDS.filter((id) => got[id])
         .map((id) => titleChip(id, 'title-chip', got[id]!.count > 1 ? ` ${t('titles.count', { n: got[id]!.count })}` : '')).join('')}</p>` : ''}
-      <details${n === 0 ? ' open' : ''}><summary class="muted">${t('home.titles.hint')}</summary>
-        <div class="title-grid" style="margin-top:8px">${TITLE_IDS.map((id) => got[id]
-          ? `<div class="title-card"><div class="name">${TITLE_EMOJI[id]} ${esc(titleName(id))}</div><div class="desc">${esc(titleDesc(id))}</div></div>`
-          : `<div class="title-card locked"><div class="name">🔒 ${t('home.titles.locked')}</div><div class="desc">${esc(titleDesc(id))}</div></div>`).join('')}
-        </div>
-      </details>
-    </div>`;
+      <p class="muted" style="margin:0 0 8px;font-size:0.9rem">${t('home.titles.hint')}</p>
+      <div class="title-grid">${TITLE_IDS.map((id) => got[id]
+        ? `<div class="title-card"><div class="name">${TITLE_EMOJI[id]} ${esc(titleName(id))}</div><div class="desc">${esc(titleDesc(id))}</div></div>`
+        : `<div class="title-card locked"><div class="name">🔒 ${t('home.titles.locked')}</div><div class="desc">${esc(titleDesc(id))}</div></div>`).join('')}
+      </div>
+    </details>`;
 }
 
 function renderComingSoon() {
