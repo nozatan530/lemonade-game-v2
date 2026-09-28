@@ -1,7 +1,7 @@
 // 月の結果（ソロモード）：上から順に読む「結果のストーリー」。
 //   ① 今月の市場：お客さんのお金の帯（安いお店から順）と、みんなの結果の表（帯と同じ色）、のがした売上
 //   ② あなたのお店：作った杯数を、売れた・売れ残りで色分け
-//   ③ お金の流れ：売上 − 材料費 − 人件費 ＝ もうけ、資金（先月 → 来月）
+//   ③ お金の流れ：売上の棒と、材料費＋人件費を積み上げた費用の棒 → もうけ（赤字）、資金（先月 → 来月）
 //   ④ ひとこと
 // 結果発表の演出つき（スキップできる。「演出なし」はブラウザに覚える。動きを減らす設定の端末では出さない）。
 // 数字はすべて engine の結果と monthInsights。ここでは並べるだけ。
@@ -138,21 +138,40 @@ export function renderMonthStory(
   }
   const shop = `<section class="card story-shop"><h2>${t('story.shop.h2')}</h2>${shopBody}</section>`;
 
-  // ③ お金の流れ
+  // ③ お金の流れ：売上の棒と、材料費＋人件費を積み上げた費用の棒を、同じ目盛りで並べる。
+  // 黒字なら費用の棒のあとに「もうけ」（売上との差）、赤字なら売上の線をはみ出した分が「赤字」
   const barStart = cupStart + (me.offered > 0 ? T_CUPS + 200 : 0);
   const material = me.costLemon + me.costSugar;
-  const scale = Math.max(1, me.revenue, material + me.costBarista, Math.abs(me.profit));
-  const bar = (i: number, label: string, v: number, cls: string, text: string) => `<div class="wf-row" style="--d:${barStart + i * T_BAR}ms">
-      <span class="wf-label">${label}</span>
-      <span class="wf-track"><span class="wf-bar ${cls}" style="width:${((Math.abs(v) / scale) * 100).toFixed(1)}%"></span></span>
-      <span class="wf-value ${cls}">${text}</span></div>`;
+  const labor = me.costBarista;
+  const cost = material + labor;
+  const scale = Math.max(1, me.revenue, cost);
+  const w = (v: number) => `${((Math.max(0, v) / scale) * 100).toFixed(2)}%`;
+  const inside = (v: number, label: string) => (v / scale >= 0.18 ? label : '');
+  const profitWord = me.profit >= 0 ? t('story.money.profitWord') : t('story.money.lossWord');
   const before = me.balance - me.profit;
-  const balanceAt = barStart + 4 * T_BAR;
+  const balanceAt = barStart + 3 * T_BAR;
   const money = `<section class="card story-money"><h2>${t('story.money.h2')}</h2>
-      ${bar(0, t('story.money.sales'), me.revenue, 'plus', yen(me.revenue))}
-      ${bar(1, t('story.money.material'), material, 'minus', `−${yen(material)}`)}
-      ${bar(2, t('story.money.labor'), me.costBarista, 'minus', `−${yen(me.costBarista)}`)}
-      ${bar(3, t('story.money.profit'), me.profit, me.profit >= 0 ? 'plus total' : 'minus total', signedYen(me.profit))}
+      <div class="pl-row" style="--d:${barStart}ms">
+        <span class="pl-label">${t('story.money.sales')}</span>
+        <span class="pl-track"><span class="pl-seg sales" style="width:${w(me.revenue)}">${inside(me.revenue, t('story.money.sales'))}</span></span>
+        <span class="pl-value plus">${yen(me.revenue)}</span>
+      </div>
+      <div class="pl-row" style="--d:${barStart + T_BAR}ms">
+        <span class="pl-label">${t('story.money.cost')}</span>
+        <span class="pl-track">
+          <span class="pl-seg material" style="width:${w(material)}">${inside(material, t('story.money.materialShort'))}</span><span class="pl-seg labor" style="width:${w(labor)}">${inside(labor, t('story.money.laborShort'))}</span>${me.profit > 0
+            ? `<span class="pl-seg profit" style="width:${w(me.profit)}">${inside(me.profit, profitWord)}</span>` : ''}
+          ${me.profit < 0 ? `<span class="pl-loss" style="left:${w(me.revenue)};width:${w(-me.profit)}" title="${esc(profitWord)}"></span>
+            <span class="pl-line" style="left:${w(me.revenue)}"></span>` : ''}
+        </span>
+        <span class="pl-value minus">−${yen(cost)}</span>
+      </div>
+      <p class="pl-legend"><i class="material"></i>${t('story.money.costLine', {
+        m: `${t('story.money.materialShort')} ${yen(material)}`, l: `<i class="labor"></i>${t('story.money.laborShort')} ${yen(labor)}`, c: yen(cost),
+      })}</p>
+      <p class="pl-result ${me.profit >= 0 ? 'plus' : 'minus'}" style="--d:${barStart + 2 * T_BAR}ms">
+        <span>${t('story.money.result', { r: yen(me.revenue), c: yen(cost) })}</span>
+        <strong>${profitWord} ${signedYen(me.profit)}</strong></p>
       <p class="story-balance" style="--d:${balanceAt}ms">${t('story.money.balance')} ${yen(before)} → <strong class="num" data-count-from="${before}" data-count-to="${me.balance}">${yen(me.balance)}</strong>
         <span class="muted">（${t('story.money.next')}）</span></p>
       <p class="muted" style="margin:4px 0 0">${t('result.carry', { l: me.stock.lemon, s: me.stock.sugar })}</p>

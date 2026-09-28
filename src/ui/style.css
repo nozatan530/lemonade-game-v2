@@ -483,15 +483,6 @@ body.sheet-open { overflow: hidden; }
 .story-shop .cup-grid { margin-bottom: 6px; }
 .cup.unsold { background: transparent; border: 2px solid var(--muted); opacity: 0.8; }
 .story-line { margin: 6px 0 0; }
-.wf-row { display: grid; grid-template-columns: 5.5em 1fr 6.5em; align-items: center; gap: 8px; margin: 6px 0; }
-.wf-label { font-size: 0.9rem; }
-.wf-track { height: 16px; }
-.wf-bar { display: block; height: 100%; border-radius: 4px; min-width: 2px; }
-.wf-bar.plus { background: var(--good); }
-.wf-bar.minus { background: var(--bad); opacity: 0.85; }
-.wf-bar.total { box-shadow: inset 0 0 0 2px var(--text); }
-.wf-value { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
-.wf-value.plus { color: var(--good); } .wf-value.minus { color: var(--bad); }
 .story-balance { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid var(--border); }
 .story-balance strong { font-size: 1.2rem; }
 .story-off { justify-content: center; font-size: 0.85rem; color: var(--muted); }
@@ -505,9 +496,7 @@ body.sheet-open { overflow: hidden; }
 .story.reveal .story-balance, .story.reveal .story-notes { animation: story-fade 0.35s ease-out both; animation-delay: var(--d); }
 .story.reveal .cup-grid .cup.sold { animation: story-sold 0.2s ease-out both; animation-delay: var(--d); }
 .story.reveal .cup-grid .cup.unsold { animation: story-fade 0.2s ease-out both; animation-delay: var(--d); }
-.story.reveal .wf-row { animation: story-fade 0.3s ease-out both; animation-delay: var(--d); }
-.story.reveal .wf-row .wf-bar { transform-origin: left; animation: story-grow 0.3s ease-out both; animation-delay: var(--d); }
-
+.story.reveal .story.reveal 
 @media (min-width: 900px) and (min-height: 500px) {
   .story { display: grid; grid-template-columns: 1.15fr 1fr; gap: 0 16px; align-items: start;
     grid-template-areas: "skip skip" "notice notice" "market shop" "market money" "notes notes" "next next"; }
@@ -530,3 +519,27 @@ body.sheet-open { overflow: hidden; }
   .story-table td:first-child { white-space: nowrap; }
   .story-table .robot { display: none; }
 }
+
+/* お金の流れ：売上の棒と、費用（材料費＋人件費）を積み上げた棒 */
+.pl-row { display: grid; grid-template-columns: 3.2em 1fr 6.2em; align-items: center; gap: 8px; margin: 8px 0; }
+.pl-label { font-size: 0.9rem; font-weight: 700; }
+.pl-track { position: relative; display: flex; height: 26px; border-radius: 6px; background: var(--surface2); overflow: visible; }
+.pl-seg { height: 100%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.75rem; font-weight: 800; white-space: nowrap; overflow: hidden; }
+.pl-seg:first-child { border-radius: 6px 0 0 6px; }
+.pl-seg.sales { background: var(--good); border-radius: 6px; }
+.pl-seg.material { background: #d9534f; }
+.pl-seg.labor { background: #f0883e; }
+.pl-seg.profit { background: repeating-linear-gradient(45deg, var(--good), var(--good) 5px, #37a76a 5px, #37a76a 10px); border-radius: 0 6px 6px 0; }
+.pl-loss { position: absolute; top: -3px; bottom: -3px; display: flex; align-items: center; justify-content: center; border: 2px dashed var(--bad); border-radius: 0 6px 6px 0; background: transparent; pointer-events: none; }
+.pl-line { position: absolute; top: -6px; bottom: -6px; width: 0; border-left: 2px solid var(--text); }
+.pl-value { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+.pl-value.plus { color: var(--good); } .pl-value.minus { color: var(--bad); }
+.pl-legend { margin: 2px 0 0 calc(3.2em + 8px); font-size: 0.8rem; color: var(--muted); }
+.pl-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 4px 0 0; vertical-align: -1px; }
+.pl-legend i.material { background: #d9534f; } .pl-legend i.labor { background: #f0883e; margin-left: 2px; }
+.pl-result { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 10px; margin: 10px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--surface2); }
+.pl-result span { font-size: 0.85rem; color: var(--muted); }
+.pl-result strong { font-size: 1.25rem; }
+.pl-result.plus strong { color: var(--good); } .pl-result.minus strong { color: var(--bad); }
+.story.reveal .pl-row, .story.reveal .pl-result { animation: story-fade 0.3s ease-out both; animation-delay: var(--d); }
+.story.reveal .pl-row .pl-track { transform-origin: left; animation: story-grow 0.45s ease-out both; animation-delay: var(--d); }
