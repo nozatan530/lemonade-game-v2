@@ -17,6 +17,7 @@ import { maybeStartInputCoach } from '../team/input-coach';
 import { DEFAULT_DECISION, mountInputView } from '../team/input-view';
 import { renderMonthResult } from '../team/result-view';
 import { renderTermReport } from '../report/report';
+import { openResultSheet } from '../report/sheet';
 import { mountSurveyForm } from '../survey/survey-form';
 
 // resume：言語を切り替えたときなど、保存されたゲームがあればそのまま続きを表示する
@@ -174,7 +175,8 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       startFund: s.config.startFund, startCalendarMonth: s.config.startCalendarMonth, recipe: s.config.recipe,
     });
     const reveal = document.createElement('div');
-    reveal.innerHTML = `<div class="card">
+    reveal.innerHTML = `<button class="btn" id="sheet" type="button">${t('sheet.open')}</button>
+      <div class="card">
         <h2>${t('solo.reveal.h2')}</h2>
         <table class="table">${Object.entries(s.cpu).map(([id, type]) => `<tr>
           <td>${esc(soloTeamName(id))}</td>
@@ -185,6 +187,15 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       <div class="card"><h2>${t('solo.survey.h2')}</h2><div id="survey"></div></div>
       <button class="btn" id="again">${t('solo.again')}</button>`;
     view.appendChild(reveal);
+    reveal.querySelector('#sheet')!.addEventListener('click', () => openResultSheet({
+      results: s.results, teams: s.teams, meId: HUMAN_ID, startFund: s.config.startFund,
+      startCalendarMonth: s.config.startCalendarMonth, recipe: s.config.recipe, baristaCapacity: s.config.baristaCapacity,
+      condition: {
+        ...(s.difficulty ? { difficulty: difficultyLabel(s.difficulty) } : {}),
+        ...(s.config.market.pattern ? { pattern: patternLabel(s.config.market.pattern) } : {}),
+        teamCount: s.teams.length, elimination: s.config.elimination === true,
+      },
+    }));
     const ranked = rankTeams([...s.teams]);
     mountSurveyForm(reveal.querySelector('#survey')!, {
       source: 'solo-final',
