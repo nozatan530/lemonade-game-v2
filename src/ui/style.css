@@ -373,3 +373,23 @@ body.sheet-open { overflow: hidden; }
   .sheet-scroll { padding: 0; }
   .sheet-page { zoom: 1 !important; box-shadow: none; margin: 0; padding: 0; width: auto; }
 }
+
+/* ---- 月の結果：今月のお客さん ---- */
+.cups { display: flex; flex-wrap: wrap; gap: 3px; margin: 4px 0 6px; }
+.cup { display: inline-block; width: 12px; height: 15px; border-radius: 2px 2px 5px 5px; vertical-align: -2px; }
+.cup.sold { background: var(--good); }
+.cup.unsold { background: transparent; border: 2px solid var(--muted); }
+.cup.missed { background: var(--bad); opacity: 0.8; }
+.cup-legend, .flow-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.85rem; }
+.cup-legend .cup { margin-right: 4px; width: 10px; height: 12px; }
+.flow-title { margin: 12px 0 4px; font-weight: 700; font-size: 0.95rem; }
+.flow-bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; background: var(--border); }
+.flow-seg { height: 100%; }
+.flow-seg + .flow-seg { box-shadow: inset 2px 0 0 var(--surface); }
+.flow-seg.me { outline: 3px solid var(--text); outline-offset: -3px; }
+.flow-seg.unspent, .flow-legend i.unspent { background: repeating-linear-gradient(45deg, var(--border), var(--border) 4px, transparent 4px, transparent 8px); }
+.flow-legend { margin-top: 6px; }
+.flow-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.flow-legend .me { font-weight: 700; }
+.insights { margin: 10px 0 0; padding-left: 1.2em; }
+.insights li { margin: 3px 0; }

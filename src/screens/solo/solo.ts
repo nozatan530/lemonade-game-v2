@@ -165,6 +165,10 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
         onNext: () => update(nextSoloMonth(s)),
         eliminated: Object.fromEntries(s.teams.filter((tm) => tm.eliminatedMonth !== undefined)
           .map((tm) => [tm.teamId, monthShort(tm.eliminatedMonth!, s.config.startCalendarMonth)])),
+        visual: {
+          recipe: s.config.recipe, baristaCapacity: s.config.baristaCapacity,
+          ...(s.results.length >= 2 ? { previous: s.results[s.results.length - 2]! } : {}),
+        },
       });
       return;
     }
