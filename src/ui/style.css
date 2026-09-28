@@ -496,7 +496,6 @@ body.sheet-open { overflow: hidden; }
 .story.reveal .story-balance, .story.reveal .story-notes { animation: story-fade 0.35s ease-out both; animation-delay: var(--d); }
 .story.reveal .cup-grid .cup.sold { animation: story-sold 0.2s ease-out both; animation-delay: var(--d); }
 .story.reveal .cup-grid .cup.unsold { animation: story-fade 0.2s ease-out both; animation-delay: var(--d); }
-.story.reveal .story.reveal 
 @media (min-width: 900px) and (min-height: 500px) {
   .story { display: grid; grid-template-columns: 1.15fr 1fr; gap: 0 16px; align-items: start;
     grid-template-areas: "skip skip" "notice notice" "market shop" "market money" "notes notes" "next next"; }
