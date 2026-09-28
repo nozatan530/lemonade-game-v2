@@ -161,7 +161,10 @@ describe('旧版との比較：12か月の販売と損益', () => {
         const watching = rand() < 0.1;
         const lemonQty = watching ? 0 : int(0, 150);
         const sugarQty = watching ? 0 : int(0, 150);
-        const price = watching ? 0 : pick([0, 100, 150, 150, 200, 200, 250, 300]);
+        // 同じ値段のときの配り方は、v2 で旧版から変えた（分け直して均等にする。market.test.ts で確かめる）。
+        // ここでは値段がほかのお店と重ならないよう、お店ごとに1円ずつずらす
+        const basePrice = watching ? 0 : pick([0, 100, 150, 150, 200, 200, 250, 300]);
+        const price = basePrice > 0 ? basePrice + i : 0;
         const maxSell = watching ? 0 : rand() < 0.5 ? undefined : int(0, 160);
         const order = orders[i]!;
 

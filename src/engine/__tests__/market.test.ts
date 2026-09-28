@@ -28,13 +28,28 @@ describe('allocatePriceSegment（価格重視層）', () => {
     expect(toObj(sold)).toEqual({ A: 5, B: 6 });
   });
 
-  it('端数は提出順に、そのチームの上限まで渡す（旧版の動作）', () => {
-    // 3チーム・合計10杯：均等割で3杯ずつ、残り1杯は1番目へ
+  it('均等割に届かないチームの余りは、ほかのチームで均等に分け直す', () => {
+    // 3チーム・合計10杯。B は2杯しか作っていないので、残り8杯を A と C で4杯ずつ
     const sold = allocatePriceSegment(1000, [
       offer('A', 100, 50, 1), offer('B', 100, 2, 2), offer('C', 100, 50, 3),
     ]);
-    // B は上限2杯なので均等割の3杯に届かない。残り 10-(3+2+3)=2杯は、提出順で A に全部渡る
-    expect(toObj(sold)).toEqual({ A: 5, B: 2, C: 3 });
+    expect(toObj(sold)).toEqual({ A: 4, B: 2, C: 4 });
+  });
+
+  it('分け直しが何回も続いても、差は多くても1杯', () => {
+    // 合計23杯を4チームで。B は1杯、C は3杯しか作っていない → A と D で残り19杯（10と9）
+    const sold = allocatePriceSegment(2300, [
+      offer('A', 100, 50, 1), offer('B', 100, 1, 2), offer('C', 100, 3, 3), offer('D', 100, 50, 4),
+    ]);
+    expect(toObj(sold)).toEqual({ A: 10, B: 1, C: 3, D: 9 });
+  });
+
+  it('割り切れない1杯ずつは、提出順に1杯ずつ（1チームにまとめない）', () => {
+    // 合計11杯を4チームで：2杯ずつ、残り3杯を提出順に1杯ずつ
+    const sold = allocatePriceSegment(1100, [
+      offer('A', 100, 50, 4), offer('B', 100, 50, 1), offer('C', 100, 50, 2), offer('D', 100, 50, 3),
+    ]);
+    expect(toObj(sold)).toEqual({ A: 2, B: 3, C: 3, D: 3 });
   });
 
   it('市場に出していない（価格0の）チームは売れない', () => {
