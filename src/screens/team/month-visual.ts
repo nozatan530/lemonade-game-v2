@@ -13,9 +13,10 @@ export interface VisualContext {
   previous?: MonthResult; // 先月の結果（お客さんのお金の増減を言うため）
 }
 
-// 絵の数が多くなりすぎないよう、1つで何杯を表すかを決める（60個まで）
+// 絵は1列25個。いちばん多い段が4列（100個）までに収まるよう、1つで何杯を表すかを決める
+const PER_ROW = 25;
 const UNITS = [1, 2, 5, 10, 20, 50, 100];
-const MAX_ICONS = 60;
+const MAX_ICONS = PER_ROW * 4;
 // 画面に出すコメントの数
 const MAX_NOTES = 4;
 const MONEY_KEYS = ['balance', 'wages', 'revenue', 'waste', 'cheapest', 'price', 'material', 'budget'];
@@ -25,16 +26,20 @@ export function monthVisualHtml(result: MonthResult, teamId: string, teams: Reco
   const me = result.teamResults.find((x) => x.teamId === teamId);
   if (!ins || !me) return '';
 
-  const total = me.sold + me.unsold + ins.missed;
-  const unit = UNITS.find((u) => total / u <= MAX_ICONS) ?? UNITS[UNITS.length - 1]!;
-  const icons = (n: number, cls: string) => `<i class="cup ${cls}"></i>`.repeat(Math.ceil(n / unit));
-  const cups = total > 0
-    ? `<div class="cups" aria-hidden="true">${icons(me.sold, 'sold')}${icons(me.unsold, 'unsold')}${icons(ins.missed, 'missed')}</div>
-      <div class="cup-legend">
-        <span><i class="cup sold"></i>${t('visual.sold')}</span><span><i class="cup unsold"></i>${t('visual.unsold')}</span>
-        <span><i class="cup missed"></i>${t('visual.missed')}</span>${unit > 1 ? `<span class="muted">${t('visual.unit', { n: unit })}</span>` : ''}
+  // 売れた・売れ残り・売り逃しを1段ずつ。どの段も同じ「1つ＝◯杯」で描くので、長さで比べられる
+  const most = Math.max(me.sold, me.unsold, ins.missed);
+  const unit = UNITS.find((u) => most / u <= MAX_ICONS) ?? UNITS[UNITS.length - 1]!;
+  const row = (cls: string, label: string, count: string, n: number) => `<div class="cup-row">
+      <div class="cup-label"><i class="cup ${cls}"></i>${label} <strong>${count}</strong></div>
+      <div class="cup-grid" aria-hidden="true">${n > 0 ? `<i class="cup ${cls}"></i>`.repeat(Math.ceil(n / unit)) : `<span class="muted">${t('visual.none')}</span>`}</div>
+    </div>`;
+  const cups = me.offered > 0 || ins.missed > 0
+    ? `<div class="cup-rows">
+        ${row('sold', t('visual.sold'), t('visual.cups', { n: me.sold }), me.sold)}
+        ${row('unsold', t('visual.unsold'), t('visual.cups', { n: me.unsold }), me.unsold)}
+        ${row('missed', t('visual.missed'), (ins.missed > 0 ? t('visual.missedCups', { n: ins.missed }) : t('visual.cups', { n: 0 })), ins.missed)}
       </div>
-      <p style="margin:6px 0 0">${t('visual.summary', { sold: me.sold, unsold: me.unsold, missed: ins.missed })}</p>`
+      <p class="muted" style="margin:4px 0 0;font-size:0.85rem">${t('visual.unit', { n: unit, row: unit * PER_ROW })}</p>`
     : '';
 
   // お客さんのお金の行き先（お店の並び順＝グラフの色の順。使われなかったお金は最後）

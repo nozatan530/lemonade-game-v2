@@ -241,7 +241,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
           </table></div>
         </div>`;
       view.appendChild(summary);
-      insertAfterFirst(summary, titlesCard(collected(s).map((x) => x.id), t('titles.allH2', { n: years }), collected(s)));
+      insertAfterFirst(summary, titlesCard(collected(s), t('titles.allH2', { n: years })));
       const chart = summary.querySelector<HTMLElement>('#yearChart')!;
       chart.innerHTML = barChartSvg({
         values: rows.map((r) => r.profit), labels: rows.map((r) => t('years.label', { y: r.year })),
@@ -334,21 +334,20 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
     });
   }
 
-  // 全期間で集めた肩書き（表示の順、回数つき）
-  function collected(s: SoloState): { id: TitleId; count: number }[] {
-    const count = new Map<TitleId, number>();
-    for (let y = 1; y <= yearsOf(s.config); y++) for (const id of titlesOfYear(s, y)) count.set(id, (count.get(id) ?? 0) + 1);
-    return TITLE_IDS.filter((id) => count.has(id)).map((id) => ({ id, count: count.get(id)! }));
+  // 全期間で集めた肩書き（表示の順。何回もらっても1つ）
+  function collected(s: SoloState): TitleId[] {
+    const got = new Set<TitleId>();
+    for (let y = 1; y <= yearsOf(s.config); y++) for (const id of titlesOfYear(s, y)) got.add(id);
+    return TITLE_IDS.filter((id) => got.has(id));
   }
 
   // 肩書きのカード（名前と、どうしてついたか）
-  function titlesCard(ids: TitleId[], heading: string, counts?: { id: TitleId; count: number }[]): HTMLElement {
+  function titlesCard(ids: TitleId[], heading: string): HTMLElement {
     const card = document.createElement('div');
     card.className = 'card';
-    const n = (id: TitleId) => counts?.find((c) => c.id === id)?.count ?? 1;
     card.innerHTML = ids.length === 0 ? '' : `<h2>${heading}</h2>
       <ul class="title-list">${ids.map((id) => `<li>${titleChip(id, 'title-chip',
-        `${n(id) > 1 ? ` ${t('titles.count', { n: n(id) })}` : ''}${unlocked.has(id) ? `<span class="title-new">${t('titles.new')}</span>` : ''}`)}
+        unlocked.has(id) ? `<span class="title-new">${t('titles.new')}</span>` : '')}
         <span class="desc">${esc(titleDesc(id))}</span></li>`).join('')}</ul>
       <p class="muted" style="margin:10px 0 0;font-size:0.85rem">${t('titles.more')}</p>`;
     return card;

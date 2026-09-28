@@ -39,7 +39,7 @@ export interface SummaryInput {
   baristaCapacity: number;
   condition: Condition;
   years: number;
-  titles?: { id: TitleId; count: number }[]; // 全期間で集めた肩書き
+  titles?: TitleId[]; // 全期間で集めた肩書き
 }
 
 // 1枚だけ
@@ -204,7 +204,7 @@ export function summarySheetHtml(input: SummaryInput): string {
       ${tileHtml(t('sheet.summary.tile.rank'), t('sheet.tile.rankValue', { rank, n: input.teams.length }))}
     </section>
     ${input.titles && input.titles.length > 0 ? `<div class="s-titles"><span class="s-titles-label">🏅 ${t('sheet.summary.titles')}</span>${input.titles
-    .map(({ id, count }) => titleChip(id, 's-chip', count > 1 ? ` ${t('titles.count', { n: count })}` : '')).join('')}</div>` : ''}
+    .map((id) => titleChip(id, 's-chip')).join('')}</div>` : ''}
 
     <h2>${t('sheet.summary.chart')}</h2>
     <div class="s-chart">${profitBars(rows.map((r) => ({ label: t('years.label', { y: r.year }), value: r.profit })))}</div>

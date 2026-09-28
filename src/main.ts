@@ -140,7 +140,7 @@ function titleCollectionHtml(): string {
         <div class="title-progress"><span style="width:${(n / total) * 100}%"></span></div>
       </summary>
       ${n > 0 ? `<p style="margin:0 0 8px;display:flex;flex-wrap:wrap;gap:6px">${TITLE_IDS.filter((id) => got[id])
-        .map((id) => titleChip(id, 'title-chip', got[id]!.count > 1 ? ` ${t('titles.count', { n: got[id]!.count })}` : '')).join('')}</p>` : ''}
+        .map((id) => titleChip(id)).join('')}</p>` : ''}
       <p class="muted" style="margin:0 0 8px;font-size:0.9rem">${t('home.titles.hint')}</p>
       <div class="title-grid">${TITLE_IDS.map((id) => got[id]
         ? `<div class="title-card"><div class="name">${TITLE_EMOJI[id]} ${esc(titleName(id))}</div><div class="desc">${esc(titleDesc(id))}</div></div>`

@@ -387,7 +387,12 @@ body.sheet-open { overflow: hidden; }
 }
 
 /* ---- 月の結果：今月のお客さん ---- */
-.cups { display: flex; flex-wrap: wrap; gap: 3px; margin: 4px 0 6px; }
+.cup-rows { display: grid; gap: 8px; margin: 4px 0 2px; }
+.cup-label { font-size: 0.9rem; margin-bottom: 3px; }
+.cup-label .cup { margin-right: 5px; width: 10px; height: 12px; }
+.cup-grid { display: grid; grid-template-columns: repeat(25, minmax(0, 1fr)); gap: 3px; max-width: 460px; }
+.cup-grid > .muted { grid-column: 1 / -1; font-size: 0.85rem; }
+.cup-grid .cup { width: 100%; height: auto; aspect-ratio: 4 / 5; }
 .cup { display: inline-block; width: 12px; height: 15px; border-radius: 2px 2px 5px 5px; vertical-align: -2px; }
 .cup.sold { background: var(--good); }
 .cup.unsold { background: transparent; border: 2px solid var(--muted); }
@@ -478,3 +483,7 @@ body.sheet-open { overflow: hidden; }
   .report-layout .tiles { grid-template-columns: repeat(4, 1fr); }
   .title-list { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 }
+
+/* 入力：手持ちの材料 */
+.stock-row { margin: -2px 0 8px; padding: 6px 10px; border-radius: 10px; background: var(--surface2); font-size: 0.92rem; }
+.stock-after { margin-top: 4px; text-align: right; font-size: 0.85rem; color: var(--muted); }

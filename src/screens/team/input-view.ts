@@ -53,14 +53,16 @@ export function mountInputView(
     <div class="input-head">
     ${ctx.clock.message ? `<div class="notice">📰 ${esc(newsText(ctx.clock.message))}</div>` : ''}
     <p class="muted" style="margin:0 0 10px">${t('input.recipe', { lemon: recipe.lemon, sugar: recipe.sugar, cap: baristaCapacity })}
-      <span id="stock"></span></p>
+      </p>
     </div>
 
     <div class="card input-buy">
       <h2>${t('input.buy.h2')} <span class="muted">${t('input.buy.sub')}</span></h2>
+      <div class="stock-row" id="stockNow"></div>
       <div id="buy"></div>
       <div id="baristaFixed"></div>
       <div class="subtotal"><span>${t('input.spend')}</span><strong id="spend"></strong></div>
+      <div class="stock-after" id="stockAfter"></div>
     </div>
 
     <div class="card input-sell">
@@ -136,8 +138,9 @@ export function mountInputView(
     const b = baristaNow();
     const p = previewDecision(me.stock, decisionNow(), b, prices, ctx.pub, me.balance);
 
-    $('stock').textContent = me.stock.lemon > 0 || me.stock.sugar > 0
-      ? t('input.stock', { lemon: me.stock.lemon, sugar: me.stock.sugar }) : '';
+    // 手持ちの材料（先月の残り）と、仕入れたあとの手持ち
+    $('stockNow').innerHTML = t('input.stockNow', { lemon: me.stock.lemon, sugar: me.stock.sugar });
+    $('stockAfter').innerHTML = t('input.stockAfter', { lemon: me.stock.lemon + v.lemon, sugar: me.stock.sugar + v.sugar });
 
     // ① 仕入れる
     lemonStep.setHint(times(prices.lemon, t('input.qty.lemon', { n: v.lemon }), p.costs.costLemon));
