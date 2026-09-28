@@ -45,6 +45,7 @@ export interface PublicConfig {
   baristaCadence?: 'quarterly' | 'monthly';
   recipe: { lemon: number; sugar: number };
   startFund: number;
+  elimination?: boolean; // 脱落あり
 }
 
 export function publicConfigOf(c: GameConfig): PublicConfig {
@@ -56,6 +57,7 @@ export function publicConfigOf(c: GameConfig): PublicConfig {
     baristaCadence: c.baristaCadence ?? 'quarterly',
     recipe: { ...c.recipe },
     startFund: c.startFund,
+    ...(c.elimination ? { elimination: true } : {}),
   };
 }
 

@@ -3,7 +3,7 @@
 
 import { canChangeBarista, defaultConfig, withMarketPattern, withRandomMarketSize, type MarketSizeRange } from '../engine/config';
 import { CPU_TYPES, cpuViewOf, decideCpu } from '../engine/cpu-teams';
-import { closeMonth, openNextMonth, startTerm } from '../engine/month';
+import { closeMonth, isActive, openNextMonth, startTerm } from '../engine/month';
 import { seededRand } from '../engine/random';
 import type {
   CpuSkill, CpuType, GameConfig, MarketPattern, MonthConditions, MonthlyDecision, MonthResult, Submission, TeamState,
@@ -42,6 +42,7 @@ export function newSoloGame(options: {
   pattern?: MarketPattern; // 市場のパターン（初期値：変動なし）
   difficulty?: SoloDifficulty;
   teamCount?: number; // お店の数（あなたを含む。3〜8）
+  elimination?: boolean; // 脱落あり（資金がマイナスになったら脱落。初期値：なし）
 }): SoloState {
   const difficulty = options.difficulty ?? 'normal';
   const teamCount = Math.min(SOLO_TEAM_COUNT.max, Math.max(SOLO_TEAM_COUNT.min, Math.floor(options.teamCount ?? SOLO_TEAM_COUNT.default)));
@@ -53,6 +54,7 @@ export function newSoloGame(options: {
   );
   // ソロはタイマーがないので、バリスタの人数を毎月決められる
   config.baristaCadence = 'monthly';
+  if (options.elimination) config.elimination = true;
 
   // 4つの作戦から選び、どの店に割り当てるかもシードで決める（毎回ちがう並び）。
   // 「ふつう」「むずかしい」では安売りを必ず入れる（いないと、何も考えなくても勝ててしまうため）
@@ -85,23 +87,30 @@ export function newSoloGame(options: {
 
 // 人の決定を受け取り、CPU の決定と合わせて1か月を締め切る
 export function submitHuman(state: SoloState, decision: MonthlyDecision, baristaCount?: number): SoloState {
-  if (state.phase !== 'input') return state;
+  if (state.phase !== 'input' || humanEliminatedMonth(state) !== null) return state;
   const c = state.conditions;
-  const seed = state.config.market.seed;
-
   const human: Submission = {
     teamId: HUMAN_ID,
     monthlyDecision: decision,
     ...(canChangeBarista(c.month, state.config.baristaCadence) && baristaCount !== undefined ? { quarterlyDecision: { baristaCount } } : {}),
     order: 0,
   };
-  const cpuSubs: Submission[] = state.teams
+  return { ...closeSoloMonth(state, human), phase: 'result' };
+}
+
+// 1か月を締め切る。人が脱落しているときは human = null（ロボット店長だけで進める）
+function closeSoloMonth(state: SoloState, human: Submission | null): SoloState {
+  const c = state.conditions;
+  const seed = state.config.market.seed;
+  const active = state.teams.filter(isActive);
+  const cpuSubs: Submission[] = active
     .filter((t) => t.teamId !== HUMAN_ID)
     .map((t) => {
       const view = cpuViewOf({
         month: c.month,
         prices: c.prices,
-        rules: { baristaCapacity: state.config.baristaCapacity, recipe: state.config.recipe, teamCount: state.teams.length },
+        // 脱落したお店は数えない（残っているお店の数で売れる数を見込む）
+        rules: { baristaCapacity: state.config.baristaCapacity, recipe: state.config.recipe, teamCount: active.length },
         me: t,
         results: state.results,
         baristaCadence: state.config.baristaCadence,
@@ -112,22 +121,33 @@ export function submitHuman(state: SoloState, decision: MonthlyDecision, barista
     });
 
   // 提出順（同じ値段のときの端数の順番）は毎月シードで決める。人がいつも先になると有利すぎるため
-  const subs = [human, ...cpuSubs]
+  const subs = [...(human ? [human] : []), ...cpuSubs]
     .map((s, i) => ({ s, key: seededRand(`${seed}:order`, c.month * 100 + i) }))
     .sort((a, b) => a.key - b.key)
     .map(({ s }, i) => ({ ...s, order: i + 1 }));
 
   const r = closeMonth(state.config, state.teams, c, subs, state.decided);
-  return { ...state, teams: r.teams, decided: r.decided, results: [...state.results, r.result], phase: 'result' };
+  return { ...state, teams: r.teams, decided: { ...state.decided, ...r.decided }, results: [...state.results, r.result] };
 }
 
-// 次の月へ。最終月の後なら期末にする
+// 次の月へ。最終月の後なら期末にする。
+// 人が脱落していたら、残りの月はロボット店長だけで最後まで進めて期末にする（最終順位を見せるため）
 export function nextSoloMonth(state: SoloState): SoloState {
   if (state.phase !== 'result') return state;
-  const last = state.results[state.results.length - 1];
-  const next = openNextMonth(state.config, state.conditions.month, state.teams.length, last?.prices ?? state.conditions.prices);
-  if (!next) return { ...state, phase: 'final' };
-  return { ...state, conditions: next, phase: 'input' };
+  let s = state;
+  for (;;) {
+    const last = s.results[s.results.length - 1];
+    const next = openNextMonth(s.config, s.conditions.month, s.teams.length, last?.prices ?? s.conditions.prices);
+    if (!next) return { ...s, phase: 'final' };
+    s = { ...s, conditions: next, phase: 'input' };
+    if (humanEliminatedMonth(s) === null) return s;
+    s = { ...closeSoloMonth(s, null), phase: 'result' };
+  }
+}
+
+// 人が脱落した月（脱落していなければ null）
+export function humanEliminatedMonth(state: SoloState): number | null {
+  return state.teams.find((t) => t.teamId === HUMAN_ID)?.eliminatedMonth ?? null;
 }
 
 // 入力欄の初期値にする、人の先月の決定

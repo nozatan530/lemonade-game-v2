@@ -1,5 +1,6 @@
 // GM の進行画面：待機 → 入力（タイマー・提出状況・締切）→ 結果 → 次の月 → 期末 → 削除
 
+import { rankTeams } from '../../engine/month';
 import type { Database } from 'firebase/database';
 import type { MonthResult, TeamState, TimerSettings } from '../../engine/types';
 import {
@@ -196,7 +197,7 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
 
   function renderFinal(slots: { teamId: string; slot: TeamSlot }[]) {
     const names = new Map(slots.map((s) => [s.teamId, s.slot.name]));
-    const ranked = Object.values(S.state).sort((a, b) => b.balance - a.balance);
+    const ranked = rankTeams(Object.values(S.state));
     main.innerHTML = `<div class="card">
       <h2>期末の結果</h2>
       <table class="table"><tr><th>順位</th><th>チーム</th><th>お金の残り</th><th>1年のもうけ</th></tr>

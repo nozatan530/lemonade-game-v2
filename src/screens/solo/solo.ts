@@ -1,16 +1,17 @@
 // ソロモード（#/solo）：人1チーム vs CPU 3チーム（画面では「ロボット店長」）。ブラウザの中だけで12か月遊ぶ（Firebase は使わない）。
 // 入力画面と結果画面は販売チーム画面のものを使う。
 
+import { rankTeams } from '../../engine/month';
 import { canChangeBarista, MARKET_PATTERNS } from '../../engine/config';
 import type { MarketPattern } from '../../engine/types';
 import { t } from '../../i18n';
 import { cpuDesc, cpuLabel, difficultyDesc, difficultyLabel, newsText, patternDesc, patternLabel, soloTeamName } from '../../i18n/content';
 import {
-  clearSolo, HUMAN_ID, lastHumanDecision, loadSolo, newSoloGame, nextSoloMonth, saveSolo, SOLO_DIFFICULTY, SOLO_TEAM_COUNT, submitHuman,
+  clearSolo, HUMAN_ID, humanEliminatedMonth, lastHumanDecision, loadSolo, newSoloGame, nextSoloMonth, saveSolo, SOLO_DIFFICULTY, SOLO_TEAM_COUNT, submitHuman,
   type SoloDifficulty, type SoloState,
 } from '../../solo/local-game';
 import { monthKey, publicConfigOf, type Clock, type TeamSlot } from '../../sync/schema';
-import { esc, monthLabel, yen } from '../../ui/format';
+import { esc, monthLabel, monthShort, yen } from '../../ui/format';
 import { bindLangToggle, langToggleHtml } from '../../ui/lang-toggle';
 import { maybeStartInputCoach } from '../team/input-coach';
 import { DEFAULT_DECISION, mountInputView } from '../team/input-view';
@@ -37,7 +38,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
     setTimeout(() => { renderGame(); window.scrollTo(0, 0); }, 0);
   }
 
-  function renderStart(saved: SoloState | null, prev?: { difficulty: SoloDifficulty; pattern: MarketPattern; teamCount: number }) {
+  function renderStart(saved: SoloState | null, prev?: { difficulty: SoloDifficulty; pattern: MarketPattern; teamCount: number; elimination: boolean }) {
     root.innerHTML = `<div class="page">
       <div class="lang-bar">${langToggleHtml()}</div>
       <h1>${t('solo.h1')}</h1>
@@ -47,7 +48,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       </div>
       ${saved ? `<div class="card">
         <h2>${t('solo.resume.h2')}</h2>
-        <p>${t('solo.resume.teams', { n: saved.teams.length })}${saved.difficulty ? t('solo.resume.difficulty', { d: esc(difficultyLabel(saved.difficulty)) }) : ''}${saved.config.market.pattern ? t('solo.resume.pattern', { p: esc(patternLabel(saved.config.market.pattern)) }) : ''}${saved.phase === 'final' ? t('solo.resume.final') : t('solo.resume.progress', { month: monthLabel(saved.conditions.month, saved.config.startCalendarMonth) })}</p>
+        <p>${t('solo.resume.teams', { n: saved.teams.length })}${saved.config.elimination ? t('solo.resume.elimination') : ''}${saved.difficulty ? t('solo.resume.difficulty', { d: esc(difficultyLabel(saved.difficulty)) }) : ''}${saved.config.market.pattern ? t('solo.resume.pattern', { p: esc(patternLabel(saved.config.market.pattern)) }) : ''}${saved.phase === 'final' ? t('solo.resume.final') : t('solo.resume.progress', { month: monthLabel(saved.conditions.month, saved.config.startCalendarMonth) })}</p>
         <button class="btn" id="resume">${t('solo.resume.btn')}</button>
       </div>` : ''}
       <div class="card">
@@ -62,6 +63,9 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
           <select id="teamCount">${Array.from({ length: SOLO_TEAM_COUNT.max - SOLO_TEAM_COUNT.min + 1 }, (_, i) => SOLO_TEAM_COUNT.min + i)
             .map((n) => `<option value="${n}" ${n === SOLO_TEAM_COUNT.default ? 'selected' : ''}>${t('solo.teamCount.option', { n, cpu: n - 1 })}</option>`).join('')}</select>
           <span class="muted field-help">${t('solo.teamCount.help')}</span>
+        </label>
+        <label class="check field" style="align-items:flex-start"><input type="checkbox" id="elimination" style="margin-top:4px">
+          <span><strong>${t('solo.elimination')}</strong><span class="muted field-help">${t('solo.elimination.help')}</span></span>
         </label>
         <fieldset class="field"><legend>${t('solo.pattern')}</legend>
           ${(Object.keys(MARKET_PATTERNS) as MarketPattern[]).map((p) => `<label class="radio">
@@ -78,6 +82,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       root.querySelector<HTMLInputElement>(`input[name="difficulty"][value="${prev.difficulty}"]`)!.checked = true;
       root.querySelector<HTMLInputElement>(`input[name="pattern"][value="${prev.pattern}"]`)!.checked = true;
       root.querySelector<HTMLSelectElement>('#teamCount')!.value = String(prev.teamCount);
+      root.querySelector<HTMLInputElement>('#elimination')!.checked = prev.elimination;
     }
     root.querySelector('#resume')?.addEventListener('click', () => { state = saved; renderGame(); });
     root.querySelector('#start')!.addEventListener('click', () => {
@@ -88,6 +93,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
         pattern: (root.querySelector<HTMLInputElement>('input[name="pattern"]:checked')?.value ?? 'stable') as MarketPattern,
         difficulty: (root.querySelector<HTMLInputElement>('input[name="difficulty"]:checked')?.value ?? 'normal') as SoloDifficulty,
         teamCount: Number(root.querySelector<HTMLSelectElement>('#teamCount')!.value),
+        elimination: root.querySelector<HTMLInputElement>('#elimination')!.checked,
       });
       state = s;
       saveSolo(s);
@@ -127,7 +133,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       if (!confirm(t('solo.confirmReset'))) return;
       clearSolo();
       state = null;
-      renderStart(null, { difficulty: s.difficulty ?? 'normal', pattern: s.config.market.pattern ?? 'stable', teamCount: s.teams.length });
+      renderStart(null, { difficulty: s.difficulty ?? 'normal', pattern: s.config.market.pattern ?? 'stable', teamCount: s.teams.length, elimination: s.config.elimination === true });
     });
     const view = root.querySelector<HTMLElement>('#view')!;
 
@@ -152,9 +158,12 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
     if (s.phase === 'result') {
       const result = s.results[s.results.length - 1]!;
       const isLast = month >= s.config.months;
+      const youOut = humanEliminatedMonth(s) !== null;
       renderMonthResult(view, result, HUMAN_ID, slotsOf(s), {
-        nextLabel: isLast ? t('solo.seeYear') : t('solo.next'),
+        nextLabel: isLast || youOut ? t('solo.seeYear') : t('solo.next'),
         onNext: () => update(nextSoloMonth(s)),
+        eliminated: Object.fromEntries(s.teams.filter((tm) => tm.eliminatedMonth !== undefined)
+          .map((tm) => [tm.teamId, monthShort(tm.eliminatedMonth!, s.config.startCalendarMonth)])),
       });
       return;
     }
@@ -176,7 +185,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       <div class="card"><h2>${t('solo.survey.h2')}</h2><div id="survey"></div></div>
       <button class="btn" id="again">${t('solo.again')}</button>`;
     view.appendChild(reveal);
-    const ranked = [...s.teams].sort((a, b) => b.balance - a.balance);
+    const ranked = rankTeams([...s.teams]);
     mountSurveyForm(reveal.querySelector('#survey')!, {
       source: 'solo-final',
       pattern: s.config.market.pattern,

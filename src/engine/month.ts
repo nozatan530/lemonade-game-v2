@@ -9,6 +9,11 @@ import type {
 } from './types';
 import { monthConditions } from './demand';
 
+// 脱落していない（まだお店を続けている）か
+export function isActive(t: TeamState): boolean {
+  return t.eliminatedMonth === undefined;
+}
+
 export function initialTeamState(teamId: string, name: string, config: GameConfig): TeamState {
   return { teamId, name, balance: config.startFund, totalProfit: 0, stock: { lemon: 0, sugar: 0 }, baristaCount: config.initialBaristaCount };
 }
@@ -25,7 +30,7 @@ export function fillMissingSubmissions(
   let order = submissions.reduce((max, s) => Math.max(max, s.order), 0);
   const filled = [...submissions];
   for (const t of teams) {
-    if (submitted.has(t.teamId)) continue;
+    if (submitted.has(t.teamId) || !isActive(t)) continue;
     const prev = previousDecisions[t.teamId];
     filled.push({
       teamId: t.teamId,
@@ -36,7 +41,8 @@ export function fillMissingSubmissions(
   return filled;
 }
 
-// 1か月を処理する。submissions は全チーム分そろっていること（fillMissingSubmissions を先に使う）。
+// 1か月を処理する。submissions は脱落していない全チーム分そろっていること（fillMissingSubmissions を先に使う）。
+// 脱落したチームはそのまま次の月へ持ち越す（結果の行も作らない）。
 export function resolveMonth(
   config: GameConfig,
   teams: TeamState[],
@@ -45,7 +51,7 @@ export function resolveMonth(
 ): { teams: TeamState[]; result: MonthResult } {
   const byTeam = new Map(submissions.map((s) => [s.teamId, s]));
 
-  const plans = teams.map((t) => {
+  const plans = teams.filter(isActive).map((t) => {
     const sub = byTeam.get(t.teamId);
     if (!sub) throw new Error(`${t.name} の提出がありません`);
     const decision = sanitizeDecision(sub.monthlyDecision);
@@ -61,7 +67,7 @@ export function resolveMonth(
   const offers: Offer[] = plans.map((p) => ({ teamId: p.team.teamId, price: p.price, offered: p.offered, order: p.order }));
   const sold = allocatePriceSegment(conditions.marketBudget, offers);
 
-  const newTeams: TeamState[] = [];
+  const next = new Map<string, TeamState>();
   const teamResults: TeamMonthResult[] = plans.map((p) => {
     const t = p.team;
     const soldCups = sold.get(t.teamId) ?? 0;
@@ -70,12 +76,15 @@ export function resolveMonth(
     const inv = nextStock(t.stock, p.decision.lemonQty, p.decision.sugarQty, p.offered, config);
     const profit = revenue - costs.totalCost;
     const balance = t.balance + profit;
-    newTeams.push({
+    // 脱落あり：月末の資金がマイナスなら、この月で脱落
+    const eliminated = config.elimination === true && balance < 0;
+    next.set(t.teamId, {
       ...t,
       balance,
       totalProfit: t.totalProfit + profit,
       stock: inv.stock,
       baristaCount: p.baristaCount,
+      ...(eliminated ? { eliminatedMonth: conditions.month } : {}),
     });
     return {
       teamId: t.teamId,
@@ -93,11 +102,12 @@ export function resolveMonth(
       usedSugar: inv.usedSugar,
       stock: inv.stock,
       balance,
+      ...(eliminated ? { eliminated: true } : {}),
     };
   });
 
   return {
-    teams: newTeams,
+    teams: teams.map((t) => next.get(t.teamId) ?? t),
     result: {
       month: conditions.month,
       marketBudget: conditions.marketBudget,
@@ -149,4 +159,10 @@ export function openNextMonth(
 ): MonthConditions | null {
   if (isFinalMonth(month, config)) return null;
   return monthConditions(month + 1, config, teamCount, usedPrices);
+}
+
+// 最終順位の並べ方：資金の多い順。脱落したお店は残ったお店より下で、長く続いたお店ほど上
+export function rankTeams<T extends Pick<TeamState, 'balance' | 'eliminatedMonth'>>(teams: T[]): T[] {
+  const survived = (t: T) => t.eliminatedMonth ?? Infinity;
+  return [...teams].sort((a, b) => survived(b) - survived(a) || b.balance - a.balance);
 }

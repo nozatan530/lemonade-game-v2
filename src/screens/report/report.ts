@@ -4,6 +4,7 @@
 //   表（月ごとの数字）
 // 集計は engine の termSummary。ここでは表示するだけ。
 
+import { rankTeams } from '../../engine/month';
 import { termSummary } from '../../engine/accounting';
 import type { MonthResult, Recipe, TeamState } from '../../engine/types';
 import { barChartSvg } from '../../ui/bar-chart';
@@ -25,7 +26,7 @@ export function renderTermReport(container: HTMLElement, input: ReportInput): vo
   const { results, teams, names, meId } = input;
   const s = termSummary(results, meId, input.recipe);
   const me = teams.find((t) => t.teamId === meId);
-  const ranked = [...teams].sort((a, b) => b.balance - a.balance);
+  const ranked = rankTeams([...teams]);
   const rank = ranked.findIndex((t) => t.teamId === meId) + 1;
   const monthName = (m: number) => monthShort(m, input.startCalendarMonth);
   const name = (id: string) => names[id] ?? id;
@@ -39,6 +40,7 @@ export function renderTermReport(container: HTMLElement, input: ReportInput): vo
       <h2>${t('report.h2')}</h2>
       <p class="big" style="margin:4px 0">${t('report.rank', { rank })} <span class="muted" style="font-size:1rem">${t('report.ofTeams', { n: teams.length })}</span></p>
       ${me ? `<p style="margin:0">${t('report.balance', { b: yen(me.balance), s: yen(input.startFund) })}</p>` : ''}
+      ${me?.eliminatedMonth !== undefined ? `<p class="bad" style="margin:6px 0 0"><strong>${t('report.youOut', { m: monthName(me.eliminatedMonth) })}</strong></p>` : ''}
     </div>
 
     <div class="card">
@@ -85,8 +87,9 @@ export function renderTermReport(container: HTMLElement, input: ReportInput): vo
     <div class="card">
       <h2>${t('report.final')}</h2>
       <table class="table"><tr><th>${t('report.th.team')}</th><th>${t('result.balance')}</th><th>${t('report.th.yearProfit')}</th></tr>
-        ${ranked.map((t, i) => `<tr class="${t.teamId === meId ? 'me' : ''}"><td>${i + 1}. ${esc(name(t.teamId))}</td>
-          <td>${yen(t.balance)}</td><td class="${t.totalProfit >= 0 ? 'good' : 'bad'}">${signedYen(t.totalProfit)}</td></tr>`).join('')}
+        ${ranked.map((tm, i) => `<tr class="${tm.teamId === meId ? 'me' : ''}"><td>${i + 1}. ${esc(name(tm.teamId))}${tm.eliminatedMonth !== undefined
+            ? ` <span class="badge bad">${t('result.outSince', { m: monthName(tm.eliminatedMonth) })}</span>` : ''}</td>
+          <td>${yen(tm.balance)}</td><td class="${tm.totalProfit >= 0 ? 'good' : 'bad'}">${signedYen(tm.totalProfit)}</td></tr>`).join('')}
       </table>
     </div>`;
 

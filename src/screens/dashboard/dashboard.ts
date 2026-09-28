@@ -1,6 +1,7 @@
 // 全体表示（プロジェクター・画面共有用）。読み取り専用。
 // 待機：ゲームコードと参加用 QR ／ 入力中：月・お知らせ・残り時間・提出状況 ／ 結果：表と資金の推移 ／ 期末：順位
 
+import { rankTeams } from '../../engine/month';
 import QRCode from 'qrcode';
 import type { MonthResult, TeamState } from '../../engine/types';
 import { signInAsTeam, waitForAuth } from '../../sync/auth';
@@ -128,7 +129,7 @@ export async function renderDashboard(root: HTMLElement, params: URLSearchParams
 
   function renderFinal(slots: { teamId: string; slot: TeamSlot }[]) {
     const names = new Map(slots.map((s) => [s.teamId, s.slot.name]));
-    const ranked = Object.values(S.state).sort((a, b) => b.balance - a.balance);
+    const ranked = rankTeams(Object.values(S.state));
     main.innerHTML = `<div class="screen-result">
       <div class="card">
         <h2>🏆 1年間の結果</h2>

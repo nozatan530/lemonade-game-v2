@@ -94,6 +94,9 @@ h2 { font-size: 1.05rem; margin: 0 0 8px; }
 }
 
 .notice { background: var(--warn-bg); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 12px; }
+.notice.bad-notice { border: 2px solid var(--bad); font-weight: 700; }
+.badge { display: inline-block; padding: 0 6px; border: 1px solid currentColor; border-radius: 999px; font-size: 0.8em; font-weight: 700; line-height: 1.5; }
+tr.out td { opacity: 0.75; }
 
 /* ＋／− の入力 */
 .stepper { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); }

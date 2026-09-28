@@ -1,6 +1,7 @@
 // ソロモードのバランスを確かめるためのシミュレーション（テストから使う）。
 // 人のかわりに、決まった考え方で遊ぶ「お手本の遊び方」を動かす。
 
+import { rankTeams } from '../engine/month';
 import { canChangeBarista } from '../engine/config';
 import type { MarketPattern, MonthlyDecision } from '../engine/types';
 import { HUMAN_ID, newSoloGame, nextSoloMonth, submitHuman, type SoloDifficulty, type SoloState } from './local-game';
@@ -72,9 +73,9 @@ export const undercutter: Player = (s) => {
 
 export function playSolo(
   player: Player,
-  options: { seed: string; difficulty: SoloDifficulty; pattern?: MarketPattern; teamCount?: number },
+  options: { seed: string; difficulty: SoloDifficulty; pattern?: MarketPattern; teamCount?: number; elimination?: boolean },
 ): { rank: number; state: SoloState } {
-  let s = newSoloGame({ seed: options.seed, difficulty: options.difficulty, pattern: options.pattern ?? 'stable', ...(options.teamCount ? { teamCount: options.teamCount } : {}) });
+  let s = newSoloGame({ seed: options.seed, difficulty: options.difficulty, pattern: options.pattern ?? 'stable', ...(options.teamCount ? { teamCount: options.teamCount } : {}), ...(options.elimination ? { elimination: true } : {}) });
   while (s.phase !== 'final') {
     if (s.phase === 'input') {
       const { decision, barista } = player(s);
@@ -83,7 +84,7 @@ export function playSolo(
       s = nextSoloMonth(s);
     }
   }
-  const ranked = [...s.teams].sort((a, b) => b.balance - a.balance);
+  const ranked = rankTeams([...s.teams]);
   return { rank: ranked.findIndex((t) => t.teamId === HUMAN_ID) + 1, state: s };
 }
 

@@ -1,5 +1,6 @@
 // 月の結果と、期末の結果
 
+import { rankTeams } from '../../engine/month';
 import type { MonthResult, TeamState } from '../../engine/types';
 import type { TeamSlot } from '../../sync/schema';
 import { t as tr } from '../../i18n';
@@ -10,7 +11,8 @@ export function renderMonthResult(
   result: MonthResult,
   teamId: string,
   teams: Record<string, TeamSlot>,
-  options: { onNext?: () => void; nextLabel?: string } = {}, // ソロモードでは「次の月へ」ボタンを出す
+  // ソロモードでは「次の月へ」ボタンを出す。eliminated：前の月までに脱落したお店と、脱落した月の表示（例：「6月」）
+  options: { onNext?: () => void; nextLabel?: string; eliminated?: Record<string, string> } = {},
 ): void {
   const r = result.teamResults.find((t) => t.teamId === teamId);
   if (!r) {
@@ -19,16 +21,24 @@ export function renderMonthResult(
   }
   const watching = isWatching(r);
   const noCups = r.offered === 0 && !watching; // 仕入れたのに1杯も作れなかった（材料がそろわない・バリスタ0人など）
+  const outBadge = ` <span class="badge bad">${tr('result.outBadge')}</span>`;
   const rows = [...result.teamResults]
     .sort((a, b) => (teams[a.teamId]?.order ?? 0) - (teams[b.teamId]?.order ?? 0))
     .map((t) => `<tr class="${t.teamId === teamId ? 'me' : ''}">
-      <td>${esc(teams[t.teamId]?.name ?? t.teamId)}</td>
+      <td>${esc(teams[t.teamId]?.name ?? t.teamId)}${t.eliminated ? outBadge : ''}</td>
       <td>${t.offered === 0 ? (isWatching(t) ? tr('result.sat') : '—') : yen(t.price)}</td>
       <td>${tr('result.soldCell', { sold: t.sold, offered: t.offered })}</td>
       <td class="${t.profit >= 0 ? 'good' : 'bad'}">${signedYen(t.profit)}</td></tr>`)
-    .join('');
+    .join('') +
+    // 前の月までに脱落したお店
+    Object.entries(options.eliminated ?? {})
+      .filter(([id]) => !result.teamResults.some((t) => t.teamId === id))
+      .sort(([a], [b]) => (teams[a]?.order ?? 0) - (teams[b]?.order ?? 0))
+      .map(([id, m]) => `<tr class="out"><td>${esc(teams[id]?.name ?? id)}</td><td colspan="3" class="muted">${tr('result.outSince', { m })}</td></tr>`)
+      .join('');
 
   container.innerHTML = `
+    ${r.eliminated ? `<div class="notice bad-notice">${tr('result.youOut')}</div>` : ''}
     <div class="card">
       <h2>${tr('result.h2')}</h2>
       ${watching ? `<p>${tr('result.watched')}</p>` : ''}
@@ -64,7 +74,7 @@ export function renderFinal(
   teamId: string,
   teams: Record<string, TeamSlot>,
 ): void {
-  const ranked = Object.values(state).sort((a, b) => b.balance - a.balance);
+  const ranked = rankTeams(Object.values(state));
   const me = state[teamId];
   const rank = ranked.findIndex((t) => t.teamId === teamId) + 1;
   const rows = ranked.map((t, i) => `<tr class="${t.teamId === teamId ? 'me' : ''}">

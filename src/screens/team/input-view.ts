@@ -174,10 +174,12 @@ export function mountInputView(
     $('cashEnd').innerHTML = low === high
       ? `<strong class="${high < 0 ? 'bad' : ''}">${yen(high)}</strong>`
       : `<strong class="${low < 0 ? 'bad' : ''}">${yen(low)}</strong>${lang() === 'en' ? ' – ' : ' 〜 '}<strong class="good">${yen(high)}</strong>`;
+    // 脱落ありなら「脱落します」と伝える
+    const out = ctx.pub.elimination === true;
     $('cashNote').innerHTML = high < 0
-      ? `<span class="bad">${t('input.cash.negAll')}</span>`
+      ? `<span class="bad">${t(out ? 'input.cash.negAll.out' : 'input.cash.negAll')}</span>`
       : low < 0
-      ? `<span class="bad">${t('input.cash.negNone')}</span>`
+      ? `<span class="bad">${t(out ? 'input.cash.negNone.out' : 'input.cash.negNone')}</span>`
       : low === high ? '' : t('input.cash.range');
 
     const sub = ctx.ownSub;

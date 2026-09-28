@@ -67,6 +67,7 @@ export interface GameConfig {
   baristaCadence?: BaristaCadence; // バリスタの人数を決められる間隔（ないときは quarterly）
   recipe: Recipe;
   startFund: number;
+  elimination?: boolean; // 脱落あり：月末の資金がマイナスになったお店は、その月で脱落する（ないときは脱落なし）
   market: MarketSettings;
   scenario: ScenarioId;
 }
@@ -83,6 +84,7 @@ export interface TeamState {
   totalProfit: number;
   stock: Stock; // 繰越在庫
   baristaCount: number; // 雇っているバリスタの人数（四半期ごとに決める）
+  eliminatedMonth?: number; // 脱落した月（脱落ありのときだけ）。それ以降の月は仕入れも販売もせず、費用もかからない
 }
 
 // 月の決定
@@ -135,6 +137,7 @@ export interface TeamMonthResult {
   usedSugar: number;
   stock: Stock; // 月末の在庫
   balance: number; // 月末の資金残高
+  eliminated?: boolean; // この月で脱落した
 }
 
 export interface MonthResult {
