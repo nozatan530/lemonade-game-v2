@@ -113,6 +113,10 @@ describe('1年の振り返り（結果シート）', () => {
     const missed = termFeedback(year(() => [team('a', { price: 200 })], 30000), 'a', recipe, 50, final);
     expect(missed.next[0]).toMatchObject({ id: 'missed', params: { cups: 12 * 100 } });
     expect(missed.totalMissed).toBe(1200);
+    // のがした売上は、売り逃した杯数 × その月の値段（200円）
+    expect(missed.totalMissedRevenue).toBe(1200 * 200);
+    expect(missed.missedRevenueByMonth[1]).toBe(100 * 200);
+    expect(missed.next[0]!.params.revenue).toBe(1200 * 200);
     const loss = termFeedback(year((m) => [team('a', { profit: m === 3 ? -900 : m === 7 ? -200 : 500 })]), 'a', recipe, 50, final);
     expect(loss.next.find((n) => n.id === 'lossMonths')!.params).toEqual({ count: 2, month: 3, profit: -900 });
     const below = termFeedback(year(() => [team('a', { price: 50 })], 99999), 'a', recipe, 50, final);

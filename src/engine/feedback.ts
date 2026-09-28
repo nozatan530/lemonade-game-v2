@@ -136,6 +136,8 @@ export interface TermFeedback {
   teamCount: number;
   missedByMonth: Record<number, number>; // 月 → 売り逃した杯数
   totalMissed: number;
+  missedRevenueByMonth: Record<number, number>; // 月 → のがした売上（売り逃した杯数 × その月の値段）
+  totalMissedRevenue: number;
   good: TermNote[]; // 多くて3つ
   next: TermNote[]; // 多くて3つ
 }
@@ -155,7 +157,9 @@ export function termFeedback(
     .filter((x): x is { r: MonthResult; me: NonNullable<typeof x.me> } => x.me !== undefined);
 
   const missedByMonth: Record<number, number> = {};
+  const missedRevenueByMonth: Record<number, number> = {};
   let totalMissed = 0;
+  let totalMissedRevenue = 0;
   let offered = 0;
   let sold = 0;
   let unsold = 0;
@@ -171,7 +175,9 @@ export function termFeedback(
     const materialPerCup = r.prices.lemon * recipe.lemon + r.prices.sugar * recipe.sugar;
     const m = missedCups(r, teamId);
     missedByMonth[r.month] = m;
+    missedRevenueByMonth[r.month] = m * me.price;
     totalMissed += m;
+    totalMissedRevenue += m * me.price;
     offered += me.offered;
     sold += me.sold;
     unsold += me.unsold;
@@ -209,8 +215,7 @@ export function termFeedback(
   if (belowMaterial > 0) next.push({ id: 'belowMaterial', params: { count: belowMaterial } });
   if (offered > 0 && unsold / offered >= MANY_RATE) next.push({ id: 'unsold', params: { cups: unsold, waste } });
   if (totalMissed >= 20 && totalMissed >= sold * MANY_RATE) {
-    const avgPrice = sold > 0 ? mine.reduce((a, x) => a + x.me.revenue, 0) / sold : 0;
-    next.push({ id: 'missed', params: { cups: totalMissed, revenue: Math.round((totalMissed * avgPrice) / 100) * 100 } });
+    next.push({ id: 'missed', params: { cups: totalMissed, revenue: totalMissedRevenue } });
   }
   if (loss.length > 0) {
     const worst = loss.reduce((w, x) => (x.profit < w.profit ? x : w));
@@ -220,7 +225,7 @@ export function termFeedback(
   if (next.length === 0) next.push({ id: 'noIssue', params: {} });
 
   return {
-    style, rank: final.rank, teamCount: final.teamCount, missedByMonth, totalMissed,
+    style, rank: final.rank, teamCount: final.teamCount, missedByMonth, totalMissed, missedRevenueByMonth, totalMissedRevenue,
     good: good.slice(0, 3), next: next.slice(0, 3),
   };
 }

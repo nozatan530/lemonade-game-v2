@@ -166,11 +166,11 @@ export function sheetHtml(input: SheetInput): string {
         <td>${month(r.month)}</td><td>${yen(r.marketBudget)}</td><td>${r.offered === 0 ? '—' : yen(r.price)}</td>
         <td>${t('sheet.people', { n: baristaByMonth.get(r.month) ?? 0 })}</td>
         <td>${r.offered}</td><td>${r.sold}</td><td class="${r.unsold > 0 ? 'neg' : ''}">${r.unsold}</td>
-        <td class="${(fb.missedByMonth[r.month] ?? 0) > 0 ? 'warn' : ''}">${fb.missedByMonth[r.month] ?? 0}</td>
+        <td class="${(fb.missedRevenueByMonth[r.month] ?? 0) > 0 ? 'warn' : ''}">${yen(fb.missedRevenueByMonth[r.month] ?? 0)}</td>
         <td>${yen(r.revenue)}</td><td>${yen(r.materialCost + r.laborCost)}</td>
         <td class="${r.profit >= 0 ? 'pos' : 'neg'}">${signedYen(r.profit)}</td></tr>`).join('')}
       <tr class="sum"><td>${t('sheet.total')}</td><td></td><td></td><td></td>
-        <td>${s.totalOffered}</td><td>${s.totalSold}</td><td>${s.totalUnsold}</td><td>${fb.totalMissed}</td>
+        <td>${s.totalOffered}</td><td>${s.totalSold}</td><td>${s.totalUnsold}</td><td>${yen(fb.totalMissedRevenue)}</td>
         <td>${yen(s.totalRevenue)}</td><td>${yen(s.totalMaterialCost + s.totalLaborCost)}</td>
         <td class="${s.totalProfit >= 0 ? 'pos' : 'neg'}">${signedYen(s.totalProfit)}</td></tr>
     </table>
@@ -217,11 +217,11 @@ export function summarySheetHtml(input: SummaryInput): string {
         <td>${t('years.label', { y: r.year })}</td><td>${yen(r.revenue)}</td><td>${yen(r.cost)}</td>
         <td class="${r.profit >= 0 ? 'pos' : 'neg'}">${signedYen(r.profit)}</td><td class="${r.endBalance < 0 ? 'neg' : ''}">${yen(r.endBalance)}</td>
         <td>${t('sheet.tile.rankValue', { rank: r.rank, n: input.teams.length })}</td>
-        <td>${r.sold}</td><td class="${r.unsold > 0 ? 'neg' : ''}">${r.unsold}</td><td class="${r.missed > 0 ? 'warn' : ''}">${r.missed}</td></tr>`).join('')}
+        <td>${r.sold}</td><td class="${r.unsold > 0 ? 'neg' : ''}">${r.unsold}</td><td class="${r.missedRevenue > 0 ? 'warn' : ''}">${yen(r.missedRevenue)}</td></tr>`).join('')}
       <tr class="sum"><td>${t('sheet.total')}</td><td>${yen(sum((r) => r.revenue))}</td><td>${yen(sum((r) => r.cost))}</td>
         <td class="${sum((r) => r.profit) >= 0 ? 'pos' : 'neg'}">${signedYen(sum((r) => r.profit))}</td><td>${yen(me.balance)}</td>
         <td>${t('sheet.tile.rankValue', { rank, n: input.teams.length })}</td>
-        <td>${sum((r) => r.sold)}</td><td>${sum((r) => r.unsold)}</td><td>${sum((r) => r.missed)}</td></tr>
+        <td>${sum((r) => r.sold)}</td><td>${sum((r) => r.unsold)}</td><td>${yen(sum((r) => r.missedRevenue))}</td></tr>
     </table>
 
     ${feedbackHtml(fb, month, n)}

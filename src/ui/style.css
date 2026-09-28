@@ -387,9 +387,6 @@ body.sheet-open { overflow: hidden; }
 }
 
 /* ---- 月の結果：今月のお客さん ---- */
-.cup-rows { display: grid; gap: 8px; margin: 4px 0 2px; }
-.cup-label { font-size: 0.9rem; margin-bottom: 3px; }
-.cup-label .cup { margin-right: 5px; width: 10px; height: 12px; }
 .cup-grid { display: grid; grid-template-columns: repeat(25, minmax(0, 1fr)); gap: 3px; max-width: 460px; }
 .cup-grid > .muted { grid-column: 1 / -1; font-size: 0.85rem; }
 .cup-grid .cup { width: 100%; height: auto; aspect-ratio: 4 / 5; }
@@ -397,17 +394,8 @@ body.sheet-open { overflow: hidden; }
 .cup.sold { background: var(--good); }
 .cup.unsold { background: transparent; border: 2px solid var(--muted); }
 .cup.missed { background: var(--bad); opacity: 0.8; }
-.cup-legend, .flow-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.85rem; }
+.cup-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.85rem; }
 .cup-legend .cup { margin-right: 4px; width: 10px; height: 12px; }
-.flow-title { margin: 12px 0 4px; font-weight: 700; font-size: 0.95rem; }
-.flow-bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; background: var(--border); }
-.flow-seg { height: 100%; }
-.flow-seg + .flow-seg { box-shadow: inset 2px 0 0 var(--surface); }
-.flow-seg.me { outline: 3px solid var(--text); outline-offset: -3px; }
-.flow-seg.unspent, .flow-legend i.unspent { background: repeating-linear-gradient(45deg, var(--border), var(--border) 4px, transparent 4px, transparent 8px); }
-.flow-legend { margin-top: 6px; }
-.flow-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
-.flow-legend .me { font-weight: 700; }
 .insights { margin: 10px 0 0; padding-left: 1.2em; }
 .insights li { margin: 3px 0; }
 
@@ -465,16 +453,6 @@ body.sheet-open { overflow: hidden; }
   .input-side .cashbar-inner { max-width: none; padding: 12px 14px; }
   .cashbar-spacer { display: none; }
 
-  /* 月の結果：左に自分の結果とみんなの結果、右に今月のお客さん */
-  .result-layout.has-visual {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start;
-    grid-template-areas: "notice notice" "mine visual" "all visual" "next next";
-  }
-  .result-notice { grid-area: notice; }
-  .result-mine { grid-area: mine; }
-  .result-layout .month-visual { grid-area: visual; }
-  .result-all { grid-area: all; }
-  .result-next { grid-area: next; }
 
   /* 期末：グラフと順位を2つずつ横に */
   .report-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start; }
@@ -487,3 +465,68 @@ body.sheet-open { overflow: hidden; }
 /* 入力：手持ちの材料 */
 .stock-row { margin: -2px 0 8px; padding: 6px 10px; border-radius: 10px; background: var(--surface2); font-size: 0.92rem; }
 .stock-after { margin-top: 4px; text-align: right; font-size: 0.85rem; color: var(--muted); }
+
+/* ---- 月の結果（ソロ）：結果のストーリー ---- */
+.story-skip { display: flex; justify-content: flex-end; margin: -4px 0 8px; }
+.story-rule { margin: 0 0 8px; font-size: 0.85rem; }
+.market-bar { display: flex; height: 30px; border-radius: 8px; overflow: hidden; background: var(--border); margin-bottom: 10px; }
+.market-bar .seg { height: 100%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.78rem; font-weight: 800; white-space: nowrap; overflow: hidden; }
+.market-bar .seg + .seg { box-shadow: inset 2px 0 0 var(--surface); }
+.market-bar .seg.me { outline: 3px solid var(--text); outline-offset: -3px; }
+.market-bar .seg.unspent, .dot.unspent { background: repeating-linear-gradient(45deg, var(--border), var(--border) 4px, transparent 4px, transparent 8px); color: var(--muted); }
+.story-table td, .story-table th { white-space: nowrap; }
+.story-table .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.story-table tr.unspent-row td { color: var(--muted); }
+.missed-box { margin-top: 10px; padding: 8px 12px; border-radius: 10px; background: var(--warn-bg); }
+.missed-box .muted { font-size: 0.85rem; margin-top: 2px; }
+.story-made { margin: 0 0 6px; font-weight: 700; }
+.story-shop .cup-grid { margin-bottom: 6px; }
+.cup.unsold { background: transparent; border: 2px solid var(--muted); opacity: 0.8; }
+.story-line { margin: 6px 0 0; }
+.wf-row { display: grid; grid-template-columns: 5.5em 1fr 6.5em; align-items: center; gap: 8px; margin: 6px 0; }
+.wf-label { font-size: 0.9rem; }
+.wf-track { height: 16px; }
+.wf-bar { display: block; height: 100%; border-radius: 4px; min-width: 2px; }
+.wf-bar.plus { background: var(--good); }
+.wf-bar.minus { background: var(--bad); opacity: 0.85; }
+.wf-bar.total { box-shadow: inset 0 0 0 2px var(--text); }
+.wf-value { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+.wf-value.plus { color: var(--good); } .wf-value.minus { color: var(--bad); }
+.story-balance { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid var(--border); }
+.story-balance strong { font-size: 1.2rem; }
+.story-off { justify-content: center; font-size: 0.85rem; color: var(--muted); }
+
+/* 演出：安いお店から順に帯が伸び、カップが売れた色に変わり、お金の棒が伸びる */
+@keyframes story-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes story-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes story-sold { from { background: transparent; box-shadow: inset 0 0 0 2px var(--muted); } to { background: var(--good); box-shadow: none; } }
+.story.reveal .market-bar .seg { transform-origin: left; animation: story-grow 0.35s ease-out both; animation-delay: var(--d); }
+.story.reveal .story-table tr[style], .story.reveal .missed-box,
+.story.reveal .story-balance, .story.reveal .story-notes { animation: story-fade 0.35s ease-out both; animation-delay: var(--d); }
+.story.reveal .cup-grid .cup.sold { animation: story-sold 0.2s ease-out both; animation-delay: var(--d); }
+.story.reveal .cup-grid .cup.unsold { animation: story-fade 0.2s ease-out both; animation-delay: var(--d); }
+.story.reveal .wf-row { animation: story-fade 0.3s ease-out both; animation-delay: var(--d); }
+.story.reveal .wf-row .wf-bar { transform-origin: left; animation: story-grow 0.3s ease-out both; animation-delay: var(--d); }
+
+@media (min-width: 900px) and (min-height: 500px) {
+  .story { display: grid; grid-template-columns: 1.15fr 1fr; gap: 0 16px; align-items: start;
+    grid-template-areas: "skip skip" "notice notice" "market shop" "market money" "notes notes" "next next"; }
+  .story-skip { grid-area: skip; }
+  .story-notice { grid-area: notice; }
+  .story-market { grid-area: market; }
+  .story-shop { grid-area: shop; }
+  .story-money { grid-area: money; }
+  .story-notes { grid-area: notes; }
+  .story .result-next { grid-area: next; }
+}
+/* スマホ：市場の表を画面の幅に収める（シェアは帯に出ているので列を隠す） */
+@media (max-width: 899px), (max-height: 499px) {
+  .story-table { font-size: 0.85rem; }
+  .story-table th, .story-table td { padding-left: 2px; padding-right: 2px; }
+  .story-table .share { display: none; }
+  .story-table .dot { margin-right: 3px; }
+  .story-table { font-size: 0.8rem; }
+  .story-table th { white-space: normal; word-break: keep-all; }
+  .story-table td:first-child { white-space: nowrap; }
+  .story-table .robot { display: none; }
+}

@@ -65,6 +65,7 @@ export interface YearRow {
   sold: number;
   unsold: number;
   missed: number;
+  missedRevenue: number; // のがした売上
   months: number; // その年に営業した月の数（脱落したら少なくなる）
 }
 
@@ -97,6 +98,7 @@ export function yearlySummary(
       sold: s.totalSold,
       unsold: s.totalUnsold,
       missed: rs.reduce((a, r) => a + missedCups(r, teamId), 0),
+      missedRevenue: rs.reduce((a, r) => a + missedCups(r, teamId) * (r.teamResults.find((x) => x.teamId === teamId)?.price ?? 0), 0),
       months: s.rows.length,
     });
     startBalance = endBalance;

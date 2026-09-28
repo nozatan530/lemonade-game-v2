@@ -1,6 +1,5 @@
 // 月の結果と、期末の結果
 
-import { monthVisualHtml, type VisualContext } from './month-visual';
 import { rankTeams } from '../../engine/month';
 import type { MonthResult, TeamState } from '../../engine/types';
 import type { TeamSlot } from '../../sync/schema';
@@ -13,8 +12,7 @@ export function renderMonthResult(
   teamId: string,
   teams: Record<string, TeamSlot>,
   // ソロモードでは「次の月へ」ボタンを出す。eliminated：前の月までに脱落したお店と、脱落した月の表示（例：「6月」）
-  // visual：「今月のお客さん」を出すときに渡す（レシピ・バリスタの上限・先月の結果）
-  options: { onNext?: () => void; nextLabel?: string; eliminated?: Record<string, string>; visual?: VisualContext } = {},
+  options: { onNext?: () => void; nextLabel?: string; eliminated?: Record<string, string> } = {},
 ): void {
   const r = result.teamResults.find((t) => t.teamId === teamId);
   if (!r) {
@@ -39,8 +37,7 @@ export function renderMonthResult(
       .map(([id, m]) => `<tr class="out"><td>${esc(teams[id]?.name ?? id)}</td><td colspan="3" class="muted">${tr('result.outSince', { m })}</td></tr>`)
       .join('');
 
-  // 横に広い画面では、左に自分の結果とみんなの結果、右に「今月のお客さん」（style.css の .result-layout）
-  container.innerHTML = `<div class="result-layout${options.visual ? ' has-visual' : ''}">
+  container.innerHTML = `<div class="result-layout">
     ${r.eliminated ? `<div class="notice bad-notice result-notice">${tr('result.youOut')}</div>` : ''}
     <div class="card result-mine">
       <h2>${tr('result.h2')}</h2>
@@ -57,7 +54,6 @@ export function renderMonthResult(
       <p style="margin:6px 0 0">${tr('result.balance')} <strong class="num">${yen(r.balance)}</strong></p>
       <p class="muted" style="margin:4px 0 0">${tr('result.carry', { l: r.stock.lemon, s: r.stock.sugar })}</p>
     </div>
-    ${options.visual ? monthVisualHtml(result, teamId, teams, options.visual) : ''}
     <div class="card result-all">
       <h2>${tr('result.all.h2')}</h2>
       <p class="muted" style="margin:0 0 6px">${tr('result.all.market', { budget: yen(result.marketBudget) })}</p>

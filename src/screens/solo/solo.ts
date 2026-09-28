@@ -19,7 +19,7 @@ import {
 import { bindLangToggle, langToggleHtml } from '../../ui/lang-toggle';
 import { maybeStartInputCoach } from '../team/input-coach';
 import { DEFAULT_DECISION, mountInputView } from '../team/input-view';
-import { renderMonthResult } from '../team/result-view';
+import { renderMonthStory } from '../team/month-story';
 import { renderTermReport } from '../report/report';
 import { openSheets, sheetHtml, summarySheetHtml } from '../report/sheet';
 import { recordYearTitles } from '../../solo/achievements';
@@ -189,15 +189,13 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       const isLast = month >= s.config.months;
       const youOut = humanEliminatedMonth(s) !== null;
       const yearEnd = isYearEnd(month) && !isLast && !youOut;
-      renderMonthResult(view, result, HUMAN_ID, slotsOf(s), {
+      renderMonthStory(view, result, HUMAN_ID, slotsOf(s), {
         nextLabel: isLast || youOut ? t('solo.seeYear') : yearEnd ? t('solo.seeYearEnd', { y: yearOf(month) }) : t('solo.next'),
         onNext: () => update(nextSoloMonth(s)),
-        eliminated: Object.fromEntries(s.teams.filter((tm) => tm.eliminatedMonth !== undefined)
+        eliminated: Object.fromEntries(s.teams.filter((tm) => tm.eliminatedMonth !== undefined && tm.eliminatedMonth < month)
           .map((tm) => [tm.teamId, outLabel(s)(tm.eliminatedMonth!)])),
-        visual: {
-          recipe: s.config.recipe, baristaCapacity: s.config.baristaCapacity,
-          ...(s.results.length >= 2 ? { previous: s.results[s.results.length - 2]! } : {}),
-        },
+        recipe: s.config.recipe, baristaCapacity: s.config.baristaCapacity,
+        ...(s.results.length >= 2 ? { previous: s.results[s.results.length - 2]! } : {}),
       });
       return;
     }
