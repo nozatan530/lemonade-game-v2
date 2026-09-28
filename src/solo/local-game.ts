@@ -5,6 +5,7 @@ import { canChangeBarista, defaultConfig, withMarketPattern, withRandomMarketSiz
 import { CPU_TYPES, cpuViewOf, decideCpu } from '../engine/cpu-teams';
 import { closeMonth, isActive, openNextMonth, startTerm } from '../engine/month';
 import { seededRand } from '../engine/random';
+import { isYearEnd, MAX_YEARS, MONTHS_PER_YEAR } from '../engine/years';
 import type {
   CpuSkill, CpuType, GameConfig, MarketPattern, MonthConditions, MonthlyDecision, MonthResult, Submission, TeamState,
 } from '../engine/types';
@@ -34,7 +35,8 @@ export interface SoloState {
   conditions: MonthConditions; // いまの月の条件（結果・期末でも最後の月のまま持つ）
   results: MonthResult[];
   decided: Record<string, MonthlyDecision>; // 先月の実際の決定
-  phase: 'input' | 'result' | 'final';
+  // yearEnd：年の決算（2年以上のとき、年の終わりに見せる。conditions はもう次の年の1か月目）
+  phase: 'input' | 'result' | 'yearEnd' | 'final';
 }
 
 export function newSoloGame(options: {
@@ -43,6 +45,7 @@ export function newSoloGame(options: {
   difficulty?: SoloDifficulty;
   teamCount?: number; // お店の数（あなたを含む。3〜8）
   elimination?: boolean; // 脱落あり（資金がマイナスになったら脱落。初期値：なし）
+  years?: number; // 経営する年数（1〜5。初期値：1）
 }): SoloState {
   const difficulty = options.difficulty ?? 'normal';
   const teamCount = Math.min(SOLO_TEAM_COUNT.max, Math.max(SOLO_TEAM_COUNT.min, Math.floor(options.teamCount ?? SOLO_TEAM_COUNT.default)));
@@ -54,6 +57,7 @@ export function newSoloGame(options: {
   );
   // ソロはタイマーがないので、バリスタの人数を毎月決められる
   config.baristaCadence = 'monthly';
+  config.months = MONTHS_PER_YEAR * Math.min(MAX_YEARS, Math.max(1, Math.floor(options.years ?? 1)));
   if (options.elimination) config.elimination = true;
 
   // 4つの作戦から選び、どの店に割り当てるかもシードで決める（毎回ちがう並び）。
@@ -139,10 +143,16 @@ export function nextSoloMonth(state: SoloState): SoloState {
     const last = s.results[s.results.length - 1];
     const next = openNextMonth(s.config, s.conditions.month, s.teams.length, last?.prices ?? s.conditions.prices);
     if (!next) return { ...s, phase: 'final' };
+    // 人が続けているなら、年の終わりは決算を見せてから次の年へ
+    if (humanEliminatedMonth(s) === null) return { ...s, conditions: next, phase: isYearEnd(s.conditions.month) ? 'yearEnd' : 'input' };
     s = { ...s, conditions: next, phase: 'input' };
-    if (humanEliminatedMonth(s) === null) return s;
     s = { ...closeSoloMonth(s, null), phase: 'result' };
   }
+}
+
+// 年の決算を見たあと、次の年の1か月目へ
+export function startNextYear(state: SoloState): SoloState {
+  return state.phase === 'yearEnd' ? { ...state, phase: 'input' } : state;
 }
 
 // 人が脱落した月（脱落していなければ null）

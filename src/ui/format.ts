@@ -18,10 +18,12 @@ export function calendarMonth(month: number, startCalendarMonth: number): number
   return ((startCalendarMonth - 1 + month - 1) % 12) + 1;
 }
 
-// 「4月（1か月目）」／「April (Month 1)」
-export function monthLabel(month: number, startCalendarMonth: number): string {
+// 「4月（1か月目）」／「April (Month 1)」。2年以上のとき（totalMonths が12より多い）は「2年目 4月（1か月目）」
+export function monthLabel(month: number, startCalendarMonth: number, totalMonths = 12): string {
   const cal = calendarMonth(month, startCalendarMonth);
-  return t('month.label', { cal: lang() === 'en' ? MONTHS_EN_LONG[cal - 1]! : cal, n: month });
+  const calText = lang() === 'en' ? MONTHS_EN_LONG[cal - 1]! : cal;
+  if (totalMonths > 12) return t('month.labelYear', { y: Math.ceil(month / 12), cal: calText, n: ((month - 1) % 12) + 1 });
+  return t('month.label', { cal: calText, n: month });
 }
 
 // 「4月」／「Apr」（グラフや表で使う短い形）

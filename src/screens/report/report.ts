@@ -20,6 +20,10 @@ export interface ReportInput {
   startFund: number;
   startCalendarMonth: number;
   recipe: Recipe;
+  // 2年以上のとき：見出し（例：「第2期の決算」）と、年のはじめの各お店の資金（グラフの出発点）
+  heading?: string;
+  startBalances?: Record<string, number>;
+  outLabel?: (month: number) => string; // 脱落した月の表示（2年以上なら「2年目の6月」）
 }
 
 export function renderTermReport(container: HTMLElement, input: ReportInput): void {
@@ -29,6 +33,8 @@ export function renderTermReport(container: HTMLElement, input: ReportInput): vo
   const ranked = rankTeams([...teams]);
   const rank = ranked.findIndex((t) => t.teamId === meId) + 1;
   const monthName = (m: number) => monthShort(m, input.startCalendarMonth);
+  const outName = input.outLabel ?? monthName;
+  const startOf = (id: string) => input.startBalances?.[id] ?? input.startFund;
   const name = (id: string) => names[id] ?? id;
   const slash = lang() === 'en' ? '/' : '／';
 
@@ -37,10 +43,10 @@ export function renderTermReport(container: HTMLElement, input: ReportInput): vo
 
   container.innerHTML = `
     <div class="card center">
-      <h2>${t('report.h2')}</h2>
+      <h2>${input.heading ?? t('report.h2')}</h2>
       <p class="big" style="margin:4px 0">${t('report.rank', { rank })} <span class="muted" style="font-size:1rem">${t('report.ofTeams', { n: teams.length })}</span></p>
-      ${me ? `<p style="margin:0">${t('report.balance', { b: yen(me.balance), s: yen(input.startFund) })}</p>` : ''}
-      ${me?.eliminatedMonth !== undefined ? `<p class="bad" style="margin:6px 0 0"><strong>${t('report.youOut', { m: monthName(me.eliminatedMonth) })}</strong></p>` : ''}
+      ${me ? `<p style="margin:0">${t('report.balance', { b: yen(me.balance), s: yen(startOf(meId)) })}</p>` : ''}
+      ${me?.eliminatedMonth !== undefined ? `<p class="bad" style="margin:6px 0 0"><strong>${t('report.youOut', { m: outName(me.eliminatedMonth) })}</strong></p>` : ''}
     </div>
 
     <div class="card">
@@ -85,10 +91,10 @@ export function renderTermReport(container: HTMLElement, input: ReportInput): vo
     </div>
 
     <div class="card">
-      <h2>${t('report.final')}</h2>
+      <h2>${input.heading ? t('report.finalYear') : t('report.final')}</h2>
       <table class="table"><tr><th>${t('report.th.team')}</th><th>${t('result.balance')}</th><th>${t('report.th.yearProfit')}</th></tr>
         ${ranked.map((tm, i) => `<tr class="${tm.teamId === meId ? 'me' : ''}"><td>${i + 1}. ${esc(name(tm.teamId))}${tm.eliminatedMonth !== undefined
-            ? ` <span class="badge bad">${t('result.outSince', { m: monthName(tm.eliminatedMonth) })}</span>` : ''}</td>
+            ? ` <span class="badge bad">${t('result.outSince', { m: outName(tm.eliminatedMonth) })}</span>` : ''}</td>
           <td>${yen(tm.balance)}</td><td class="${tm.totalProfit >= 0 ? 'good' : 'bad'}">${signedYen(tm.totalProfit)}</td></tr>`).join('')}
       </table>
     </div>`;
@@ -105,7 +111,7 @@ export function renderTermReport(container: HTMLElement, input: ReportInput): vo
   if (teams.length <= MAX_SERIES) {
     const balanceSeries: Series[] = teams.map((t, i) => ({
       name: name(t.teamId), slot: i, emphasis: t.teamId === meId,
-      values: [input.startFund, ...results.map((r) => r.teamResults.find((x) => x.teamId === t.teamId)?.balance ?? null)],
+      values: [startOf(t.teamId), ...results.map((r) => r.teamResults.find((x) => x.teamId === t.teamId)?.balance ?? null)],
     }));
     const priceSeries: Series[] = teams.map((t, i) => ({
       name: name(t.teamId), slot: i, emphasis: t.teamId === meId,

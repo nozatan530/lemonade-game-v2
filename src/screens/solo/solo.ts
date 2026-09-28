@@ -4,20 +4,24 @@
 import { rankTeams } from '../../engine/month';
 import { canChangeBarista, MARKET_PATTERNS } from '../../engine/config';
 import type { MarketPattern } from '../../engine/types';
-import { t } from '../../i18n';
+import { lang, t } from '../../i18n';
 import { cpuDesc, cpuLabel, difficultyDesc, difficultyLabel, newsText, patternDesc, patternLabel, soloTeamName } from '../../i18n/content';
 import {
-  clearSolo, HUMAN_ID, humanEliminatedMonth, lastHumanDecision, loadSolo, newSoloGame, nextSoloMonth, saveSolo, SOLO_DIFFICULTY, SOLO_TEAM_COUNT, submitHuman,
+  clearSolo, HUMAN_ID, humanEliminatedMonth, lastHumanDecision, startNextYear, loadSolo, newSoloGame, nextSoloMonth, saveSolo, SOLO_DIFFICULTY, SOLO_TEAM_COUNT, submitHuman,
   type SoloDifficulty, type SoloState,
 } from '../../solo/local-game';
 import { monthKey, publicConfigOf, type Clock, type TeamSlot } from '../../sync/schema';
-import { esc, monthLabel, monthShort, yen } from '../../ui/format';
+import { esc, monthLabel, monthShort, signedYen, yen } from '../../ui/format';
+import { barChartSvg } from '../../ui/bar-chart';
+import {
+  isYearEnd, MAX_YEARS, MONTHS_PER_YEAR, resultsOfYear, standingsAt, yearlySummary, yearOf, yearsOf,
+} from '../../engine/years';
 import { bindLangToggle, langToggleHtml } from '../../ui/lang-toggle';
 import { maybeStartInputCoach } from '../team/input-coach';
 import { DEFAULT_DECISION, mountInputView } from '../team/input-view';
 import { renderMonthResult } from '../team/result-view';
 import { renderTermReport } from '../report/report';
-import { openResultSheet } from '../report/sheet';
+import { openSheets, sheetHtml, summarySheetHtml } from '../report/sheet';
 import { mountSurveyForm } from '../survey/survey-form';
 
 // resume：言語を切り替えたときなど、保存されたゲームがあればそのまま続きを表示する
@@ -39,7 +43,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
     setTimeout(() => { renderGame(); window.scrollTo(0, 0); }, 0);
   }
 
-  function renderStart(saved: SoloState | null, prev?: { difficulty: SoloDifficulty; pattern: MarketPattern; teamCount: number; elimination: boolean }) {
+  function renderStart(saved: SoloState | null, prev?: { difficulty: SoloDifficulty; pattern: MarketPattern; teamCount: number; elimination: boolean; years: number }) {
     root.innerHTML = `<div class="page">
       <div class="lang-bar">${langToggleHtml()}</div>
       <h1>${t('solo.h1')}</h1>
@@ -49,7 +53,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       </div>
       ${saved ? `<div class="card">
         <h2>${t('solo.resume.h2')}</h2>
-        <p>${t('solo.resume.teams', { n: saved.teams.length })}${saved.config.elimination ? t('solo.resume.elimination') : ''}${saved.difficulty ? t('solo.resume.difficulty', { d: esc(difficultyLabel(saved.difficulty)) }) : ''}${saved.config.market.pattern ? t('solo.resume.pattern', { p: esc(patternLabel(saved.config.market.pattern)) }) : ''}${saved.phase === 'final' ? t('solo.resume.final') : t('solo.resume.progress', { month: monthLabel(saved.conditions.month, saved.config.startCalendarMonth) })}</p>
+        <p>${yearsOf(saved.config) > 1 ? t('solo.resume.years', { n: yearsOf(saved.config) }) : ''}${t('solo.resume.teams', { n: saved.teams.length })}${saved.config.elimination ? t('solo.resume.elimination') : ''}${saved.difficulty ? t('solo.resume.difficulty', { d: esc(difficultyLabel(saved.difficulty)) }) : ''}${saved.config.market.pattern ? t('solo.resume.pattern', { p: esc(patternLabel(saved.config.market.pattern)) }) : ''}${saved.phase === 'final' ? t('solo.resume.final') : t('solo.resume.progress', { month: monthLabel(saved.phase === 'yearEnd' ? saved.conditions.month - 1 : saved.conditions.month, saved.config.startCalendarMonth, saved.config.months) })}</p>
         <button class="btn" id="resume">${t('solo.resume.btn')}</button>
       </div>` : ''}
       <div class="card">
@@ -64,6 +68,11 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
           <select id="teamCount">${Array.from({ length: SOLO_TEAM_COUNT.max - SOLO_TEAM_COUNT.min + 1 }, (_, i) => SOLO_TEAM_COUNT.min + i)
             .map((n) => `<option value="${n}" ${n === SOLO_TEAM_COUNT.default ? 'selected' : ''}>${t('solo.teamCount.option', { n, cpu: n - 1 })}</option>`).join('')}</select>
           <span class="muted field-help">${t('solo.teamCount.help')}</span>
+        </label>
+        <label class="field"><span class="field-label">${t('solo.years')}</span>
+          <select id="years">${Array.from({ length: MAX_YEARS }, (_, i) => i + 1)
+            .map((n) => `<option value="${n}" ${n === 1 ? 'selected' : ''}>${t('solo.years.option', { n, m: n * MONTHS_PER_YEAR })}</option>`).join('')}</select>
+          <span class="muted field-help">${t('solo.years.help')}</span>
         </label>
         <label class="check field" style="align-items:flex-start"><input type="checkbox" id="elimination" style="margin-top:4px">
           <span><strong>${t('solo.elimination')}</strong><span class="muted field-help">${t('solo.elimination.help')}</span></span>
@@ -84,6 +93,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       root.querySelector<HTMLInputElement>(`input[name="pattern"][value="${prev.pattern}"]`)!.checked = true;
       root.querySelector<HTMLSelectElement>('#teamCount')!.value = String(prev.teamCount);
       root.querySelector<HTMLInputElement>('#elimination')!.checked = prev.elimination;
+      root.querySelector<HTMLSelectElement>('#years')!.value = String(prev.years);
     }
     root.querySelector('#resume')?.addEventListener('click', () => { state = saved; renderGame(); });
     root.querySelector('#start')!.addEventListener('click', () => {
@@ -95,6 +105,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
         difficulty: (root.querySelector<HTMLInputElement>('input[name="difficulty"]:checked')?.value ?? 'normal') as SoloDifficulty,
         teamCount: Number(root.querySelector<HTMLSelectElement>('#teamCount')!.value),
         elimination: root.querySelector<HTMLInputElement>('#elimination')!.checked,
+        years: Number(root.querySelector<HTMLSelectElement>('#years')!.value),
       });
       state = s;
       saveSolo(s);
@@ -116,9 +127,11 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
     if (!s) return;
     const me = s.teams.find((tm) => tm.teamId === HUMAN_ID)!;
     const month = s.conditions.month;
+    // 年の決算のときは、もう次の年の1か月目の条件になっているので、終わった月を出す
+    const shownMonth = s.phase === 'yearEnd' ? month - 1 : month;
     root.innerHTML = `<div class="page">
       <div class="topbar"><span class="team">🍋 ${esc(soloTeamName(HUMAN_ID))}</span>
-        <span class="muted">${monthLabel(month, s.config.startCalendarMonth)}</span>
+        <span class="muted">${monthLabel(shownMonth, s.config.startCalendarMonth, s.config.months)}</span>
         <span class="num">${yen(me.balance)}</span></div>
       <div class="game-actions">
         ${langToggleHtml()}
@@ -134,7 +147,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       if (!confirm(t('solo.confirmReset'))) return;
       clearSolo();
       state = null;
-      renderStart(null, { difficulty: s.difficulty ?? 'normal', pattern: s.config.market.pattern ?? 'stable', teamCount: s.teams.length, elimination: s.config.elimination === true });
+      renderStart(null, { difficulty: s.difficulty ?? 'normal', pattern: s.config.market.pattern ?? 'stable', teamCount: s.teams.length, elimination: s.config.elimination === true, years: yearsOf(s.config) });
     });
     const view = root.querySelector<HTMLElement>('#view')!;
 
@@ -160,11 +173,12 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       const result = s.results[s.results.length - 1]!;
       const isLast = month >= s.config.months;
       const youOut = humanEliminatedMonth(s) !== null;
+      const yearEnd = isYearEnd(month) && !isLast && !youOut;
       renderMonthResult(view, result, HUMAN_ID, slotsOf(s), {
-        nextLabel: isLast || youOut ? t('solo.seeYear') : t('solo.next'),
+        nextLabel: isLast || youOut ? t('solo.seeYear') : yearEnd ? t('solo.seeYearEnd', { y: yearOf(month) }) : t('solo.next'),
         onNext: () => update(nextSoloMonth(s)),
         eliminated: Object.fromEntries(s.teams.filter((tm) => tm.eliminatedMonth !== undefined)
-          .map((tm) => [tm.teamId, monthShort(tm.eliminatedMonth!, s.config.startCalendarMonth)])),
+          .map((tm) => [tm.teamId, outLabel(s)(tm.eliminatedMonth!)])),
         visual: {
           recipe: s.config.recipe, baristaCapacity: s.config.baristaCapacity,
           ...(s.results.length >= 2 ? { previous: s.results[s.results.length - 2]! } : {}),
@@ -173,13 +187,57 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       return;
     }
 
-    // 期末：1年の振り返りと、ロボット店長の作戦の答え合わせ
-    renderTermReport(view, {
-      results: s.results, teams: s.teams, names: names(s), meId: HUMAN_ID,
-      startFund: s.config.startFund, startCalendarMonth: s.config.startCalendarMonth, recipe: s.config.recipe,
-    });
+    // 年の決算（2年以上のとき、年の終わりに）：その年の振り返りと、次の年へ進むボタン
+    if (s.phase === 'yearEnd') {
+      const year = yearOf(s.results[s.results.length - 1]!.month);
+      renderYearReport(view, s, year, t('report.yearHeading', { y: year }));
+      const box = document.createElement('div');
+      box.innerHTML = `<button class="btn secondary" id="sheet" type="button">${t('sheet.openYear', { y: year })}</button>
+        <button class="btn" id="nextYear" type="button">${t('solo.nextYear', { y: year + 1 })}</button>`;
+      view.appendChild(box);
+      box.querySelector('#sheet')!.addEventListener('click', () => openSheets([yearSheet(s, year)]));
+      box.querySelector('#nextYear')!.addEventListener('click', () => update(startNextYear(s)));
+      return;
+    }
+
+    // 期末：振り返りと、ロボット店長の作戦の答え合わせ
+    const years = yearsOf(s.config);
+    if (years === 1) {
+      renderYearReport(view, s, 1);
+    } else {
+      // 2年以上：通算の記録のあとに、最後に営業した年の決算
+      const rows = yearlySummary(s.results, s.teams, HUMAN_ID, s.config.recipe, s.config.startFund);
+      const ranked = rankTeams([...s.teams]);
+      const summary = document.createElement('div');
+      summary.innerHTML = `<div class="card center">
+          <h2>${t('report.h2Years', { n: years })}</h2>
+          <p class="big" style="margin:4px 0">${t('report.rank', { rank: ranked.findIndex((tm) => tm.teamId === HUMAN_ID) + 1 })} <span class="muted" style="font-size:1rem">${t('report.ofTeams', { n: s.teams.length })}</span></p>
+          <p style="margin:0">${t('report.balance', { b: yen(me.balance), s: yen(s.config.startFund) })}</p>
+        </div>
+        <div class="card"><h2>${t('years.h2')}</h2>
+          <div class="chart" id="yearChart"></div>
+          <div class="table-scroll"><table class="table report-table">
+            <tr><th>${t('years.th.year')}</th><th>${t('years.th.sales')}</th><th>${t('years.th.cost')}</th><th>${t('years.th.profit')}</th><th>${t('years.th.end')}</th><th>${t('years.th.rank')}</th></tr>
+            ${rows.map((r) => `<tr><td>${t('years.label', { y: r.year })}</td><td>${yen(r.revenue)}</td><td>${yen(r.cost)}</td>
+              <td class="${r.profit >= 0 ? 'good' : 'bad'}">${signedYen(r.profit)}</td><td>${yen(r.endBalance)}</td>
+              <td>${t('sheet.tile.rankValue', { rank: r.rank, n: s.teams.length })}</td></tr>`).join('')}
+          </table></div>
+        </div>`;
+      view.appendChild(summary);
+      const chart = summary.querySelector<HTMLElement>('#yearChart')!;
+      chart.innerHTML = barChartSvg({
+        values: rows.map((r) => r.profit), labels: rows.map((r) => t('years.label', { y: r.year })),
+        formatY: (v) => (lang() === 'en' ? `${Math.round(v / 1000)}k` : `${Math.round(v / 10000)}万`), formatValue: signedYen,
+        width: Math.max(300, chart.clientWidth || 320), height: 180, ariaLabel: t('years.chart'),
+      });
+      const lastYear = rows.length > 0 ? rows[rows.length - 1]!.year : 1;
+      const last = document.createElement('div');
+      view.appendChild(last);
+      renderYearReport(last, s, lastYear, t('report.yearHeading', { y: lastYear }));
+    }
     const reveal = document.createElement('div');
-    reveal.innerHTML = `<button class="btn" id="sheet" type="button">${t('sheet.open')}</button>
+    const sheetYears = yearlySummary(s.results, s.teams, HUMAN_ID, s.config.recipe, s.config.startFund).map((r) => r.year);
+    reveal.innerHTML = `<button class="btn" id="sheet" type="button">${years === 1 ? t('sheet.open') : t('sheet.openAll', { n: sheetYears.length + 1 })}</button>
       <div class="card">
         <h2>${t('solo.reveal.h2')}</h2>
         <table class="table">${Object.entries(s.cpu).map(([id, type]) => `<tr>
@@ -191,15 +249,13 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       <div class="card"><h2>${t('solo.survey.h2')}</h2><div id="survey"></div></div>
       <button class="btn" id="again">${t('solo.again')}</button>`;
     view.appendChild(reveal);
-    reveal.querySelector('#sheet')!.addEventListener('click', () => openResultSheet({
-      results: s.results, teams: s.teams, meId: HUMAN_ID, startFund: s.config.startFund,
-      startCalendarMonth: s.config.startCalendarMonth, recipe: s.config.recipe, baristaCapacity: s.config.baristaCapacity,
-      condition: {
-        ...(s.difficulty ? { difficulty: difficultyLabel(s.difficulty) } : {}),
-        ...(s.config.market.pattern ? { pattern: patternLabel(s.config.market.pattern) } : {}),
-        teamCount: s.teams.length, elimination: s.config.elimination === true,
-      },
-    }));
+    reveal.querySelector('#sheet')!.addEventListener('click', () => openSheets(years === 1
+      ? [yearSheet(s, 1)]
+      : [...sheetYears.map((y) => yearSheet(s, y)), summarySheetHtml({
+        results: s.results, teams: s.teams, meId: HUMAN_ID, startFund: s.config.startFund,
+        startCalendarMonth: s.config.startCalendarMonth, recipe: s.config.recipe, baristaCapacity: s.config.baristaCapacity,
+        condition: conditionOf(s), years,
+      })]));
     const ranked = rankTeams([...s.teams]);
     mountSurveyForm(reveal.querySelector('#survey')!, {
       source: 'solo-final',
@@ -210,6 +266,53 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       profit: s.teams.find((tm) => tm.teamId === HUMAN_ID)!.totalProfit,
     }, `solo-${s.config.market.seed}`);
     reveal.querySelector('#again')!.addEventListener('click', () => { clearSolo(); state = null; renderStart(null); });
+  }
+
+  // シートの見出しに出す条件
+  function conditionOf(s: SoloState) {
+    return {
+      ...(s.difficulty ? { difficulty: difficultyLabel(s.difficulty) } : {}),
+      ...(s.config.market.pattern ? { pattern: patternLabel(s.config.market.pattern) } : {}),
+      teamCount: s.teams.length, elimination: s.config.elimination === true,
+    };
+  }
+
+  // 脱落した月の表示（2年以上なら「2年目の6月」）
+  function outLabel(s: SoloState) {
+    return (m: number) => (yearsOf(s.config) > 1
+      ? t('sheet.monthOfYear', { y: yearOf(m), m: monthShort(m, s.config.startCalendarMonth) })
+      : monthShort(m, s.config.startCalendarMonth));
+  }
+
+  // その年のはじめ・終わりの時点の各お店
+  function yearStandings(s: SoloState, year: number) {
+    const rs = resultsOfYear(s.results, year);
+    const endMonth = rs.length > 0 ? rs[rs.length - 1]!.month : year * MONTHS_PER_YEAR;
+    const atStart = standingsAt(s.results, s.teams, (year - 1) * MONTHS_PER_YEAR, s.config.startFund);
+    const startBalances = Object.fromEntries(atStart.map((tm) => [tm.teamId, tm.balance]));
+    // 「1年のもうけ」はその年の分（年の終わりまでの合計 − 年のはじめまでの合計）
+    const teams = standingsAt(s.results, s.teams, endMonth, s.config.startFund).map((tm, i) => ({
+      ...tm, totalProfit: tm.totalProfit - atStart[i]!.totalProfit,
+    }));
+    return { rs, teams, startBalances };
+  }
+
+  function renderYearReport(container: HTMLElement, s: SoloState, year: number, heading?: string) {
+    const { rs, teams, startBalances } = yearStandings(s, year);
+    renderTermReport(container, {
+      results: rs, teams, names: names(s), meId: HUMAN_ID,
+      startFund: s.config.startFund, startCalendarMonth: s.config.startCalendarMonth, recipe: s.config.recipe,
+      startBalances, outLabel: outLabel(s), ...(heading ? { heading } : {}),
+    });
+  }
+
+  function yearSheet(s: SoloState, year: number): string {
+    const { rs, teams, startBalances } = yearStandings(s, year);
+    return sheetHtml({
+      results: rs, teams, meId: HUMAN_ID, startFund: startBalances[HUMAN_ID] ?? s.config.startFund,
+      startCalendarMonth: s.config.startCalendarMonth, recipe: s.config.recipe, baristaCapacity: s.config.baristaCapacity,
+      condition: conditionOf(s), ...(yearsOf(s.config) > 1 ? { year } : {}),
+    });
   }
 
   return () => {};

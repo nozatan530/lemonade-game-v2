@@ -325,6 +325,7 @@ body.sheet-open { overflow: hidden; }
 .sheet-toolbar .btn { width: auto; margin: 0; padding: 8px 16px; }
 .sheet-toolbar p { margin: 0; font-size: 0.85rem; flex-basis: 100%; }
 .sheet-scroll { padding: 12px; }
+.sheet-page + .sheet-page { margin-top: 16px; }
 .sheet-page {
   width: 718px; margin: 0 auto; padding: 22px 24px; background: #fff; color: var(--s-ink);
   font-size: 11px; line-height: 1.45; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
@@ -366,6 +367,7 @@ body.sheet-open { overflow: hidden; }
 .s-box ul { margin: 0; padding-left: 15px; } .s-box li { margin: 1px 0; }
 .s-reflect { display: grid; gap: 6px; }
 .s-answer { height: 72px; border: 1px solid var(--s-line); border-radius: 8px; padding: 5px 9px; }
+.s-answer.tall { height: 120px; }
 .s-q { font-weight: 700; }
 .s-num { display: inline-grid; place-items: center; width: 16px; height: 16px; margin-right: 6px; border-radius: 50%; background: var(--s-ink); color: #fff; font-size: 10px; }
 .s-hint { margin-left: 8px; font-weight: 400; font-size: 9.5px; color: var(--s-muted); }
@@ -378,6 +380,7 @@ body.sheet-open { overflow: hidden; }
   .sheet-toolbar { display: none; }
   .sheet-scroll { padding: 0; }
   .sheet-page { zoom: 1 !important; box-shadow: none; margin: 0; padding: 0; width: auto; }
+  .sheet-page + .sheet-page { break-before: page; margin-top: 0; }
 }
 
 /* ---- 月の結果：今月のお客さん ---- */
