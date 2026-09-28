@@ -5,7 +5,8 @@ import { canChangeBarista, defaultConfig, withMarketPattern, withRandomMarketSiz
 import { CPU_TYPES, cpuViewOf, decideCpu } from '../engine/cpu-teams';
 import { closeMonth, isActive, openNextMonth, startTerm } from '../engine/month';
 import { seededRand } from '../engine/random';
-import { isYearEnd, MAX_YEARS, MONTHS_PER_YEAR } from '../engine/years';
+import { yearTitles, type TitleId } from '../engine/titles';
+import { isYearEnd, MAX_YEARS, MONTHS_PER_YEAR, resultsOfYear, standingsAt, yearlySummary } from '../engine/years';
 import type {
   CpuSkill, CpuType, GameConfig, MarketPattern, MonthConditions, MonthlyDecision, MonthResult, Submission, TeamState,
 } from '../engine/types';
@@ -163,6 +164,22 @@ export function humanEliminatedMonth(state: SoloState): number | null {
 // 入力欄の初期値にする、人の先月の決定
 export function lastHumanDecision(state: SoloState): MonthlyDecision | null {
   return state.decided[HUMAN_ID] ?? null;
+}
+
+// その年の人の肩書き（その年に営業していなければ空）
+export function titlesOfYear(state: SoloState, year: number): TitleId[] {
+  const rs = resultsOfYear(state.results, year);
+  if (!rs.some((r) => r.teamResults.some((t) => t.teamId === HUMAN_ID))) return [];
+  const endMonth = rs[rs.length - 1]!.month;
+  const history = yearlySummary(state.results, state.teams, HUMAN_ID, state.config.recipe, state.config.startFund)
+    .filter((y) => y.year < year)
+    .map((y) => ({ profit: y.profit, rank: y.rank }));
+  return yearTitles({
+    results: rs, meId: HUMAN_ID, recipe: state.config.recipe, baristaCapacity: state.config.baristaCapacity,
+    elimination: state.config.elimination === true,
+    endStandings: standingsAt(state.results, state.teams, endMonth, state.config.startFund),
+    history,
+  });
 }
 
 // ---- ブラウザへの保存（その端末だけ。使えないときは保存しないで遊べる） ----

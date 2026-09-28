@@ -348,7 +348,10 @@ body.sheet-open { overflow: hidden; }
 .s-tile-value { font-size: 16px; font-weight: 800; white-space: nowrap; }
 .s-tile.hero .s-tile-value { font-size: 20px; }
 .s-tile.neg .s-tile-value { color: var(--s-bad); }
-.s-badge { display: inline-block; margin: 2px 0; padding: 0 8px; border-radius: 999px; background: #f6c945; font-size: 10px; font-weight: 800; }
+.s-titles { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-top: 7px; }
+.s-titles-label { font-size: 10px; font-weight: 700; color: var(--s-muted); margin-right: 2px; }
+.s-chip { display: inline-block; padding: 1px 9px; border-radius: 999px; background: #f6c945; font-size: 10.5px; font-weight: 800; }
+.s-chip.plain { background: #eef1f3; }
 .s-chart { border: 1px solid var(--s-line); border-radius: 8px; padding: 2px 8px; }
 .s-chart svg { display: block; width: 100%; height: auto; }
 .s-chart .pos { fill: var(--s-good); } .s-chart .neg { fill: var(--s-bad); }
@@ -402,3 +405,19 @@ body.sheet-open { overflow: hidden; }
 .flow-legend .me { font-weight: 700; }
 .insights { margin: 10px 0 0; padding-left: 1.2em; }
 .insights li { margin: 3px 0; }
+
+/* ---- 肩書き（画面） ---- */
+.title-chip { display: inline-block; padding: 3px 12px; border-radius: 999px; background: var(--accent); color: var(--accent-text); font-weight: 800; }
+.title-chip.plain { background: var(--surface2); color: var(--text); }
+.title-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.title-list li { display: grid; gap: 3px; justify-items: start; }
+.title-list .desc { font-size: 0.9rem; color: var(--muted); }
+.title-new { margin-left: 6px; padding: 0 6px; border-radius: 4px; background: var(--bad); color: #fff; font-size: 0.72rem; vertical-align: 2px; }
+.title-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.title-card { border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px; background: var(--surface); }
+.title-card .name { font-weight: 800; }
+.title-card .desc { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+.title-card.locked { background: transparent; border-style: dashed; }
+.title-card.locked .name { color: var(--muted); }
+.title-progress { height: 8px; border-radius: 999px; background: var(--border); overflow: hidden; margin: 6px 0 10px; }
+.title-progress span { display: block; height: 100%; background: var(--accent); }

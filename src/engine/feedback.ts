@@ -108,8 +108,6 @@ export function monthInsights(
 
 // あなたの作戦のタイプ。ロボット店長の4つの作戦と同じ名前で、どれに近いかを見る
 export type PlayStyle = 'discount' | 'premium' | 'follower' | 'cautious';
-// 称号
-export type TermTitle = 'master' | 'skilled' | 'rookie' | 'apprentice';
 
 export type TermNoteId =
   // よかったところ
@@ -134,7 +132,6 @@ export interface TermNote {
 
 export interface TermFeedback {
   style: PlayStyle;
-  title: TermTitle;
   rank: number;
   teamCount: number;
   missedByMonth: Record<number, number>; // 月 → 売り逃した杯数
@@ -200,11 +197,6 @@ export function termFeedback(
     : sellThrough >= 0.95 && totalMissed > sold * 0.3 ? 'cautious'
     : 'follower';
 
-  const title: TermTitle = profit < 0 || final.eliminatedMonth !== undefined ? 'apprentice'
-    : final.rank === 1 ? 'master'
-    : final.rank <= Math.ceil(final.teamCount / 2) ? 'skilled'
-    : 'rookie';
-
   const good: TermNote[] = [];
   if (final.rank === 1 && final.eliminatedMonth === undefined) good.push({ id: 'rankFirst', params: { teams: final.teamCount } });
   if (final.eliminatedMonth === undefined) good.push({ id: 'survived', params: { months: mine.length } });
@@ -228,7 +220,7 @@ export function termFeedback(
   if (next.length === 0) next.push({ id: 'noIssue', params: {} });
 
   return {
-    style, title, rank: final.rank, teamCount: final.teamCount, missedByMonth, totalMissed,
+    style, rank: final.rank, teamCount: final.teamCount, missedByMonth, totalMissed,
     good: good.slice(0, 3), next: next.slice(0, 3),
   };
 }

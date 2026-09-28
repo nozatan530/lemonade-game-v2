@@ -7,6 +7,10 @@
 //   #/solo              ソロモード（ブラウザの中だけ。Firebase を使わない）
 //   #/dev               開発用（エミュレーター接続時だけ）
 
+import { esc } from './ui/format';
+import { TITLE_EMOJI, TITLE_IDS } from './engine/titles';
+import { loadAchievements } from './solo/achievements';
+import { titleChip, titleDesc, titleName } from './ui/titles';
 import './ui/style.css';
 import { applyDocumentLang, t } from './i18n';
 import { bindLangToggle, langToggleHtml } from './ui/lang-toggle';
@@ -87,6 +91,7 @@ function renderHome() {
       <p style="margin:0 0 4px">${t('home.solo.p')}</p>
       <a class="btn" href="#/solo">${t('home.solo.btn')}</a>
     </div>
+    ${titleCollectionHtml()}
     <div class="card">
       <h2>${t('home.multi.h2')} ${MULTIPLAYER ? '' : `<span class="chip">${t('home.multi.badge')}</span>`}</h2>
       <p class="muted" style="margin:0 0 4px">${t('home.multi.p')}${MULTIPLAYER ? '' : t('home.multi.soon')}</p>
@@ -98,6 +103,26 @@ function renderHome() {
     </div>
     <p class="center"><a href="#/survey">${t('home.survey')}</a></p></div>`;
   bindLangToggle(root);
+}
+
+// 肩書きコレクション：もらった肩書きは名前つき、まだの肩書きは条件だけ見せる
+function titleCollectionHtml(): string {
+  const got = loadAchievements().titles;
+  const n = TITLE_IDS.filter((id) => got[id]).length;
+  const total = TITLE_IDS.length;
+  return `<div class="card">
+      <h2>${t('home.titles.h2')}</h2>
+      <p style="margin:0">${t('home.titles.progress', { n, total })}</p>
+      <div class="title-progress"><span style="width:${(n / total) * 100}%"></span></div>
+      ${n > 0 ? `<p style="margin:0 0 8px;display:flex;flex-wrap:wrap;gap:6px">${TITLE_IDS.filter((id) => got[id])
+        .map((id) => titleChip(id, 'title-chip', got[id]!.count > 1 ? ` ${t('titles.count', { n: got[id]!.count })}` : '')).join('')}</p>` : ''}
+      <details${n === 0 ? ' open' : ''}><summary class="muted">${t('home.titles.hint')}</summary>
+        <div class="title-grid" style="margin-top:8px">${TITLE_IDS.map((id) => got[id]
+          ? `<div class="title-card"><div class="name">${TITLE_EMOJI[id]} ${esc(titleName(id))}</div><div class="desc">${esc(titleDesc(id))}</div></div>`
+          : `<div class="title-card locked"><div class="name">🔒 ${t('home.titles.locked')}</div><div class="desc">${esc(titleDesc(id))}</div></div>`).join('')}
+        </div>
+      </details>
+    </div>`;
 }
 
 function renderComingSoon() {

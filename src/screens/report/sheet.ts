@@ -7,10 +7,12 @@ import { termSummary } from '../../engine/accounting';
 import { termFeedback, type TermFeedback, type TermNote } from '../../engine/feedback';
 import { rankTeams } from '../../engine/month';
 import type { MonthResult, Recipe, TeamState } from '../../engine/types';
+import type { TitleId } from '../../engine/titles';
 import { yearlySummary, yearOf } from '../../engine/years';
 import { lang, t, type Key } from '../../i18n';
 import { cpuLabel } from '../../i18n/content';
 import { esc, monthShort, signedYen, yen } from '../../ui/format';
+import { titleChip } from '../../ui/titles';
 
 type Condition = { difficulty?: string; pattern?: string; teamCount: number; elimination: boolean }; // 表示用の文字
 
@@ -24,6 +26,7 @@ export interface SheetInput {
   baristaCapacity: number;
   condition: Condition;
   year?: number; // 何年目のシートか（2年以上のときだけ）
+  titles?: TitleId[]; // この年の肩書き（表示の順）
 }
 
 export interface SummaryInput {
@@ -36,6 +39,7 @@ export interface SummaryInput {
   baristaCapacity: number;
   condition: Condition;
   years: number;
+  titles?: { id: TitleId; count: number }[]; // 全期間で集めた肩書き
 }
 
 // 1枚だけ
@@ -142,12 +146,13 @@ export function sheetHtml(input: SheetInput): string {
     ${headerHtml(t('sheet.kicker'), year ? t('sheet.titleYear', { y: year }) : t('sheet.title'), input.condition)}
 
     <section class="s-tiles">
-      ${tileHtml(t('sheet.tile.gain'), signedYen(s.totalProfit), 'hero', `<span class="s-badge">${t(`sheet.badge.${fb.title}` as Key)}</span>`)}
+      ${tileHtml(t('sheet.tile.gain'), signedYen(s.totalProfit), 'hero')}
       ${tileHtml(t('sheet.tile.sales'), yen(s.totalRevenue))}
       ${tileHtml(t('sheet.tile.cost'), yen(s.totalMaterialCost + s.totalLaborCost))}
       ${tileHtml(t(year ? 'sheet.tile.yearEnd' : 'sheet.tile.final', { s: yen(input.startFund) }), yen(me.balance), me.balance < 0 ? 'neg' : '')}
       ${tileHtml(t('sheet.tile.rank'), t('sheet.tile.rankValue', { rank, n: input.teams.length }))}
     </section>
+    ${input.titles && input.titles.length > 0 ? `<div class="s-titles"><span class="s-titles-label">🏅 ${t('sheet.titles')}</span>${input.titles.map((id) => titleChip(id, 's-chip')).join('')}</div>` : ''}
 
     <h2>${t('sheet.chart')}</h2>
     <div class="s-chart">${profitBars(s.rows.map((r) => ({ label: month(r.month), value: r.profit })))}</div>
@@ -192,12 +197,14 @@ export function summarySheetHtml(input: SummaryInput): string {
     ${headerHtml(t('sheet.summary.kicker'), t('sheet.summary.title', { n }), input.condition)}
 
     <section class="s-tiles">
-      ${tileHtml(t('sheet.summary.tile.gain', { n }), signedYen(sum((r) => r.profit)), 'hero', `<span class="s-badge">${t(`sheet.badge.${fb.title}` as Key)}</span>`)}
+      ${tileHtml(t('sheet.summary.tile.gain', { n }), signedYen(sum((r) => r.profit)), 'hero')}
       ${tileHtml(t('sheet.summary.tile.sales'), yen(sum((r) => r.revenue)))}
       ${tileHtml(t('sheet.summary.tile.cost'), yen(sum((r) => r.cost)))}
       ${tileHtml(t('sheet.tile.final', { s: yen(input.startFund) }), yen(me.balance), me.balance < 0 ? 'neg' : '')}
       ${tileHtml(t('sheet.summary.tile.rank'), t('sheet.tile.rankValue', { rank, n: input.teams.length }))}
     </section>
+    ${input.titles && input.titles.length > 0 ? `<div class="s-titles"><span class="s-titles-label">🏅 ${t('sheet.summary.titles')}</span>${input.titles
+    .map(({ id, count }) => titleChip(id, 's-chip', count > 1 ? ` ${t('titles.count', { n: count })}` : '')).join('')}</div>` : ''}
 
     <h2>${t('sheet.summary.chart')}</h2>
     <div class="s-chart">${profitBars(rows.map((r) => ({ label: t('years.label', { y: r.year }), value: r.profit })))}</div>

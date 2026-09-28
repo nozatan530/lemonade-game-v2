@@ -106,14 +106,6 @@ describe('1年の振り返り（結果シート）', () => {
     expect(termFeedback(year(three(50), 16000), 'b', recipe, 50, final).style).toBe('follower');
   });
 
-  it('称号：赤字や脱落は見習い、1位は名店長、上半分はやり手、それ以外はがんばる新人', () => {
-    const r = year(() => [team('a', { profit: 1000 })]);
-    expect(termFeedback(r, 'a', recipe, 50, { rank: 1, teamCount: 4 }).title).toBe('master');
-    expect(termFeedback(r, 'a', recipe, 50, { rank: 2, teamCount: 4 }).title).toBe('skilled');
-    expect(termFeedback(r, 'a', recipe, 50, { rank: 3, teamCount: 4 }).title).toBe('rookie');
-    expect(termFeedback(r, 'a', recipe, 50, { rank: 2, teamCount: 4, eliminatedMonth: 5 }).title).toBe('apprentice');
-    expect(termFeedback(year(() => [team('a', { profit: -1 })]), 'a', recipe, 50, final).title).toBe('apprentice');
-  });
 
   it('次に挑戦したいこと：売れ残り・売り逃し・赤字の月・材料費より安い・給料のむだ', () => {
     const unsold = termFeedback(year(() => [team('a', { sold: 20, unsold: 30 })]), 'a', recipe, 50, final);

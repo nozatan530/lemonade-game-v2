@@ -7,7 +7,7 @@ import type { MarketPattern } from '../../engine/types';
 import { lang, t } from '../../i18n';
 import { cpuDesc, cpuLabel, difficultyDesc, difficultyLabel, newsText, patternDesc, patternLabel, soloTeamName } from '../../i18n/content';
 import {
-  clearSolo, HUMAN_ID, humanEliminatedMonth, lastHumanDecision, startNextYear, loadSolo, newSoloGame, nextSoloMonth, saveSolo, SOLO_DIFFICULTY, SOLO_TEAM_COUNT, submitHuman,
+  clearSolo, HUMAN_ID, humanEliminatedMonth, lastHumanDecision, startNextYear, titlesOfYear, loadSolo, newSoloGame, nextSoloMonth, saveSolo, SOLO_DIFFICULTY, SOLO_TEAM_COUNT, submitHuman,
   type SoloDifficulty, type SoloState,
 } from '../../solo/local-game';
 import { monthKey, publicConfigOf, type Clock, type TeamSlot } from '../../sync/schema';
@@ -22,11 +22,16 @@ import { DEFAULT_DECISION, mountInputView } from '../team/input-view';
 import { renderMonthResult } from '../team/result-view';
 import { renderTermReport } from '../report/report';
 import { openSheets, sheetHtml, summarySheetHtml } from '../report/sheet';
+import { recordYearTitles } from '../../solo/achievements';
+import { SHOWN_TITLES, TITLE_IDS, type TitleId } from '../../engine/titles';
+import { titleChip, titleDesc } from '../../ui/titles';
 import { mountSurveyForm } from '../survey/survey-form';
 
 // resume：言語を切り替えたときなど、保存されたゲームがあればそのまま続きを表示する
 export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): () => void {
   let state: SoloState | null = null;
+  // この画面で、はじめてもらった肩書き（「NEW!」をつける）
+  const unlocked = new Set<TitleId>();
 
   const saved = loadSolo();
   if (saved && opts.resume) {
@@ -39,6 +44,13 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
   function update(next: SoloState) {
     state = next;
     saveSolo(next);
+    // 年が終わったら、その年の肩書きをコレクションに記録する（同じ年は2回数えない）
+    if (next.phase === 'yearEnd' || next.phase === 'final') {
+      const lastYear = yearOf(next.results[next.results.length - 1]!.month);
+      for (let y = 1; y <= lastYear; y++) {
+        for (const id of recordYearTitles(next.config.market.seed, y, titlesOfYear(next, y))) unlocked.add(id);
+      }
+    }
     // 入力画面が提出ボタンの後始末を終えてから、画面を切り替える
     setTimeout(() => { renderGame(); window.scrollTo(0, 0); }, 0);
   }
@@ -191,6 +203,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
     if (s.phase === 'yearEnd') {
       const year = yearOf(s.results[s.results.length - 1]!.month);
       renderYearReport(view, s, year, t('report.yearHeading', { y: year }));
+      insertAfterFirst(view, titlesCard(titlesOfYear(s, year), t('titles.yearH2', { y: year })));
       const box = document.createElement('div');
       box.innerHTML = `<button class="btn secondary" id="sheet" type="button">${t('sheet.openYear', { y: year })}</button>
         <button class="btn" id="nextYear" type="button">${t('solo.nextYear', { y: year + 1 })}</button>`;
@@ -204,6 +217,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
     const years = yearsOf(s.config);
     if (years === 1) {
       renderYearReport(view, s, 1);
+      insertAfterFirst(view, titlesCard(titlesOfYear(s, 1), t('titles.h2')));
     } else {
       // 2年以上：通算の記録のあとに、最後に営業した年の決算
       const rows = yearlySummary(s.results, s.teams, HUMAN_ID, s.config.recipe, s.config.startFund);
@@ -224,6 +238,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
           </table></div>
         </div>`;
       view.appendChild(summary);
+      insertAfterFirst(summary, titlesCard(collected(s).map((x) => x.id), t('titles.allH2', { n: years }), collected(s)));
       const chart = summary.querySelector<HTMLElement>('#yearChart')!;
       chart.innerHTML = barChartSvg({
         values: rows.map((r) => r.profit), labels: rows.map((r) => t('years.label', { y: r.year })),
@@ -254,7 +269,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       : [...sheetYears.map((y) => yearSheet(s, y)), summarySheetHtml({
         results: s.results, teams: s.teams, meId: HUMAN_ID, startFund: s.config.startFund,
         startCalendarMonth: s.config.startCalendarMonth, recipe: s.config.recipe, baristaCapacity: s.config.baristaCapacity,
-        condition: conditionOf(s), years,
+        condition: conditionOf(s), years, titles: collected(s),
       })]));
     const ranked = rankTeams([...s.teams]);
     mountSurveyForm(reveal.querySelector('#survey')!, {
@@ -312,7 +327,34 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       results: rs, teams, meId: HUMAN_ID, startFund: startBalances[HUMAN_ID] ?? s.config.startFund,
       startCalendarMonth: s.config.startCalendarMonth, recipe: s.config.recipe, baristaCapacity: s.config.baristaCapacity,
       condition: conditionOf(s), ...(yearsOf(s.config) > 1 ? { year } : {}),
+      titles: titlesOfYear(s, year).slice(0, SHOWN_TITLES),
     });
+  }
+
+  // 全期間で集めた肩書き（表示の順、回数つき）
+  function collected(s: SoloState): { id: TitleId; count: number }[] {
+    const count = new Map<TitleId, number>();
+    for (let y = 1; y <= yearsOf(s.config); y++) for (const id of titlesOfYear(s, y)) count.set(id, (count.get(id) ?? 0) + 1);
+    return TITLE_IDS.filter((id) => count.has(id)).map((id) => ({ id, count: count.get(id)! }));
+  }
+
+  // 肩書きのカード（名前と、どうしてついたか）
+  function titlesCard(ids: TitleId[], heading: string, counts?: { id: TitleId; count: number }[]): HTMLElement {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const n = (id: TitleId) => counts?.find((c) => c.id === id)?.count ?? 1;
+    card.innerHTML = ids.length === 0 ? '' : `<h2>${heading}</h2>
+      <ul class="title-list">${ids.map((id) => `<li>${titleChip(id, 'title-chip',
+        `${n(id) > 1 ? ` ${t('titles.count', { n: n(id) })}` : ''}${unlocked.has(id) ? `<span class="title-new">${t('titles.new')}</span>` : ''}`)}
+        <span class="desc">${esc(titleDesc(id))}</span></li>`).join('')}</ul>
+      <p class="muted" style="margin:10px 0 0;font-size:0.85rem">${t('titles.more')}</p>`;
+    return card;
+  }
+
+  // いちばん上のカード（見出し・順位）のすぐ下に入れる
+  function insertAfterFirst(container: HTMLElement, el: HTMLElement) {
+    if (!el.innerHTML) return;
+    container.insertBefore(el, container.children[1] ?? null);
   }
 
   return () => {};
