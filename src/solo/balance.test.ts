@@ -41,3 +41,18 @@ describe.each(PATTERNS)('ソロモードのバランス（市場のパターン�
     }
   });
 });
+
+describe.each([3, 8])('ソロモードのバランス（お店の数：%i）', (teamCount) => {
+  it('ふつう・むずかしい：押し続けるだけでは、1位は1割5分以下', () => {
+    for (const d of ['normal', 'hard'] as const) {
+      expect(winRate(clicker, d, N, 'volatile', teamCount).firstRate).toBeLessThanOrEqual(0.15);
+    }
+  });
+
+  it('考えて遊ぶほうが、押し続けるより平均の順位が上', () => {
+    for (const d of ['easy', 'normal', 'hard'] as const) {
+      expect(avgRank(winRate(undercutter, d, N, 'stable', teamCount).ranks))
+        .toBeLessThan(avgRank(winRate(clicker, d, N, 'stable', teamCount).ranks));
+    }
+  });
+});

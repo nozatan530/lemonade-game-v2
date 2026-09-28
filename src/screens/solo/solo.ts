@@ -6,7 +6,7 @@ import type { MarketPattern } from '../../engine/types';
 import { t } from '../../i18n';
 import { cpuDesc, cpuLabel, difficultyDesc, difficultyLabel, newsText, patternDesc, patternLabel, soloTeamName } from '../../i18n/content';
 import {
-  clearSolo, HUMAN_ID, lastHumanDecision, loadSolo, newSoloGame, nextSoloMonth, saveSolo, SOLO_DIFFICULTY, submitHuman,
+  clearSolo, HUMAN_ID, lastHumanDecision, loadSolo, newSoloGame, nextSoloMonth, saveSolo, SOLO_DIFFICULTY, SOLO_TEAM_COUNT, submitHuman,
   type SoloDifficulty, type SoloState,
 } from '../../solo/local-game';
 import { monthKey, publicConfigOf, type Clock, type TeamSlot } from '../../sync/schema';
@@ -37,7 +37,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
     setTimeout(() => { renderGame(); window.scrollTo(0, 0); }, 0);
   }
 
-  function renderStart(saved: SoloState | null, prev?: { difficulty: SoloDifficulty; pattern: MarketPattern }) {
+  function renderStart(saved: SoloState | null, prev?: { difficulty: SoloDifficulty; pattern: MarketPattern; teamCount: number }) {
     root.innerHTML = `<div class="page">
       <div class="lang-bar">${langToggleHtml()}</div>
       <h1>${t('solo.h1')}</h1>
@@ -47,7 +47,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       </div>
       ${saved ? `<div class="card">
         <h2>${t('solo.resume.h2')}</h2>
-        <p>${saved.difficulty ? t('solo.resume.difficulty', { d: esc(difficultyLabel(saved.difficulty)) }) : ''}${saved.config.market.pattern ? t('solo.resume.pattern', { p: esc(patternLabel(saved.config.market.pattern)) }) : ''}${saved.phase === 'final' ? t('solo.resume.final') : t('solo.resume.progress', { month: monthLabel(saved.conditions.month, saved.config.startCalendarMonth) })}</p>
+        <p>${t('solo.resume.teams', { n: saved.teams.length })}${saved.difficulty ? t('solo.resume.difficulty', { d: esc(difficultyLabel(saved.difficulty)) }) : ''}${saved.config.market.pattern ? t('solo.resume.pattern', { p: esc(patternLabel(saved.config.market.pattern)) }) : ''}${saved.phase === 'final' ? t('solo.resume.final') : t('solo.resume.progress', { month: monthLabel(saved.conditions.month, saved.config.startCalendarMonth) })}</p>
         <button class="btn" id="resume">${t('solo.resume.btn')}</button>
       </div>` : ''}
       <div class="card">
@@ -58,6 +58,11 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
             <span><strong>${esc(difficultyLabel(d))}</strong><br><span class="muted">${esc(difficultyDesc(d))}</span></span>
           </label>`).join('')}
         </fieldset>
+        <label class="field"><span class="field-label">${t('solo.teamCount')}</span>
+          <select id="teamCount">${Array.from({ length: SOLO_TEAM_COUNT.max - SOLO_TEAM_COUNT.min + 1 }, (_, i) => SOLO_TEAM_COUNT.min + i)
+            .map((n) => `<option value="${n}" ${n === SOLO_TEAM_COUNT.default ? 'selected' : ''}>${t('solo.teamCount.option', { n, cpu: n - 1 })}</option>`).join('')}</select>
+          <span class="muted field-help">${t('solo.teamCount.help')}</span>
+        </label>
         <fieldset class="field"><legend>${t('solo.pattern')}</legend>
           ${(Object.keys(MARKET_PATTERNS) as MarketPattern[]).map((p) => `<label class="radio">
             <input type="radio" name="pattern" value="${p}" ${p === 'stable' ? 'checked' : ''}>
@@ -72,6 +77,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
     if (prev) {
       root.querySelector<HTMLInputElement>(`input[name="difficulty"][value="${prev.difficulty}"]`)!.checked = true;
       root.querySelector<HTMLInputElement>(`input[name="pattern"][value="${prev.pattern}"]`)!.checked = true;
+      root.querySelector<HTMLSelectElement>('#teamCount')!.value = String(prev.teamCount);
     }
     root.querySelector('#resume')?.addEventListener('click', () => { state = saved; renderGame(); });
     root.querySelector('#start')!.addEventListener('click', () => {
@@ -81,6 +87,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
         seed: `solo-${Date.now()}`,
         pattern: (root.querySelector<HTMLInputElement>('input[name="pattern"]:checked')?.value ?? 'stable') as MarketPattern,
         difficulty: (root.querySelector<HTMLInputElement>('input[name="difficulty"]:checked')?.value ?? 'normal') as SoloDifficulty,
+        teamCount: Number(root.querySelector<HTMLSelectElement>('#teamCount')!.value),
       });
       state = s;
       saveSolo(s);
@@ -120,7 +127,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       if (!confirm(t('solo.confirmReset'))) return;
       clearSolo();
       state = null;
-      renderStart(null, { difficulty: s.difficulty ?? 'normal', pattern: s.config.market.pattern ?? 'stable' });
+      renderStart(null, { difficulty: s.difficulty ?? 'normal', pattern: s.config.market.pattern ?? 'stable', teamCount: s.teams.length });
     });
     const view = root.querySelector<HTMLElement>('#view')!;
 

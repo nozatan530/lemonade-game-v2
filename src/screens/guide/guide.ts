@@ -10,7 +10,7 @@ const JA = `    <h1>🍋 はじめに</h1>
     <div class="card">
       <h2>このゲームでやること</h2>
       <p>あなたはレモネード屋さんの店長です。<strong>1年（12か月）</strong>のあいだ、毎月レモネードを作って売ります。</p>
-      <p>ほかの3つのお店は、<strong>🤖 ロボット店長</strong>がルールにしたがって決めています（ソロモード）。先月の結果を見て、作戦を変えるロボットもいます。</p>
+      <p>ほかのお店（ソロモードでは2〜7店。はじめは3店）は、<strong>🤖 ロボット店長</strong>がルールにしたがって決めています。先月の結果を見て、作戦を変えるロボットもいます。</p>
       <p style="margin-bottom:0">はじめのお金は <strong>10,000円</strong>。1年たったときに、<strong>いちばんお金を増やしたお店の勝ち</strong>です。</p>
     </div>
 
@@ -80,7 +80,7 @@ const EN = `    <h1>🍋 How to play</h1>
     <div class="card">
       <h2>What you do in this game</h2>
       <p>You are the manager of a lemonade stand. For <strong>one year (12 months)</strong>, you make and sell lemonade every month.</p>
-      <p>The other 3 stands are run by <strong>🤖 robot managers</strong> that follow rules (solo mode). Some robots change their strategy after looking at last month's results.</p>
+      <p>The other stands (2 to 7 in solo mode; 3 by default) are run by <strong>🤖 robot managers</strong> that follow rules. Some robots change their strategy after looking at last month's results.</p>
       <p style="margin-bottom:0">You start with <strong>¥10,000</strong>. After one year, <strong>the stand that has grown its money the most wins</strong>.</p>
     </div>
 

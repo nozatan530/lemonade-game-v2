@@ -1,6 +1,7 @@
 // engine が持っている表示用の文（日本語）を、いまの言語で出す。engine の ID から辞書のキーを引く。
 
 import { SEASON_NEWS } from '../engine/scenarios/seasonal';
+import { standLetter } from '../solo/local-game';
 import type { CpuType, MarketPattern } from '../engine/types';
 import { t, type Key } from './index';
 
@@ -20,6 +21,6 @@ export function newsText(message: string): string {
 // ソロのお店の名前（保存された名前ではなく、表示するときの言語で出す）
 export function soloTeamName(teamId: string): string {
   if (teamId === 't1') return t('solo.you');
-  const letter = { t2: 'B', t3: 'C', t4: 'D' }[teamId];
+  const letter = standLetter(teamId);
   return letter ? t('solo.stand', { x: letter }) : teamId;
 }

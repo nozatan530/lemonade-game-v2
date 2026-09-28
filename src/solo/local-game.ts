@@ -1,4 +1,4 @@
-// ソロモード：人1チーム vs CPU 3チームを、ブラウザの中だけで進める（Firebase は使わない）。
+// ソロモード：人1チーム vs CPU（2〜7チーム。初期値3チーム）を、ブラウザの中だけで進める（Firebase は使わない）。
 // オンラインの sync にあたる役。計算は engine の関数に任せ、ここは状態を持って順に呼ぶだけ。
 
 import { canChangeBarista, defaultConfig, withMarketPattern, withRandomMarketSize, type MarketSizeRange } from '../engine/config';
@@ -10,7 +10,9 @@ import type {
 } from '../engine/types';
 
 export const HUMAN_ID = 't1';
-const CPU_IDS = ['t2', 't3', 't4'] as const;
+// お店の数（あなたを含む）。初期値は4（あなた＋ロボット店長3店）
+export const SOLO_TEAM_COUNT = { min: 3, max: 8, default: 4 } as const;
+const STAND_LETTERS = 'BCDEFGH';
 const STORAGE_KEY = 'lemonade-solo-v1';
 
 export type SoloDifficulty = 'easy' | 'normal' | 'hard';
@@ -39,32 +41,44 @@ export function newSoloGame(options: {
   seed: string;
   pattern?: MarketPattern; // 市場のパターン（初期値：変動なし）
   difficulty?: SoloDifficulty;
+  teamCount?: number; // お店の数（あなたを含む。3〜8）
 }): SoloState {
   const difficulty = options.difficulty ?? 'normal';
+  const teamCount = Math.min(SOLO_TEAM_COUNT.max, Math.max(SOLO_TEAM_COUNT.min, Math.floor(options.teamCount ?? SOLO_TEAM_COUNT.default)));
+  const cpuIds = Array.from({ length: teamCount - 1 }, (_, i) => `t${i + 2}`);
   // お客さんの数（市場の大きさ）はゲームごとにランダム。幅は難易度で決まる。動き方は市場のパターンで決まる
   const config = withMarketPattern(
-    withRandomMarketSize(defaultConfig(4, options.seed), 4, SOLO_DIFFICULTY[difficulty].market),
+    withRandomMarketSize(defaultConfig(teamCount, options.seed), teamCount, SOLO_DIFFICULTY[difficulty].market),
     options.pattern ?? 'stable',
   );
   // ソロはタイマーがないので、バリスタの人数を毎月決められる
   config.baristaCadence = 'monthly';
 
-  // 4つの作戦から3つを選び、どの店に割り当てるかもシードで決める（毎回ちがう並び）。
+  // 4つの作戦から選び、どの店に割り当てるかもシードで決める（毎回ちがう並び）。
   // 「ふつう」「むずかしい」では安売りを必ず入れる（いないと、何も考えなくても勝ててしまうため）
-  const pool = difficulty === 'easy' ? [...CPU_TYPES] : CPU_TYPES.filter((t) => t !== 'discount');
-  const picked = [...pool]
+  // ロボット店長が4店以上のときは、4つの作戦を一通り使ったうえで、残りをシードで選ぶ（同じ作戦が2店になる）
+  const withDiscount = difficulty !== 'easy';
+  const firstRound = Math.min(cpuIds.length, 3) - (withDiscount ? 1 : 0);
+  const pool = withDiscount ? CPU_TYPES.filter((t) => t !== 'discount') : [...CPU_TYPES];
+  const ordered = [...pool]
     .map((type, i) => ({ type, key: seededRand(`${options.seed}:cpu-pick`, i) }))
     .sort((a, b) => a.key - b.key)
-    .map((x) => x.type)
-    .slice(0, difficulty === 'easy' ? 3 : 2);
-  const shuffled = [...picked, ...(difficulty === 'easy' ? [] : ['discount' as const])]
+    .map((x) => x.type);
+  const picked = ordered.slice(0, firstRound);
+  const rest = [...ordered.slice(firstRound)];
+  const extra: CpuType[] = [];
+  for (let i = 0; extra.length < cpuIds.length - 3; i++) {
+    extra.push(rest.length > 0 ? rest.shift()! : CPU_TYPES[Math.floor(seededRand(`${options.seed}:cpu-extra`, i) * CPU_TYPES.length)]!);
+  }
+  const shuffled = [...picked, ...(withDiscount ? ['discount' as const] : []), ...extra]
     .map((type, i) => ({ type, key: seededRand(`${options.seed}:cpu-assign`, i) }))
     .sort((a, b) => a.key - b.key)
     .map((x) => x.type);
   const cpu: Record<string, CpuType> = {};
-  CPU_IDS.forEach((id, i) => { cpu[id] = shuffled[i]!; });
+  cpuIds.forEach((id, i) => { cpu[id] = shuffled[i]!; });
 
-  const names: Record<string, string> = { t1: 'あなたのお店', t2: '🤖 Bスタンド', t3: '🤖 Cスタンド', t4: '🤖 Dスタンド' };
+  const names: Record<string, string> = { t1: 'あなたのお店' };
+  cpuIds.forEach((id, i) => { names[id] = `🤖 ${STAND_LETTERS[i]}スタンド`; });
   const { teams, conditions } = startTerm(config, Object.entries(names).map(([teamId, name]) => ({ teamId, name })));
   return { version: 1, difficulty, config, names, cpu, teams, conditions, results: [], decided: {}, phase: 'input' };
 }
@@ -159,4 +173,10 @@ export function clearSolo(storage: KeyValueStorage | null = defaultStorage()): v
   } catch {
     // 何もしない
   }
+}
+
+// ロボット店長のお店の記号（t2 → B … t8 → H）
+export function standLetter(teamId: string): string | null {
+  const i = Number(teamId.slice(1)) - 2;
+  return teamId.startsWith('t') && i >= 0 && i < STAND_LETTERS.length ? STAND_LETTERS[i]! : null;
 }

@@ -72,9 +72,9 @@ export const undercutter: Player = (s) => {
 
 export function playSolo(
   player: Player,
-  options: { seed: string; difficulty: SoloDifficulty; pattern?: MarketPattern },
+  options: { seed: string; difficulty: SoloDifficulty; pattern?: MarketPattern; teamCount?: number },
 ): { rank: number; state: SoloState } {
-  let s = newSoloGame({ seed: options.seed, difficulty: options.difficulty, pattern: options.pattern ?? 'stable' });
+  let s = newSoloGame({ seed: options.seed, difficulty: options.difficulty, pattern: options.pattern ?? 'stable', ...(options.teamCount ? { teamCount: options.teamCount } : {}) });
   while (s.phase !== 'final') {
     if (s.phase === 'input') {
       const { decision, barista } = player(s);
@@ -93,8 +93,9 @@ export function winRate(
   difficulty: SoloDifficulty,
   n: number,
   pattern: MarketPattern = 'stable',
+  teamCount = 4,
 ): { firstRate: number; ranks: number[] } {
-  const ranks = [0, 0, 0, 0];
-  for (let i = 0; i < n; i++) ranks[playSolo(player, { seed: `balance-${i}`, difficulty, pattern }).rank - 1]!++;
+  const ranks: number[] = Array.from({ length: teamCount }, () => 0);
+  for (let i = 0; i < n; i++) ranks[playSolo(player, { seed: `balance-${i}`, difficulty, pattern, teamCount }).rank - 1]!++;
   return { firstRate: ranks[0]! / n, ranks };
 }
