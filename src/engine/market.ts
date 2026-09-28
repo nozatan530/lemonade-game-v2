@@ -41,7 +41,7 @@ export function allocatePriceSegment(budget: number, offers: Offer[]): Map<strin
     let remaining = totalToBuy;
     // 均等割：まだ売れるチームで分け、上限に届いたチームの余りは次の回で分け直す
     for (;;) {
-      const open = group.map((g, j) => j).filter((j) => allocated[j]! < group[j]!.offered);
+      const open = group.map((_, j) => j).filter((j) => allocated[j]! < group[j]!.offered);
       const each = open.length > 0 ? Math.floor(remaining / open.length) : 0;
       if (each === 0) break;
       for (const j of open) {
