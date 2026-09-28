@@ -76,13 +76,14 @@ export function sheetHtml(input: SheetInput): string {
   return `
     <header class="s-head">
       <div>
-        <div class="s-kicker">${t('sheet.kicker')}　<span class="s-url">lemonade-game-v2.web.app</span></div>
+        <div class="s-kicker">${t('sheet.kicker')}</div>
         <h1>${t('sheet.title')}</h1>
         <div class="s-cond">${t('sheet.cond', { d: esc(c.difficulty ?? '—'), p: esc(c.pattern ?? '—'), n: c.teamCount })}${c.elimination ? t('sheet.cond.elim') : ''}</div>
       </div>
-      <div class="s-write">
-        <div>${t('sheet.date')}</div>
-        <div>${t('sheet.name')}<span class="s-line"></span></div>
+      <div class="s-sign">
+        <span class="s-sign-label">${t('sheet.sign.date')}</span><span class="s-fill">${t('sheet.sign.dateBlank')}</span>
+        <span class="s-sign-label">${t('sheet.sign.store')}</span><span class="s-fill"></span>
+        <span class="s-sign-label">${t('sheet.sign.manager')}</span><span class="s-fill"></span>
       </div>
     </header>
 
@@ -123,7 +124,12 @@ export function sheetHtml(input: SheetInput): string {
     </div>
 
     <h2>${t('sheet.reflect')}</h2>
-    ${(['sheet.q1', 'sheet.q2', 'sheet.q3', 'sheet.q4', 'sheet.q5'] as const).map((q) => `<div class="s-q">${t(q)}</div><div class="s-answer"></div>`).join('')}`;
+    <div class="s-reflect">
+      ${(['sheet.q1', 'sheet.q2', 'sheet.q3'] as const).map((q, i) => `<div class="s-answer">
+        <div class="s-q"><span class="s-num">${i + 1}</span>${t(q)}<span class="s-hint">${t(`${q}.hint` as Key)}</span></div>
+      </div>`).join('')}
+    </div>
+    <footer class="s-foot">${t('sheet.footer')}</footer>`;
 }
 
 // 毎月の利益の棒（紙に合わせた固定の大きさ・色）。値を棒の上下に書く

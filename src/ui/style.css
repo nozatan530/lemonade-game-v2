@@ -335,8 +335,11 @@ body.sheet-open { overflow: hidden; }
 .sheet-page h3 { font-size: 11.5px; margin: 0 0 3px; }
 .s-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; padding-bottom: 8px; border-bottom: 3px solid var(--s-ink); }
 .s-kicker, .s-cond { font-size: 10px; color: var(--s-muted); }
-.s-write { font-size: 11px; text-align: right; display: grid; gap: 8px; }
-.s-line { display: inline-block; width: 150px; border-bottom: 1px solid var(--s-ink); margin-left: 4px; }
+.s-kicker { letter-spacing: 0.12em; font-weight: 700; }
+.s-foot { margin-top: 6px; font-size: 9px; color: var(--s-muted); text-align: right; }
+.s-sign { display: grid; grid-template-columns: auto 190px; column-gap: 8px; row-gap: 7px; align-items: end; font-size: 10.5px; }
+.s-sign-label { color: var(--s-muted); text-align: right; white-space: nowrap; }
+.s-fill { min-height: 16px; border-bottom: 1px solid var(--s-ink); text-align: right; letter-spacing: 0.05em; padding-right: 2px; }
 .s-tiles { display: grid; grid-template-columns: 1.35fr 1fr 1fr 1.1fr 0.8fr; gap: 7px; margin-top: 8px; }
 .s-tile { border: 1px solid var(--s-line); border-radius: 8px; padding: 6px 8px; }
 .s-tile.hero { background: var(--s-soft-hero); border-color: var(--s-bad); }
@@ -361,8 +364,11 @@ body.sheet-open { overflow: hidden; }
 .s-box { border-radius: 8px; padding: 5px 9px; }
 .s-box.good { background: var(--s-soft-good); } .s-box.next { background: var(--s-soft-warn); }
 .s-box ul { margin: 0; padding-left: 15px; } .s-box li { margin: 1px 0; }
-.s-q { font-weight: 700; margin: 4px 0 2px; }
-.s-answer { height: 28px; border: 1px solid var(--s-line); border-radius: 6px; }
+.s-reflect { display: grid; gap: 6px; }
+.s-answer { height: 72px; border: 1px solid var(--s-line); border-radius: 8px; padding: 5px 9px; }
+.s-q { font-weight: 700; }
+.s-num { display: inline-grid; place-items: center; width: 16px; height: 16px; margin-right: 6px; border-radius: 50%; background: var(--s-ink); color: #fff; font-size: 10px; }
+.s-hint { margin-left: 8px; font-weight: 400; font-size: 9.5px; color: var(--s-muted); }
 
 @media print {
   @page { size: A4 portrait; margin: 8mm; }
