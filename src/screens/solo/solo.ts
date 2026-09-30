@@ -265,17 +265,17 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
         </div>
         <div class="card"><h2>${t('years.h2')}</h2>
           <div class="chart" id="yearChart"></div>
-          <div class="table-scroll"><table class="table report-table">
-            <tr><th>${t('years.th.year')}</th><th>${t('years.th.sales')}</th><th>${t('years.th.cost')}</th><th>${t('years.th.profit')}</th><th>${t('years.th.end')}</th><th>${t('years.th.rank')}</th></tr>
-            ${rows.map((r) => `<tr><td>${t('years.label', { y: r.year })}</td><td>${yen(r.revenue)}</td><td>${yen(r.cost)}</td>
+          <div class="table-scroll"><table class="table report-table slim-on-phone">
+            <tr><th>${t('years.th.year')}</th><th class="wide-only">${t('years.th.sales')}</th><th class="wide-only">${t('years.th.cost')}</th><th>${t('years.th.profit')}</th><th>${t('years.th.end')}</th><th>${t('years.th.rank')}</th></tr>
+            ${rows.map((r) => `<tr><td>${t('years.label', { y: r.year })}</td><td class="wide-only">${yen(r.revenue)}</td><td class="wide-only">${yen(r.cost)}</td>
               <td class="${r.profit >= 0 ? 'good' : 'bad'}">${signedYen(r.profit)}</td><td>${yen(r.endBalance)}</td>
               <td>${t('sheet.tile.rankValue', { rank: r.rank, n: s.teams.length })}</td></tr>`).join('')}
-            <tr class="total"><td>${t('years.total')}</td><td>${yen(rows.reduce((a, r) => a + r.revenue, 0))}</td><td>${yen(rows.reduce((a, r) => a + r.cost, 0))}</td>
+            <tr class="total"><td>${t('years.total')}</td><td class="wide-only">${yen(rows.reduce((a, r) => a + r.revenue, 0))}</td><td class="wide-only">${yen(rows.reduce((a, r) => a + r.cost, 0))}</td>
               <td class="${me.totalProfit >= 0 ? 'good' : 'bad'}">${signedYen(me.totalProfit)}</td><td>${yen(me.balance)}</td><td></td></tr>
           </table></div>
         </div>
         <div class="card"><h2>${t('years.allH2', { n: years })}</h2>
-          <div class="table-scroll"><table class="table report-table all-years">
+          <div class="table-scroll"><table class="table report-table slim-on-phone">
             <tr><th>${t('years.th.rank')}</th><th>${t('years.all.th.shop')}</th><th class="wide-only">${t('years.th.sales')}</th><th class="wide-only">${t('years.th.cost')}</th><th>${t('years.all.th.profit')}</th><th>${t('years.th.end')}</th></tr>
             ${ranked.map((tm, i) => {
               const own = s.results.flatMap((r) => r.teamResults.filter((x) => x.teamId === tm.teamId));
