@@ -5,7 +5,7 @@ import { HUMAN_ID, newSoloGame, nextSoloMonth, startNextYear, submitHuman } from
 
 const play = { lemonQty: 50, sugarQty: 50, price: 250 };
 
-describe('ソロモードの年数（1〜5年）', () => {
+describe('ソロモードの年数（1〜10年）', () => {
   it('何も指定しなければ1年（今までと同じ）。年の決算は出さずに期末へ', () => {
     const a = newSoloGame({ seed: 'y1' });
     expect(a.config.months).toBe(12);
@@ -36,9 +36,10 @@ describe('ソロモードの年数（1〜5年）', () => {
     expect(s.results).toHaveLength(36);
   });
 
-  it('範囲の外は1〜5年にそろえる', () => {
+  it('範囲の外は1〜10年にそろえる', () => {
     expect(newSoloGame({ seed: 'y3', years: 0 }).config.months).toBe(12);
-    expect(newSoloGame({ seed: 'y3', years: 9 }).config.months).toBe(60);
+    expect(newSoloGame({ seed: 'y3', years: 9 }).config.months).toBe(108);
+    expect(newSoloGame({ seed: 'y3', years: 15 }).config.months).toBe(120);
   });
 
   it('5年でも最後まで動き、数値がおかしくならない。年ごとのまとめは5行', () => {

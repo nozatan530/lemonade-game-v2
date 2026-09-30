@@ -46,7 +46,7 @@ export function newSoloGame(options: {
   difficulty?: SoloDifficulty;
   teamCount?: number; // お店の数（あなたを含む。3〜8）
   elimination?: boolean; // 脱落あり（資金がマイナスになったら脱落。初期値：なし）
-  years?: number; // 経営する年数（1〜5。初期値：1）
+  years?: number; // 経営する年数（1〜10。初期値：1）
 }): SoloState {
   const difficulty = options.difficulty ?? 'normal';
   const teamCount = Math.min(SOLO_TEAM_COUNT.max, Math.max(SOLO_TEAM_COUNT.min, Math.floor(options.teamCount ?? SOLO_TEAM_COUNT.default)));

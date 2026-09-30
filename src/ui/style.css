@@ -542,3 +542,6 @@ body.sheet-open { overflow: hidden; }
 .pl-result.plus strong { color: var(--good); } .pl-result.minus strong { color: var(--bad); }
 .story.reveal .pl-row, .story.reveal .pl-result { animation: story-fade 0.3s ease-out both; animation-delay: var(--d); }
 .story.reveal .pl-row .pl-track { transform-origin: left; animation: story-grow 0.45s ease-out both; animation-delay: var(--d); }
+.table tr.total td { font-weight: 800; border-top: 2px solid var(--text); }
+.last-market summary { cursor: pointer; }
+.last-market .table { font-size: 0.9rem; }
