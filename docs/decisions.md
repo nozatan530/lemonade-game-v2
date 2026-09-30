@@ -292,3 +292,7 @@
 ## 2026-09-30 CI（GitHub Actions）
 - 判断：main へのプッシュと PR のたびに、GitHub Actions で単体テスト・型チェック・ビルドと、エミュレーターを使うテスト（セキュリティルールとsync）を動かす。
 - 理由：手元で動かし忘れても、壊れた変更に PR の画面で気づけるようにするため。GitHub Actions は公開リポジトリなら無料で、Firebase の Spark プランにも影響しない。
+
+## 2026-09-30 main に入ったら自動で公開
+- 判断：GitHub Actions で、main に入ってテストが通ったら Firebase Hosting とセキュリティルールに公開する。鍵（サービスアカウント）は GitHub の Secrets に置き、`.env.production` の値は Variables に置く。
+- 理由：マージしたのに公開を忘れて、新しい機能がサイトに出ないことがあったため（のざたん指摘）。Spark プランのままで使える。
