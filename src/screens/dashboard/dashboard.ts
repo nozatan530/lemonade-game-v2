@@ -1,6 +1,7 @@
 // 全体表示（プロジェクター・画面共有用）。読み取り専用。
 // 待機：ゲームコードと参加用 QR ／ 入力中：月・お知らせ・残り時間・提出状況 ／ 結果：表と資金の推移 ／ 期末：順位
 
+import { marketSection } from '../team/month-story';
 import { rankTeams } from '../../engine/month';
 import QRCode from 'qrcode';
 import type { MonthResult, TeamState } from '../../engine/types';
@@ -13,7 +14,6 @@ import {
 } from '../../sync/watch';
 import { calendarMonth, esc, mmss, monthLabel, secondsLeft, signedYen, yen } from '../../ui/format';
 import { legendHtml, lineChartSvg, MAX_SERIES, type Series } from '../../ui/line-chart';
-import { isWatching } from '../team/result-view';
 
 export async function renderDashboard(root: HTMLElement, params: URLSearchParams): Promise<() => void> {
   const code = (params.get('code') ?? '').trim().toUpperCase();
@@ -107,22 +107,9 @@ export async function renderDashboard(root: HTMLElement, params: URLSearchParams
   function renderResult(c: Clock, slots: { teamId: string; slot: TeamSlot }[]) {
     const result = S.results.find((r) => r.month === c.month);
     if (!result) { main.innerHTML = '<p class="screen-big">集計中…</p>'; return; }
-    const byId = new Map(result.teamResults.map((r) => [r.teamId, r]));
+    // 月の結果と同じ「今月の市場」（お客さんのお金の行き先の帯と、みんなの結果）
     main.innerHTML = `<div class="screen-result">
-      <div class="card">
-        <h2>${c.month}か月目の結果</h2>
-        <p class="screen-label">お客さんが使えたお金 ${yen(result.marketBudget)}　→　実際に使ったお金 ${yen(result.teamResults.reduce((a, r) => a + r.revenue, 0))}</p>
-        <table class="table screen-table">
-          <tr><th>チーム</th><th>値段</th><th>売れた数</th><th>もうけ</th><th>お金の残り</th></tr>
-          ${slots.map(({ teamId, slot }) => {
-            const r = byId.get(teamId);
-            if (!r) return '';
-            return `<tr><td>${esc(slot.name)}</td><td>${r.offered === 0 ? (isWatching(r) ? '静観' : '—') : yen(r.price)}</td>
-              <td>${r.sold} / ${r.offered}杯</td>
-              <td class="${r.profit >= 0 ? 'good' : 'bad'}">${signedYen(r.profit)}</td><td>${yen(r.balance)}</td></tr>`;
-          }).join('')}
-        </table>
-      </div>
+      ${marketSection(result, '', S.teams, { title: `${c.month}か月目の市場` }).html}
       ${balanceChart(slots)}
     </div>`;
   }

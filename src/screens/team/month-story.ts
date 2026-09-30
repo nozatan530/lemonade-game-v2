@@ -18,8 +18,10 @@ export interface StoryOptions {
   baristaCapacity: number;
   previous?: MonthResult; // 先月の結果（お客さんのお金の増減を言うため）
   eliminated?: Record<string, string>; // 前の月までに脱落したお店と、脱落した月の表示
-  onNext: () => void;
-  nextLabel: string;
+  // ソロ：「次の月へ」のボタン。対戦：ボタンの代わりに waitText（GM が次の月を始めるのを待つ）
+  onNext?: () => void;
+  nextLabel?: string;
+  waitText?: string;
 }
 
 const REVEAL_KEY = 'lemonade-reveal';
@@ -209,7 +211,7 @@ export function renderMonthStory(
     ${money}
     ${notes.length > 0 ? `<section class="card story-notes" style="--d:${notesAt}ms"><h2>${t('story.notes.h2')}</h2><ul class="insights">${notes.map(noteHtml).join('')}</ul></section>` : ''}
     <div class="result-next">
-      <button class="btn" id="next" type="button">${esc(opts.nextLabel)}</button>
+      ${opts.onNext ? `<button class="btn" id="next" type="button">${esc(opts.nextLabel ?? '')}</button>` : `<p class="muted center">${esc(opts.waitText ?? '')}</p>`}
       <label class="check story-off"><input type="checkbox" id="revealOff" ${reveal ? '' : 'checked'}> ${t('story.off')}</label>
     </div>
   </div>`;
@@ -240,7 +242,7 @@ export function renderMonthStory(
     endTimer = window.setTimeout(finish, notesAt + 600);
     story.querySelector('#skip')!.addEventListener('click', finish);
   }
-  story.querySelector('#next')!.addEventListener('click', () => { finish(); opts.onNext(); });
+  story.querySelector('#next')?.addEventListener('click', () => { finish(); opts.onNext?.(); });
   story.querySelector<HTMLInputElement>('#revealOff')!.addEventListener('change', (e) => {
     const off = (e.target as HTMLInputElement).checked;
     setRevealOff(off);

@@ -1,6 +1,6 @@
 // GM の進行画面：待機 → 入力（タイマー・提出状況・締切）→ 結果 → 次の月 → 期末 → 削除
 
-import { rankTeams } from '../../engine/month';
+import { renderGmFinal } from '../report/multi';
 import type { Database } from 'firebase/database';
 import type { MonthResult, TeamState, TimerSettings } from '../../engine/types';
 import {
@@ -108,7 +108,7 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
     if (c.phase === 'lobby') return renderLobby(slots);
     if (c.phase === 'input') return renderInput(c, slots);
     if (c.phase === 'result') return renderResult(c, slots);
-    if (c.phase === 'final') return renderFinal(slots);
+    if (c.phase === 'final') return renderFinal();
   }
 
   function renderLobby(slots: { teamId: string; slot: TeamSlot }[]) {
@@ -195,16 +195,10 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
     });
   }
 
-  function renderFinal(slots: { teamId: string; slot: TeamSlot }[]) {
-    const names = new Map(slots.map((s) => [s.teamId, s.slot.name]));
-    const ranked = rankTeams(Object.values(S.state));
-    main.innerHTML = `<div class="card">
-      <h2>期末の結果</h2>
-      <table class="table"><tr><th>順位</th><th>チーム</th><th>お金の残り</th><th>1年のもうけ</th></tr>
-        ${ranked.map((t, i) => `<tr><td>${i + 1}</td><td>${esc(names.get(t.teamId) ?? t.teamId)}</td>
-          <td>${yen(t.balance)}</td><td class="${t.totalProfit >= 0 ? 'good' : 'bad'}">${signedYen(t.totalProfit)}</td></tr>`).join('')}
-      </table>
-      <p class="muted">振り返りが終わったら、下の「ゲームを終了してデータを削除」でデータを消してください。</p></div>`;
+  function renderFinal() {
+    if (!S.pub) return;
+    renderGmFinal(main, { results: S.results, state: S.state, teams: S.teams, pub: S.pub });
+    main.insertAdjacentHTML('beforeend', '<p class="muted">振り返りが終わったら、下の「ゲームを終了してデータを削除」でデータを消してください。</p>');
   }
 
   function bindRelease() {

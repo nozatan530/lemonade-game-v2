@@ -13,7 +13,7 @@ import { TITLE_EMOJI, TITLE_IDS } from './engine/titles';
 import { loadAchievements } from './solo/achievements';
 import { titleChip, titleDesc, titleName } from './ui/titles';
 import './ui/style.css';
-import { applyDocumentLang, t } from './i18n';
+import { applyDocumentLang, pinLang, t } from './i18n';
 import { bindLangToggle, langToggleHtml } from './ui/lang-toggle';
 
 const root = document.querySelector<HTMLDivElement>('#app')!;
@@ -29,6 +29,8 @@ async function route(opts: { resume?: boolean } = {}) {
   cleanup?.();
   cleanup = undefined;
   root.innerHTML = '';
+  // 対戦（チーム・GM・全体表示）は、英語に対応するまで日本語で出す
+  pinLang(['/team', '/gm', '/screen'].includes(path ?? '') ? 'ja' : null);
   switch (path) {
     case '/team': {
       if (!MULTIPLAYER) { renderComingSoon(); break; }

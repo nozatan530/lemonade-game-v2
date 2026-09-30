@@ -11,7 +11,8 @@ import {
 import { esc, mmss, monthLabel, secondsLeft, yen } from '../../ui/format';
 import { maybeStartInputCoach } from './input-coach';
 import { DEFAULT_DECISION, mountInputView, type InputView } from './input-view';
-import { renderFinal, renderMonthResult } from './result-view';
+import { renderTeamFinal } from '../report/multi';
+import { renderMonthStory } from './month-story';
 
 export async function renderTeam(root: HTMLElement, params: URLSearchParams): Promise<() => void> {
   const code = (params.get('code') ?? '').trim().toUpperCase();
@@ -114,7 +115,11 @@ export async function renderTeam(root: HTMLElement, params: URLSearchParams): Pr
     if (clock.phase === 'input' && me) {
       followOwnSubmission(teamId, clock.month);
       const key = `input-${clock.month}-${teamId}`;
-      const ctx = { pub: S.pub, clock, me, ownSub: S.ownSub, closed: isClosed() };
+      const last = S.results.find((r) => r.month === clock.month - 1);
+      const ctx = {
+        pub: S.pub, clock, me, ownSub: S.ownSub, closed: isClosed(),
+        ...(last ? { lastMonth: { result: last, teams: S.teams } } : {}),
+      };
       if (viewKey === key && inputView) {
         inputView.update(ctx);
         return;
@@ -143,13 +148,20 @@ export async function renderTeam(root: HTMLElement, params: URLSearchParams): Pr
         view.innerHTML = '<div class="card center">集計中…</div>';
         return;
       }
-      renderMonthResult(view, result, teamId, S.teams);
+      const previous = S.results.find((r) => r.month === clock.month - 1);
+      renderMonthStory(view, result, teamId, S.teams, {
+        recipe: S.pub.recipe, baristaCapacity: S.pub.baristaCapacity, ...(previous ? { previous } : {}),
+        waitText: clock.month >= S.pub.months ? 'GMが期末の結果を出すまで待ってください。' : 'GMが次の月を始めるまで待ってください。',
+      });
       return;
     }
 
     if (clock.phase === 'final') {
-      viewKey = 'final';
-      renderFinal(view, S.state, teamId, S.teams);
+      // 期末は一度だけ描く（開いたレポートやスクロールを保つ）
+      const key = `final-${S.results.length}-${Object.keys(S.state).length}`;
+      if (viewKey === key) return;
+      viewKey = key;
+      renderTeamFinal(view, { results: S.results, state: S.state, teams: S.teams, pub: S.pub }, teamId);
     }
   }
 
