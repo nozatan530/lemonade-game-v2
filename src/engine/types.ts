@@ -54,6 +54,7 @@ export interface MarketSettings {
   seed: string;
   demandMode?: DemandMode; // ないときは random（旧版と同じ）
   pattern?: MarketPattern; // 画面で選んだパターン（表示用）
+  level?: 'easy' | 'normal' | 'hard'; // 画面で選んだむずかしさ（表示用。市場の大きさの幅を決める）
 }
 
 export interface GameConfig {

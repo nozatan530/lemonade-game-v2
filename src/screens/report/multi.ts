@@ -5,6 +5,7 @@ import { termSummary } from '../../engine/accounting';
 import { rankTeams } from '../../engine/month';
 import type { MonthResult, TeamState } from '../../engine/types';
 import type { PublicConfig, TeamSlot } from '../../sync/schema';
+import { difficultyLabel, patternLabel } from '../../i18n/content';
 import { esc, signedYen, yen } from '../../ui/format';
 import { renderTermReport } from './report';
 import { openSheets, sheetHtml } from './sheet';
@@ -32,7 +33,11 @@ function teamSheet(input: MultiReportInput, teamId: string): string {
   return sheetHtml({
     results: input.results, teams, meId: teamId, startFund: input.pub.startFund,
     startCalendarMonth: input.pub.startCalendarMonth, recipe: input.pub.recipe, baristaCapacity: input.pub.baristaCapacity,
-    condition: { teamCount: teams.length, elimination: input.pub.elimination === true },
+    condition: {
+      teamCount: teams.length, elimination: input.pub.elimination === true,
+      ...(input.pub.level ? { difficulty: difficultyLabel(input.pub.level) } : {}),
+      ...(input.pub.pattern ? { pattern: patternLabel(input.pub.pattern) } : {}),
+    },
   });
 }
 

@@ -2,7 +2,7 @@
 // 月のキーは m01〜m12 にする（1, 2, 3… の連番キーは、データベースが配列に変えて返してしまうため）。
 
 import type {
-  GameConfig, MonthlyDecision, MonthResult, QuarterlyDecision, TeamState, TimerSettings, UnitPrices,
+  GameConfig, MarketPattern, MonthlyDecision, MonthResult, QuarterlyDecision, TeamState, TimerSettings, UnitPrices,
 } from '../engine/types';
 
 export type Phase = 'lobby' | 'input' | 'result' | 'final';
@@ -46,6 +46,8 @@ export interface PublicConfig {
   recipe: { lemon: number; sugar: number };
   startFund: number;
   elimination?: boolean; // 脱落あり
+  pattern?: MarketPattern; // 市場のパターン（レポートに出す）
+  level?: 'easy' | 'normal' | 'hard'; // むずかしさ（レポートに出す）
 }
 
 export function publicConfigOf(c: GameConfig): PublicConfig {
@@ -58,6 +60,8 @@ export function publicConfigOf(c: GameConfig): PublicConfig {
     recipe: { ...c.recipe },
     startFund: c.startFund,
     ...(c.elimination ? { elimination: true } : {}),
+    ...(c.market.pattern ? { pattern: c.market.pattern } : {}),
+    ...(c.market.level ? { level: c.market.level } : {}),
   };
 }
 
