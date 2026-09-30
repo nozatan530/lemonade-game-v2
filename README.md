@@ -55,7 +55,25 @@ npm run deploy
 - 鍵が登録されていないあいだは、公開の手順を飛ばして警告だけ出す（テストはふだんどおり）。
 - 公開の結果は、GitHub の「Actions」タブで見られる。手元からの `npm run deploy` もこれまでどおり使える。
 
-GitHub Pages で公開する場合は、`dist/` をそのまま置けばよい（相対パスでビルドしている）。そのときは Firebase コンソールの Authentication →「設定」→「承認済みドメイン」に GitHub Pages のドメインを追加する（Google ログインのため）。
+### GitHub Pages でも公開する
+`main` に入ってテストが通ると、Firebase Hosting と同じものを GitHub Pages にも公開する（`.github/workflows/ci.yml` の `pages`）。準備は1回だけ：
+
+1. GitHub のリポジトリ →「Settings」→「Pages」→「Build and deployment」の「Source」を **GitHub Actions** にする。
+2. 「Settings」→「Secrets and variables」→「Actions」→「Variables」に、名前 `ENABLE_GITHUB_PAGES`、値 `true` を登録する（登録しないあいだは GitHub Pages には公開しない）。
+3. Firebase コンソールの Authentication →「設定」→「承認済みドメイン」に `nozatan530.github.io` を追加する（GitHub Pages から GM が Google でログインするため）。
+
+公開先：`https://nozatan530.github.io/lemonade-game-v2/`（ビルドは相対パスなので、どちらでも同じように動く）
+
+### GM になれる人を決める（限定公開）
+GM モード（ゲームを作って進行する）は、許可したアカウントだけが使える。ソロモードとチームの参加は、だれでも使える。
+
+1. 公開中のサイトの `#/gm` を開き、GM にしたい Google アカウントでログインする。
+2. 「GM モードは、いまは限られた人だけが使えます」の画面に、そのアカウントの ID が出るので控える。
+3. Firebase コンソールの Realtime Database →「データ」で、いちばん上に `gmAllow` を作り、その下に「キー：控えた ID、値：`true`」を追加する。
+4. `#/gm` を開き直すと、GM 画面が使える。
+
+- 許可をやめるときは、その ID の行を消す（作ってあったゲームは、そのまま進行・削除できる）。
+- 許可の一覧はセキュリティルールで守っていて、コンソール以外からは書き換えられない。リポジトリにはだれの情報も書かない。
 
 ## アンケート（GAS → Google スプレッドシート）
 回答は GAS のウェブアプリ（`gas/survey/`）が受け取り、スプレッドシートの「回答」シートに1行ずつ追加する。

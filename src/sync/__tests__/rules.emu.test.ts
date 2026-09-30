@@ -27,6 +27,8 @@ const nobody = () => env.unauthenticatedContext().database();
 
 async function seed(clock: Partial<Record<string, unknown>> = {}) {
   await env.withSecurityRulesDisabled(async (ctx) => {
+    // GM に許可されたアカウント（本番では Firebase コンソールで登録する）
+    await ctx.database().ref('gmAllow/gm').set(true);
     await ctx.database().ref(G).set({
       meta: { gmUid: 'gm', createdAt: 1, status: 'active' },
       config: { months: 12, market: { seed: 'secret' } },
@@ -56,6 +58,19 @@ beforeEach(async () => {
 describe('ゲームの作成と削除', () => {
   it('Google ログインの GM はゲームを作れる', async () => {
     await assertSucceeds(gm().ref('games/NEW111/meta').set({ gmUid: 'gm', createdAt: 1, status: 'active' }));
+  });
+
+  it('GM に許可されていない Google アカウントは、ゲームを作れない', async () => {
+    const stranger = env.authenticatedContext('gm2', { firebase: { sign_in_provider: 'google.com' } }).database();
+    await assertFails(stranger.ref('games/NEW111/meta').set({ gmUid: 'gm2', createdAt: 1, status: 'active' }));
+    await assertFails(stranger.ref('gmGames/gm2/NEW111').set(1));
+  });
+
+  it('GM の許可は、自分の分だけ読めて、だれも書けない', async () => {
+    await assertSucceeds(gm().ref('gmAllow/gm').get());
+    await assertFails(teamA().ref('gmAllow/gm').get());
+    await assertFails(gm().ref('gmAllow/gm').set(true));
+    await assertFails(teamA().ref('gmAllow/uidA').set(true));
   });
 
   it('匿名のユーザーはゲームを作れない', async () => {

@@ -62,3 +62,13 @@ export function firebase(role: 'gm' | 'team' | 'screen', device = ''): FirebaseH
   }
   return h;
 }
+
+// エミュレーターだけ：GM に許可する（本番では Firebase コンソールで gmAllow/{uid} = true を登録する）。
+// ルールを通さない管理者の書き込み（Authorization: Bearer owner）はエミュレーターでしか使えない
+export async function allowGmInEmulator(uid: string, host = '127.0.0.1'): Promise<void> {
+  const ns = new URL(EMULATOR_CONFIG.databaseURL!).hostname.split('.')[0];
+  const res = await fetch(`http://${host}:9000/gmAllow/${uid}.json?ns=${ns}`, {
+    method: 'PUT', headers: { Authorization: 'Bearer owner' }, body: 'true',
+  });
+  if (!res.ok) throw new Error(`GM の許可を登録できませんでした（${res.status}）`);
+}

@@ -73,3 +73,35 @@ jobs:
       - name: 公開
         if: env.HAS_KEY == 'true'
         run: npx firebase deploy --only hosting,database --project prod --non-interactive
+
+  pages:
+    name: 公開（GitHub Pages）
+    # main に入ったときだけ。テストが両方通ってから。Variables の ENABLE_GITHUB_PAGES が true のときだけ動く
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ENABLE_GITHUB_PAGES == 'true'
+    needs: [test, emulator]
+    runs-on: ubuntu-latest
+    concurrency: deploy-pages
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: ビルド
+        run: npm run build
+        env:
+          VITE_SURVEY_ENDPOINT: ${{ vars.VITE_SURVEY_ENDPOINT }}
+          VITE_ENABLE_MULTIPLAYER: ${{ vars.VITE_ENABLE_MULTIPLAYER }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

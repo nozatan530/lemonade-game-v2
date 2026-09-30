@@ -18,6 +18,10 @@ export async function renderGm(root: HTMLElement, params: URLSearchParams): Prom
     user = await renderSignIn(root);
   }
 
+  // GM になれるのは、Firebase コンソールで gmAllow/{uid} = true を登録したアカウントだけ
+  const allowed = await readPath<boolean>(db, `gmAllow/${user.uid}`).catch(() => null);
+  if (allowed !== true) return renderNotAllowed(root, user);
+
   const code = (params.get('code') ?? '').toUpperCase();
   if (code) return mountGameView(root, db, user.uid, code);
   return renderHome(root, user);
@@ -61,6 +65,24 @@ export async function renderGm(root: HTMLElement, params: URLSearchParams): Prom
     });
 
     return () => { unsubOffset(); unsubGames(); };
+  }
+
+  function renderNotAllowed(root: HTMLElement, user: User): () => void {
+    root.innerHTML = `<div class="page">
+      <h1>🍋 レモネードスタンド：GM</h1>
+      <div class="card">
+        <h2>GM モードは、いまは限られた人だけが使えます</h2>
+        <p>このアカウント（${esc(user.email ?? '')}）は、GM として登録されていません。</p>
+        <p class="muted">管理者の方へ：Firebase コンソールの Realtime Database で、<code>gmAllow</code> の下に次の ID を <code>true</code> で追加すると、このアカウントで GM モードを使えます。</p>
+        <p><code style="user-select:all;word-break:break-all">${esc(user.uid)}</code></p>
+        <button class="btn secondary" id="signout">ログアウト</button>
+        <p><a href="#/">トップにもどる</a>（ひとりで遊ぶソロモードは、だれでも使えます）</p>
+      </div></div>`;
+    root.querySelector('#signout')!.addEventListener('click', async () => {
+      await signOutUser(auth);
+      location.reload();
+    });
+    return () => {};
   }
 
   function renderSignIn(root: HTMLElement): Promise<User> {

@@ -4,6 +4,7 @@ import {
   createUserWithEmailAndPassword, signInWithEmailAndPassword,
   GoogleAuthProvider, onAuthStateChanged, signInAnonymously, signInWithPopup, signOut, type Auth, type User,
 } from 'firebase/auth';
+import { allowGmInEmulator } from './firebase';
 
 export async function signInAsTeam(auth: Auth): Promise<User> {
   if (auth.currentUser) return auth.currentUser; // 読み込み直しても同じ uid のまま
@@ -37,5 +38,6 @@ export async function signInAsDevGm(auth: Auth): Promise<User> {
   const password = 'dev-password';
   const cred = await signInWithEmailAndPassword(auth, email, password)
     .catch(() => createUserWithEmailAndPassword(auth, email, password));
+  await allowGmInEmulator(cred.user.uid, location.hostname);
   return cred.user;
 }
