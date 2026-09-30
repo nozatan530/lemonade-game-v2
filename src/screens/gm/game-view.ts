@@ -1,6 +1,8 @@
 // GM の進行画面：待機 → 入力（タイマー・提出状況・締切）→ 結果 → 次の月 → 期末 → 削除
 
+import QRCode from 'qrcode';
 import { renderGmFinal } from '../report/multi';
+import { gmNote } from './facilitation';
 import type { Database } from 'firebase/database';
 import type { MonthResult, TeamState, TimerSettings } from '../../engine/types';
 import {
@@ -12,7 +14,7 @@ import {
   watchClock, watchHidden, watchMeta, watchPublic, watchResults, watchServerOffset, watchState, watchSubmitted,
   watchTeams,
 } from '../../sync/watch';
-import { esc, mmss, monthLabel, secondsLeft, signedYen, yen } from '../../ui/format';
+import { calendarMonth, esc, mmss, monthLabel, secondsLeft, signedYen, yen } from '../../ui/format';
 import { isWatching } from '../team/result-view';
 
 export function mountGameView(root: HTMLElement, db: Database, gmUid: string, code: string): () => void {
@@ -41,12 +43,16 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
       <span class="muted" id="month"></span>
       <span class="timer" id="timer"></span>
     </div>
-    <div class="card">
-      <div class="gm-code">ゲームコード <strong>${esc(code)}</strong></div>
-      <p class="muted" style="margin:4px 0 0">
-        チームの参加用：<a href="${teamUrl}" target="_blank">${esc(teamUrl)}</a><br>
-        全体表示（プロジェクター用）：<a href="${screenUrl}" target="_blank">${esc(screenUrl)}</a></p>
+    <div class="card gm-join">
+      <div>
+        <div class="gm-code">ゲームコード <strong>${esc(code)}</strong></div>
+        <p class="muted" style="margin:4px 0 0">
+          チームの参加用：<a href="${teamUrl}" target="_blank">${esc(teamUrl)}</a><br>
+          全体表示（プロジェクター用）：<a href="${screenUrl}" target="_blank">${esc(screenUrl)}</a></p>
+      </div>
+      <div class="qr" id="qr" title="チームの参加用 QR コード"></div>
     </div>
+    <div class="card gm-note" id="note"></div>
     <div id="main"></div>
     <div class="card danger">
       <h2>ゲームの終了</h2>
@@ -55,6 +61,10 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
     </div></div>`;
   const $ = (id: string) => root.querySelector<HTMLElement>(`#${id}`)!;
   const main = $('main');
+  // 参加用の QR コード（全体表示と同じ。プロジェクターを使わないときに、GM の画面を見せて参加してもらう）
+  QRCode.toString(teamUrl, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' })
+    .then((svg) => { $('qr').innerHTML = svg; })
+    .catch(() => { $('qr').remove(); });
 
   $('delete').addEventListener('click', async () => {
     if (!confirm(`ゲーム ${code} を終了して、データをすべて削除しますか？\n元には戻せません。`)) return;
@@ -104,6 +114,7 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
     if (!c || !S.pub) return;
     $('month').textContent = c.month > 0 ? monthLabel(c.month, S.pub.startCalendarMonth) : '開始前';
 
+    renderNote(c);
     const slots = sortedTeams(S.teams);
     if (c.phase === 'lobby') return renderLobby(slots);
     if (c.phase === 'input') return renderInput(c, slots);
@@ -199,6 +210,19 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
     if (!S.pub) return;
     renderGmFinal(main, { results: S.results, state: S.state, teams: S.teams, pub: S.pub });
     main.insertAdjacentHTML('beforeend', '<p class="muted">振り返りが終わったら、下の「ゲームを終了してデータを削除」でデータを消してください。</p>');
+  }
+
+  // いま話すこと（docs/facilitation-guide.md の短い版）
+  function renderNote(c: Clock) {
+    if (!S.pub) return;
+    const n = gmNote({
+      phase: c.phase, month: c.month, months: S.pub.months, quarterStart: c.quarterStart,
+      seasonal: S.pub.pattern === 'realistic', calendarMonth: calendarMonth(Math.max(1, c.month), S.pub.startCalendarMonth),
+    });
+    // 閉じたら、月が変わっても閉じたまま
+    const open = $('note').querySelector('details')?.open ?? true;
+    $('note').innerHTML = `<details ${open ? 'open' : ''}><summary><strong>🗣 いま話すこと：${esc(n.title)}</strong> <span class="muted">（目安 ${esc(n.time)}）</span></summary>
+      <ul>${n.points.map((p) => `<li>${esc(p)}</li>`).join('')}</ul></details>`;
   }
 
   function bindRelease() {
