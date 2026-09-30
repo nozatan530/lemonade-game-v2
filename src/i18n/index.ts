@@ -50,6 +50,15 @@ export function setLang(next: Lang): void {
   window.dispatchEvent(new Event('langchange'));
 }
 
+// 画面ごとに言語を決める（保存はしない）。対戦の画面は、英語に対応するまで日本語に固定する。
+// null なら、ふだんの決め方（URL → 前回選んだ言語 → ブラウザの言語）に戻す
+export function pinLang(next: Lang | null): void {
+  const want = next ?? detect();
+  if (want === current) return;
+  current = want;
+  applyDocumentLang();
+}
+
 // テスト用
 export function setLangForTest(next: Lang): void {
   current = next;

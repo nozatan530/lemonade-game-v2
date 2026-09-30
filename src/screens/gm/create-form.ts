@@ -1,7 +1,16 @@
 // 新しいゲームの設定フォーム
 
-import { DEFAULT_MARKET_SIZE, DEFAULT_TIMER, defaultConfig, MARKET_PATTERNS, MIN_BARISTA, withMarketPattern, withRandomMarketSize } from '../../engine/config';
+import { DEFAULT_TIMER, defaultConfig, MARKET_PATTERNS, MIN_BARISTA, withMarketPattern, withRandomMarketSize } from '../../engine/config';
 import type { GameConfig, MarketPattern, TimerSettings } from '../../engine/types';
+import { SOLO_DIFFICULTY, type SoloDifficulty } from '../../solo/local-game';
+
+// むずかしさ：ソロと同じ3段階。市場の大きさ（1チームあたりの額）の幅だけを使う（対戦にロボット店長はいない）
+const LEVELS: SoloDifficulty[] = ['easy', 'normal', 'hard'];
+const LEVEL_NOTE: Record<SoloDifficulty, string> = {
+  easy: 'お客さんが多め。売り切れやすく、はじめての人向け',
+  normal: 'お客さんの数はゲームごとにちがう。値段の読み合いが起きる',
+  hard: 'お客さんが少なめ。売れ残りやすく、競争がきびしい',
+};
 import { esc } from '../../ui/format';
 
 const DEFAULT_NAMES = 'ABCDEFGHIJKL'.split('').map((c) => `${c}チーム`);
@@ -21,17 +30,14 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
         <input type="number" id="teams" min="2" max="12" value="4"></label>
       <label class="field">チーム名（1行に1チーム）
         <textarea id="names" rows="4"></textarea></label>
+      <label class="field">むずかしさ（お客さんが使うお金の多さ）
+        <select id="level">
+          ${LEVELS.map((l) => `<option value="${l}" ${l === 'normal' ? 'selected' : ''}>${esc(SOLO_DIFFICULTY[l].label)}：${LEVEL_NOTE[l]}</option>`).join('')}
+        </select></label>
       <label class="field">市場のパターン（お客さんの数と材料の値段の動き方）
         <select id="pattern">
           ${(Object.keys(MARKET_PATTERNS) as MarketPattern[]).map((p) =>
             `<option value="${p}">${esc(MARKET_PATTERNS[p].label)}：${esc(MARKET_PATTERNS[p].description)}</option>`).join('')}
-        </select></label>
-      <label class="field">市場の大きさ（お客さんが使うお金。1チームあたり）
-        <select id="marketSize">
-          <option value="auto">おまかせ：ゲームごとにランダム（${DEFAULT_MARKET_SIZE.min.toLocaleString()}〜${DEFAULT_MARKET_SIZE.max.toLocaleString()}円）</option>
-          <option value="20000">大きめ：20,000円（旧版と同じ。売り切れやすい）</option>
-          <option value="15000">ふつう：15,000円</option>
-          <option value="12000">小さめ：12,000円（競争がきびしい）</option>
         </select></label>
       <label class="check" style="margin:0 0 12px"><input type="checkbox" id="baristaMonthly">
         バリスタの人数を毎月決められるようにする（初期値は3か月ごと。毎月にすると、チームの入力が毎月1つ増えます）</label>
@@ -44,6 +50,13 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
         <label class="check"><input type="checkbox" id="tAll" checked> 全チームが提出したら早めに締め切る</label>
       </fieldset>
       <details><summary>詳細設定</summary>
+      <label class="field">市場の大きさ（お客さんが使うお金。1チームあたり）
+        <select id="marketSize">
+          <option value="level">むずかしさに合わせる（おすすめ）</option>
+          <option value="20000">大きめ：20,000円（旧版と同じ。売り切れやすい）</option>
+          <option value="15000">ふつう：15,000円</option>
+          <option value="12000">小さめ：12,000円（競争がきびしい）</option>
+        </select></label>
         <div class="row3">
           <label>はじめのお金<input type="number" id="fund" value="${base.startFund}"></label>
           <label>レモン（円/個）<input type="number" id="pLemon" value="${base.initialPrices.lemon}"></label>
@@ -80,13 +93,15 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
     const seed = $<HTMLInputElement>('seed').value.trim() || `g${Date.now()}`;
     const marketSize = $<HTMLSelectElement>('marketSize').value;
     const perTeam = Number(marketSize);
-    const config = marketSize === 'auto'
-      ? withRandomMarketSize(defaultConfig(names.length, seed), names.length, DEFAULT_MARKET_SIZE)
+    const level = $<HTMLSelectElement>('level').value as SoloDifficulty;
+    const config = marketSize === 'level'
+      ? withRandomMarketSize(defaultConfig(names.length, seed), names.length, SOLO_DIFFICULTY[level].market)
       : defaultConfig(names.length, seed);
-    if (marketSize !== 'auto') config.market = { ...config.market, base: perTeam * names.length, basePerTeam: perTeam };
+    if (marketSize !== 'level') config.market = { ...config.market, base: perTeam * names.length, basePerTeam: perTeam };
     config.baristaCadence = $<HTMLInputElement>('baristaMonthly').checked ? 'monthly' : 'quarterly';
     // 市場のパターン（お客さんの数と材料の値段の動き方）を当てはめる
     Object.assign(config, withMarketPattern(config, $<HTMLSelectElement>('pattern').value as MarketPattern));
+    config.market = { ...config.market, level };
     config.startFund = num('fund');
     config.initialPrices = { lemon: num('pLemon'), sugar: num('pSugar'), barista: num('pBarista') };
     config.baristaCapacity = num('capacity');
