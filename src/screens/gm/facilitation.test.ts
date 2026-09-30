@@ -15,6 +15,8 @@ describe('GM の進行メモ', () => {
 
   it('バリスタを決める月・折り返し・最後の月に、それぞれの話題が入る', () => {
     expect(gmNote({ ...base, quarterStart: true }).points.join()).toContain('バリスタ');
+    // 毎月決めるときは、毎月「決める月です」とは言わない
+    expect(gmNote({ ...base, quarterStart: true, baristaMonthly: true }).points.join()).not.toContain('決める月');
     expect(gmNote({ ...base, month: 6 }).points.join()).toContain('折り返し');
     expect(gmNote({ ...base, month: 12 }).points.join()).toContain('最後の月');
   });

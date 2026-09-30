@@ -8,6 +8,7 @@ export interface NoteInput {
   month: number; // 0 = 開始前
   months: number; // 期の月数
   quarterStart: boolean; // バリスタの人数を決める月
+  baristaMonthly?: boolean; // バリスタの人数を毎月決める（ソロと同じ）
   seasonal: boolean; // お客さんの数が季節で変わる（市場のパターンが「現実ベース」）
   calendarMonth: number; // 暦の月（1〜12）
 }
@@ -53,12 +54,14 @@ export function gmNote(n: NoteInput): Note {
         points: [
           '入力画面の上から順に：仕入れる → 値段を決める → 下の「月末の資金」を見て提出。',
           '「1杯あたりの原価」と「元がとれる数」を指さして、値段の決め方のヒントにする。',
-          'バリスタの給料は、売れても売れなくても毎月かかることを伝える。',
+          n.baristaMonthly
+            ? 'バリスタの人数も毎月決める。1人で作れる数には上限があり、給料は売れても売れなくても毎月かかる。'
+            : 'バリスタの給料は、売れても売れなくても毎月かかることを伝える。',
         ],
       };
     }
     const points = ['入力画面の上の「先月の市場」で、どのお店が売り切れたか・お金が余ったかを見るよう促す。'];
-    if (n.quarterStart) points.push('今月はバリスタの人数を決める月。人を増やすと作れる数は増えるが、給料も3か月分かかる。');
+    if (n.quarterStart && !n.baristaMonthly) points.push('今月はバリスタの人数を決める月。人を増やすと作れる数は増えるが、給料も3か月分かかる。');
     if (n.seasonal && [6, 7].includes(n.calendarMonth)) points.push('夏はお客さんが増える。仕入れを増やすか、値上げするか、チームで相談してもらう。');
     if (n.seasonal && [9, 10].includes(n.calendarMonth)) points.push('夏が終わりお客さんが減る。仕入れすぎると売れ残りが出る。');
     if (n.month === half) points.push('折り返し。ここまでの自分の作戦（安く多く／高く少なく）をチームで一言にしてもらう。');
