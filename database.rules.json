@@ -91,7 +91,7 @@
               },
               "quarterlyDecision": {
                 ".validate": "newData.hasChildren(['baristaCount']) && root.child('games').child($code).child('clock/quarterStart').val() === true",
-                "baristaCount": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 50" },
+                "baristaCount": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 50" },
                 "$other": { ".validate": false }
               },
               "$other": { ".validate": false }

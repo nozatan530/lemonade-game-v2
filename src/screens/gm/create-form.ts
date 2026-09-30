@@ -1,6 +1,6 @@
 // 新しいゲームの設定フォーム
 
-import { DEFAULT_MARKET_SIZE, DEFAULT_TIMER, defaultConfig, MARKET_PATTERNS, withMarketPattern, withRandomMarketSize } from '../../engine/config';
+import { DEFAULT_MARKET_SIZE, DEFAULT_TIMER, defaultConfig, MARKET_PATTERNS, MIN_BARISTA, withMarketPattern, withRandomMarketSize } from '../../engine/config';
 import type { GameConfig, MarketPattern, TimerSettings } from '../../engine/types';
 import { esc } from '../../ui/format';
 
@@ -50,7 +50,7 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
           <label>砂糖（円/袋）<input type="number" id="pSugar" value="${base.initialPrices.sugar}"></label>
           <label>バリスタ（円/人・月）<input type="number" id="pBarista" value="${base.initialPrices.barista}"></label>
           <label>バリスタ1人の上限（杯）<input type="number" id="capacity" value="${base.baristaCapacity}"></label>
-          <label>最初のバリスタ（人）<input type="number" id="initBarista" min="0" value="${base.initialBaristaCount}"></label>
+          <label>最初のバリスタ（人）<input type="number" id="initBarista" min="1" value="${base.initialBaristaCount}"></label>
           <label>シード（空欄なら自動）<input type="text" id="seed" placeholder="例：class-3a"></label>
         </div>
         <p class="muted">市場予算の基準は「チーム数 × 1チームあたりの額」。シードが同じなら、同じ市場の動きになります。</p>
@@ -90,7 +90,7 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
     config.startFund = num('fund');
     config.initialPrices = { lemon: num('pLemon'), sugar: num('pSugar'), barista: num('pBarista') };
     config.baristaCapacity = num('capacity');
-    config.initialBaristaCount = num('initBarista');
+    config.initialBaristaCount = Math.max(MIN_BARISTA, num('initBarista'));
 
     const timer: TimerSettings = {
       firstMonth: num('tFirst'),

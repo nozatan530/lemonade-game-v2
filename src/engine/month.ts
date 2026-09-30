@@ -1,7 +1,7 @@
 // 1か月分の処理をまとめる。状態と入力を受け取り、新しい状態と結果を返す。
 
 import { purchaseBasisCosts } from './accounting';
-import { canChangeBarista } from './config';
+import { canChangeBarista, MIN_BARISTA } from './config';
 import { nextStock, offeredCups, productionCapacity, sanitizeDecision } from './inventory';
 import { allocatePriceSegment, type Offer } from './market';
 import type {
@@ -15,7 +15,7 @@ export function isActive(t: TeamState): boolean {
 }
 
 export function initialTeamState(teamId: string, name: string, config: GameConfig): TeamState {
-  return { teamId, name, balance: config.startFund, totalProfit: 0, stock: { lemon: 0, sugar: 0 }, baristaCount: config.initialBaristaCount };
+  return { teamId, name, balance: config.startFund, totalProfit: 0, stock: { lemon: 0, sugar: 0 }, baristaCount: Math.max(MIN_BARISTA, Math.floor(config.initialBaristaCount)) };
 }
 
 // 締切までに提出しなかったチームは、前月と同じ月の決定で処理する（前月がなければ静観）。
@@ -56,8 +56,8 @@ export function resolveMonth(
     if (!sub) throw new Error(`${t.name} の提出がありません`);
     const decision = sanitizeDecision(sub.monthlyDecision);
     const baristaCount = canChangeBarista(conditions.month, config.baristaCadence) && sub.quarterlyDecision
-      ? Math.max(0, Math.floor(sub.quarterlyDecision.baristaCount))
-      : t.baristaCount;
+      ? Math.max(MIN_BARISTA, Math.floor(sub.quarterlyDecision.baristaCount))
+      : Math.max(MIN_BARISTA, t.baristaCount);
     const capacity = productionCapacity(t.stock, decision.lemonQty, decision.sugarQty, baristaCount, config);
     const offered = offeredCups(decision, capacity);
     const price = offered > 0 ? decision.price : 0;

@@ -5,7 +5,7 @@
 //   画面の下に固定：いまの資金 − 支出 ＋ 売上 ＝ 月末の資金（売れた数しだいで幅がある）
 // 計算はすべて engine の previewDecision。ここでは表示するだけ。
 
-import { canChangeBarista } from '../../engine/config';
+import { canChangeBarista, MIN_BARISTA } from '../../engine/config';
 import { previewDecision } from '../../engine/preview';
 import type { MonthlyDecision, TeamState } from '../../engine/types';
 import type { Clock, PublicConfig, SubmissionDoc } from '../../sync/schema';
@@ -108,7 +108,7 @@ export function mountInputView(
   const lemonStep = stepper({ field: 'lemon', label: t('input.lemon'), value: v.lemon, step: 10, onChange: (x) => { v.lemon = x; refresh(); } });
   const sugarStep = stepper({ field: 'sugar', label: t('input.sugar'), value: v.sugar, step: 10, onChange: (x) => { v.sugar = x; refresh(); } });
   const baristaStep = canChooseBarista
-    ? stepper({ field: 'barista', label: t('input.barista'), value: v.barista, step: 1, max: 20, onChange: (x) => { v.barista = x; refresh(); } })
+    ? stepper({ field: 'barista', label: t('input.barista'), value: v.barista, step: 1, min: MIN_BARISTA, max: 20, onChange: (x) => { v.barista = x; refresh(); } })
     : null;
   const priceStep = stepper({ field: 'price', label: t('input.price'), value: v.price, step: 10, max: 10000, onChange: (x) => { v.price = x; refresh(); } });
   $('buy').append(lemonStep.el, sugarStep.el, ...(baristaStep ? [baristaStep.el] : []));
@@ -206,7 +206,7 @@ export function mountInputView(
   async function send(decision: MonthlyDecision) {
     submitBtn.disabled = watchBtn.disabled = true;
     try {
-      await onSubmit(decision, canChooseBarista ? v.barista : undefined);
+      await onSubmit(decision, canChooseBarista ? Math.max(MIN_BARISTA, v.barista) : undefined);
     } catch {
       alert(t('input.submitFailed'));
     } finally {
@@ -245,6 +245,6 @@ export function initialInputValues(decision: MonthlyDecision, baristaCount: numb
     price: decision.price > 0 ? decision.price : DEFAULT_DECISION.price,
     // 静観の月は上限0杯で保存されているので、翌月には持ち越さない（持ち越すと仕入れても売れない）
     maxSell: decision.watching ? undefined : decision.maxSell as number | undefined,
-    barista: baristaCount,
+    barista: Math.max(MIN_BARISTA, baristaCount),
   };
 }
