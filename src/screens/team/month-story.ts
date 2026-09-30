@@ -52,19 +52,15 @@ function setRevealOff(off: boolean): void {
   }
 }
 
-export function renderMonthStory(
-  container: HTMLElement,
+// ① 今月の市場（帯とみんなの結果の表）。入力画面の「先月の市場」でも使う。
+// end：帯の演出が終わる時刻（ms）。演出は .story.reveal の中だけで動く
+export function marketSection(
   result: MonthResult,
   teamId: string,
   teams: Record<string, TeamSlot>,
-  opts: StoryOptions,
-): void {
+  opts: { eliminated?: Record<string, string>; title?: string } = {},
+): { html: string; end: number } {
   const me = result.teamResults.find((x) => x.teamId === teamId);
-  const ins = monthInsights(result, teamId, opts.recipe, opts.baristaCapacity, opts.previous);
-  if (!me || !ins) {
-    container.innerHTML = `<div class="card">${t('result.none')}</div>`;
-    return;
-  }
   const budget = Math.max(1, result.marketBudget);
   const color = (id: string) => `var(--series-${((teams[id]?.order ?? 0) % 8) + 1})`;
   const pct = (v: number) => (v / budget) * 100;
@@ -103,19 +99,36 @@ export function renderMonthStory(
     + Object.entries(opts.eliminated ?? {})
       .filter(([id]) => !result.teamResults.some((x) => x.teamId === id))
       .map(([id, m]) => `<tr class="out"><td>${name(id)}</td><td colspan="5" class="muted">${t('result.outSince', { m })}</td></tr>`).join('');
-  const missed = missedCups(result, teamId);
-  const market = `<section class="card story-market">
-      <h2>${t('story.market.h2')} <span class="muted">${t('story.market.budget', { v: yen(result.marketBudget) })}</span></h2>
+  const missed = me ? missedCups(result, teamId) : 0;
+  const html = `<section class="card story-market">
+      <h2>${opts.title ?? t('story.market.h2')} <span class="muted">${t('story.market.budget', { v: yen(result.marketBudget) })}</span></h2>
       <p class="muted story-rule">${t('story.market.rule')}</p>
       <div class="market-bar" role="img" aria-label="${esc(t('story.market.budget', { v: yen(result.marketBudget) }))}">${segs.join('')}</div>
       <div class="table-scroll"><table class="table story-table">
         <tr><th>${t('story.col.stand')}</th><th>${t('story.col.price')}</th><th>${t('story.col.sold')}</th><th>${t('story.col.sales')}</th><th class="share">${t('story.col.share')}</th><th>${t('story.col.profit')}</th></tr>
         ${rows}
       </table></div>
-      ${missed > 0 ? `<div class="missed-box" style="--d:${marketEnd}ms"><strong>${t('story.missed', { v: yen(missed * me.price) })}</strong>
+      ${me && missed > 0 ? `<div class="missed-box" style="--d:${marketEnd}ms"><strong>${t('story.missed', { v: yen(missed * me.price) })}</strong>
         <div class="muted">${t('story.missed.detail', { u: yen(flow.unspent), p: yen(me.price), n: missed })}</div></div>` : ''}
     </section>`;
 
+  return { html, end: marketEnd };
+}
+
+export function renderMonthStory(
+  container: HTMLElement,
+  result: MonthResult,
+  teamId: string,
+  teams: Record<string, TeamSlot>,
+  opts: StoryOptions,
+): void {
+  const me = result.teamResults.find((x) => x.teamId === teamId);
+  const ins = monthInsights(result, teamId, opts.recipe, opts.baristaCapacity, opts.previous);
+  if (!me || !ins) {
+    container.innerHTML = `<div class="card">${t('result.none')}</div>`;
+    return;
+  }
+  const { html: market, end: marketEnd } = marketSection(result, teamId, teams, { ...(opts.eliminated ? { eliminated: opts.eliminated } : {}) });
   // ② あなたのお店：作った杯数（売れた＝緑、売れ残り＝灰色）
   const cupStart = marketEnd + 200;
   let shopBody: string;

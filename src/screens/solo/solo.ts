@@ -206,7 +206,11 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
         view,
         {
           pub: publicConfigOf(s.config), clock, me, ownSub: null, closed: false,
-          ...(s.results.length > 0 ? { lastMonth: { result: s.results[s.results.length - 1]!, names: names(s) } } : {}),
+          ...(s.results.length > 0 ? { lastMonth: {
+            result: s.results[s.results.length - 1]!, teams: slotsOf(s),
+            eliminated: Object.fromEntries(s.teams.filter((tm) => tm.eliminatedMonth !== undefined && tm.eliminatedMonth < month - 1)
+              .map((tm) => [tm.teamId, outLabel(s)(tm.eliminatedMonth!)])),
+          } } : {}),
         },
         { decision: lastHumanDecision(s) ?? DEFAULT_DECISION, baristaCount: me.baristaCount },
         async (decision, baristaCount) => update(submitHuman(s, decision, baristaCount)),

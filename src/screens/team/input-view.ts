@@ -8,7 +8,8 @@
 import { canChangeBarista, MIN_BARISTA } from '../../engine/config';
 import { previewDecision } from '../../engine/preview';
 import type { MonthlyDecision, MonthResult, TeamState } from '../../engine/types';
-import type { Clock, PublicConfig, SubmissionDoc } from '../../sync/schema';
+import type { Clock, PublicConfig, SubmissionDoc, TeamSlot } from '../../sync/schema';
+import { marketSection } from './month-story';
 import { lang, t } from '../../i18n';
 import { newsText } from '../../i18n/content';
 import { esc, monthShort, yen } from '../../ui/format';
@@ -21,30 +22,16 @@ export interface InputContext {
   ownSub: SubmissionDoc | null; // 今月の自分の提出
   closed: boolean; // 締切を過ぎた
   // 先月の市場（ソロモード）。決める前に、先月のみんなの値段と売れ行きを見られるようにする
-  lastMonth?: { result: MonthResult; names: Record<string, string> };
+  lastMonth?: { result: MonthResult; teams: Record<string, TeamSlot>; eliminated?: Record<string, string> };
 }
 
-// 先月の市場：お客さんのお金と、お店ごとの値段・売れた数・もうけ（安い順。売らなかったお店は最後）
+// 先月の市場：月の結果の「今月の市場」と同じ形（帯と表）
 function lastMonthCard(ctx: InputContext): string {
   const lm = ctx.lastMonth;
   if (!lm) return '';
-  const { result, names } = lm;
-  const used = result.teamResults.reduce((a, r) => a + r.revenue, 0);
-  const selling = [...result.teamResults].filter((r) => r.offered > 0).sort((a, b) => a.price - b.price);
-  const idle = result.teamResults.filter((r) => r.offered === 0);
-  const shop = (id: string) => `${esc(names[id] ?? id)}${id === ctx.me.teamId ? t('input.last.you') : ''}`;
-  const profit = (p: number) => `<td class="${p >= 0 ? 'good' : 'bad'}">${yen(p)}</td>`;
-  const rowAttr = (id: string) => (id === ctx.me.teamId ? ' class="me"' : '');
-  return `<details class="card last-market" open>
-    <summary><strong>${t('input.last.h2')}</strong></summary>
-    <p style="margin:6px 0">${t('input.last.budget', { b: yen(result.marketBudget), u: yen(used), r: yen(Math.max(0, result.marketBudget - used)) })}</p>
-    <div class="table-scroll"><table class="table">
-      <tr><th>${t('input.last.th.shop')}</th><th>${t('input.last.th.price')}</th><th>${t('input.last.th.sold')}</th><th>${t('input.last.th.profit')}</th></tr>
-      ${selling.map((r) => `<tr${rowAttr(r.teamId)}><td>${shop(r.teamId)}</td><td>${yen(r.price)}</td>
-        <td>${r.sold} / ${r.offered}${r.sold >= r.offered ? t('input.last.soldOut') : ''}</td>${profit(r.profit)}</tr>`).join('')}
-      ${idle.map((r) => `<tr${rowAttr(r.teamId)}><td>${shop(r.teamId)}</td><td colspan="2" class="muted">${t('input.last.idle')}</td>${profit(r.profit)}</tr>`).join('')}
-    </table></div>
-  </details>`;
+  return marketSection(lm.result, ctx.me.teamId, lm.teams, {
+    title: t('input.last.h2'), ...(lm.eliminated ? { eliminated: lm.eliminated } : {}),
+  }).html;
 }
 
 export interface InputView {
