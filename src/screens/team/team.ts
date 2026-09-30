@@ -11,7 +11,8 @@ import {
 import { esc, mmss, monthLabel, secondsLeft, yen } from '../../ui/format';
 import { maybeStartInputCoach } from './input-coach';
 import { DEFAULT_DECISION, mountInputView, type InputView } from './input-view';
-import { renderTeamFinal } from '../report/multi';
+import { renderTeamFinal, renderTeamYearEnd } from '../report/multi';
+import { isYearEnd, yearOf } from '../../engine/years';
 import { renderMonthStory } from './month-story';
 
 export async function renderTeam(root: HTMLElement, params: URLSearchParams): Promise<() => void> {
@@ -78,20 +79,27 @@ export async function renderTeam(root: HTMLElement, params: URLSearchParams): Pr
   }
 
   let mounting = false;
+  let seenGame = false; // このゲームを一度でも表示した（削除されたときに「終了しました」と出すため）
   async function render() {
     if (S.pub === null) {
       $('teamname').textContent = '🍋 レモネードスタンド';
       $('month').textContent = '';
       inputView = null;
       viewKey = 'notfound';
-      view.innerHTML = `<div class="card">ゲームコード「${esc(code)}」のゲームが見つかりません。<br><a href="#/team">コードを入れ直す</a></div>`;
+      // 遊んでいたゲームを GM が削除したとき
+      view.innerHTML = seenGame
+        ? `<div class="card center"><h2>ゲームは終了しました</h2>
+            <p>GM がゲームのデータを削除しました。参加してくれてありがとう！</p>
+            <a class="btn" href="#/">トップにもどる</a></div>`
+        : `<div class="card">ゲームコード「${esc(code)}」のゲームが見つかりません。<br><a href="#/team">コードを入れ直す</a></div>`;
       return;
     }
     if (!S.pub || !S.clock) return;
+    seenGame = true;
     const clock = S.clock;
     const teamId = myTeamId();
     $('teamname').textContent = teamId ? `🍋 ${S.teams[teamId]!.name}` : '🍋 レモネードスタンド';
-    $('month').textContent = clock.month > 0 ? monthLabel(clock.month, S.pub.startCalendarMonth) : '';
+    $('month').textContent = clock.month > 0 ? monthLabel(clock.month, S.pub.startCalendarMonth, S.pub.months) : '';
 
     if (!teamId) {
       viewKey = 'join';
@@ -151,8 +159,18 @@ export async function renderTeam(root: HTMLElement, params: URLSearchParams): Pr
       const previous = S.results.find((r) => r.month === clock.month - 1);
       renderMonthStory(view, result, teamId, S.teams, {
         recipe: S.pub.recipe, baristaCapacity: S.pub.baristaCapacity, ...(previous ? { previous } : {}),
-        waitText: clock.month >= S.pub.months ? 'GMが期末の結果を出すまで待ってください。' : 'GMが次の月を始めるまで待ってください。',
+        waitText: clock.month >= S.pub.months ? 'GMが期末の結果を出すまで待ってください。'
+          : isYearEnd(clock.month) ? `GMが第${yearOf(clock.month)}期の決算を出すまで待ってください。`
+          : 'GMが次の月を始めるまで待ってください。',
       });
+      return;
+    }
+
+    if (clock.phase === 'yearEnd') {
+      const key = `yearEnd-${clock.month}-${S.results.length}`;
+      if (viewKey === key) return;
+      viewKey = key;
+      renderTeamYearEnd(view, { results: S.results, state: S.state, teams: S.teams, pub: S.pub }, teamId, yearOf(clock.month));
       return;
     }
 

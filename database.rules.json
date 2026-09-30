@@ -51,6 +51,7 @@
         },
         "results": {
           ".read": "auth != null",
+          ".write": "auth != null && root.child('games').child($code).child('meta/gmUid').val() === auth.uid && !newData.exists()",
           "$m": {
             ".write": "auth != null && root.child('games').child($code).child('meta/gmUid').val() === auth.uid && !data.exists()"
           }
@@ -79,6 +80,7 @@
           }
         },
         "subs": {
+          ".write": "auth != null && root.child('games').child($code).child('meta/gmUid').val() === auth.uid && !newData.exists()",
           "$m": {
             ".read": "auth != null && root.child('games').child($code).child('meta/gmUid').val() === auth.uid",
             "$teamId": {

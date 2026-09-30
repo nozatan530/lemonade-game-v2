@@ -26,9 +26,14 @@ describe('シナリオのお知らせ文', () => {
 });
 
 describe('inputSecondsFor（入力時間）', () => {
-  it('1か月目は長め、四半期の最初の月は少し長め', () => {
+  it('1か月目は長め、そのほかの月は同じ', () => {
     const secs = Array.from({ length: 12 }, (_, i) => inputSecondsFor(i + 1, DEFAULT_TIMER));
-    expect(secs).toEqual([150, 90, 90, 105, 90, 90, 105, 90, 90, 105, 90, 90]);
+    expect(secs).toEqual([150, ...Array(11).fill(100)]);
+  });
+
+  it('四半期の最初の月だけ別の時間にもできる（古いゲームの設定）', () => {
+    const secs = Array.from({ length: 12 }, (_, i) => inputSecondsFor(i + 1, { ...DEFAULT_TIMER, quarterStart: 120 }));
+    expect(secs[3]).toBe(120);
   });
 
   it('50分版の入力・結果表示・切り替えの合計が、12か月の枠（36分）に収まる', () => {

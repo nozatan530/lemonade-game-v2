@@ -1,5 +1,6 @@
 // ゲームの読み書き。計算は engine に任せ、ここではデータベースとのやりとりだけを行う。
 
+import { isYearEnd } from '../engine/years';
 import {
   get, ref, remove, serverTimestamp, set, update, type Database,
 } from 'firebase/database';
@@ -185,8 +186,11 @@ export async function closeCurrentMonth(db: Database, code: string): Promise<'cl
   return 'closed';
 }
 
-// 次の月を始める。最終月の後なら期末（final）にする
-export async function startNextMonth(db: Database, code: string, now: number): Promise<'started' | 'final' | 'noop'> {
+// 次の月を始める。最終月の後なら期末（final）にする。
+// 2年以上のときは、年の最後の月の結果のあとに「年の決算」（yearEnd）をはさみ、もう一度呼ぶと次の年の1か月目になる
+export async function startNextMonth(
+  db: Database, code: string, now: number,
+): Promise<'started' | 'yearEnd' | 'final' | 'noop'> {
   const [clock, config, settings, teams] = await Promise.all([
     read<Clock>(db, gamePath(code, 'clock')),
     read<GameConfig>(db, gamePath(code, 'config')),
@@ -194,7 +198,11 @@ export async function startNextMonth(db: Database, code: string, now: number): P
     read<Record<string, TeamSlot>>(db, gamePath(code, 'teams')),
   ]);
   if (!clock || !config || !settings || !teams) throw new Error('ゲームが見つかりません');
-  if (clock.phase !== 'result') return 'noop';
+  if (clock.phase !== 'result' && clock.phase !== 'yearEnd') return 'noop';
+  if (clock.phase === 'result' && isYearEnd(clock.month) && clock.month < config.months) {
+    await set(ref(db, gamePath(code, 'clock/phase')), 'yearEnd');
+    return 'yearEnd';
+  }
 
   const result = await read<MonthResult>(db, gamePath(code, `results/${clock.monthKey}`));
   // その月に実際に使った単価を引き継ぐ（GM が上書きしていればその値）
@@ -209,6 +217,27 @@ export async function startNextMonth(db: Database, code: string, now: number): P
     clock: clockFor(next, settings.timer, now, config),
   });
   return 'started';
+}
+
+// 同じゲームコード・同じチームで、次のゲームを始める（期末のあとに GM が使う）。
+// 前のゲームの結果・提出・状態を消し、市場のシードを変えて、参加を待つ画面に戻す。チームは参加したまま
+export async function restartGame(db: Database, code: string, now: number): Promise<void> {
+  const [config, clock] = await Promise.all([
+    read<GameConfig>(db, gamePath(code, 'config')),
+    read<Clock>(db, gamePath(code, 'clock')),
+  ]);
+  if (!config || !clock) throw new Error('ゲームが見つかりません');
+  if (clock.phase !== 'final') return;
+  const nextConfig: GameConfig = { ...config, market: { ...config.market, seed: `${config.market.seed}-${now}` } };
+  const lobby: Clock = {
+    month: 0, monthKey: monthKey(0), phase: 'lobby', deadlineAt: 0, quarterStart: false, prices: config.initialPrices,
+  };
+  await update(ref(db, gamePath(code)), {
+    results: null, subs: null, decided: null, hidden: null, state: null,
+    config: nextConfig,
+    'meta/status': 'active',
+    clock: lobby,
+  });
 }
 
 export async function extendDeadline(db: Database, code: string, seconds: number): Promise<void> {
