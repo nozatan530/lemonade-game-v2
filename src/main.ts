@@ -5,6 +5,7 @@
 //   #/guide             はじめに（遊び方の説明）
 //   #/survey            感想を送る（アンケート）
 //   #/solo              ソロモード（ブラウザの中だけ。Firebase を使わない）
+//   #/solo/play         ソロモードのゲーム中（「戻る」で抜ける前に確かめる）
 //   #/dev               開発用（エミュレーター接続時だけ）
 
 import { esc } from './ui/format';
@@ -57,9 +58,11 @@ async function route(opts: { resume?: boolean } = {}) {
       cleanup = renderSurveyPage(root);
       break;
     }
-    case '/solo': {
+    case '/solo':
+    case '/solo/play': {
+      // #/solo/play はゲームの途中。再読みこみしても続きを出す
       const { renderSolo } = await import('./screens/solo/solo');
-      cleanup = renderSolo(root, opts);
+      cleanup = renderSolo(root, path === '/solo/play' ? { resume: true } : opts);
       break;
     }
     case '/dev': {

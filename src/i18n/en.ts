@@ -58,6 +58,7 @@ export const en: Record<Key, string> = {
   'report.youOut': 'You dropped out in {m}.',
   'solo.pattern': 'Market pattern (how customers and ingredient prices change)',
   'solo.start': 'Start',
+  'solo.confirmLeave': 'Leave the game and go back to the start screen?\n(Your progress is saved. You can pick up where you left off.)',
   'solo.confirmRestart': 'Delete your saved game and start over?',
   'solo.quit': 'Pause',
   'solo.confirmReset': 'Delete this game and start over?',

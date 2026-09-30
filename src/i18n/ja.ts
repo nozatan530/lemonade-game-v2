@@ -59,6 +59,7 @@ export const ja = {
   'report.youOut': '{m}に脱落しました。',
   'solo.pattern': '市場のパターン（お客さんの数と材料の値段の動き方）',
   'solo.start': 'はじめる',
+  'solo.confirmLeave': 'ゲームをぬけて、はじめの画面にもどりますか？\n（ここまでの記録は保存されていて、「続きから」で再開できます）',
   'solo.confirmRestart': 'いまの続きを消して、最初からやり直しますか？',
   'solo.quit': 'いったんやめる',
   'solo.confirmReset': 'いまのゲームを消して、最初からやり直しますか？',

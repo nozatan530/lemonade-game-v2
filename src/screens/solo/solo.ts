@@ -27,11 +27,39 @@ import { SHOWN_TITLES, TITLE_IDS, type TitleId } from '../../engine/titles';
 import { titleChip, titleDesc } from '../../ui/titles';
 import { mountSurveyForm } from '../survey/survey-form';
 
+const PLAY_HASH = '#/solo/play';
+
 // resume：言語を切り替えたときなど、保存されたゲームがあればそのまま続きを表示する
 export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): () => void {
   let state: SoloState | null = null;
   // この画面で、はじめてもらった肩書き（「NEW!」をつける）
   const unlocked = new Set<TitleId>();
+
+  // ゲーム中は URL を #/solo/play にし、履歴にもう1つ「ガード」を積む。
+  // ブラウザの「戻る」を押すと、まずガードが外れて popstate が来るので、そこで本当に抜けるか確かめる
+  let guarded = false;
+  function enterPlay() {
+    if (location.hash !== PLAY_HASH) history.pushState(null, '', PLAY_HASH);
+    if (history.state?.soloGuard) guarded = true; // 再読みこみしたときは、もう積んである
+    if (!guarded) {
+      history.pushState({ soloGuard: true }, '', PLAY_HASH);
+      guarded = true;
+    }
+  }
+  function leavePlay() {
+    guarded = false;
+    if (location.hash === PLAY_HASH) history.replaceState(null, '', '#/solo');
+  }
+  function onPopState() {
+    if (!guarded || location.hash !== PLAY_HASH) return;
+    guarded = false;
+    if (confirm(t('solo.confirmLeave'))) history.back();
+    else {
+      history.pushState({ soloGuard: true }, '', PLAY_HASH);
+      guarded = true;
+    }
+  }
+  window.addEventListener('popstate', onPopState);
 
   const saved = loadSolo();
   if (saved && opts.resume) {
@@ -56,6 +84,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
   }
 
   function renderStart(saved: SoloState | null, prev?: { difficulty: SoloDifficulty; pattern: MarketPattern; teamCount: number; elimination: boolean; years: number }) {
+    leavePlay();
     root.innerHTML = `<div class="page">
       <div class="lang-bar">${langToggleHtml()}</div>
       <h1>${t('solo.h1')}</h1>
@@ -140,6 +169,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
   function renderGame() {
     const s = state;
     if (!s) return;
+    enterPlay();
     const me = s.teams.find((tm) => tm.teamId === HUMAN_ID)!;
     const month = s.conditions.month;
     // 年の決算のときは、もう次の年の1か月目の条件になっているので、終わった月を出す
@@ -357,5 +387,5 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
     container.insertBefore(el, container.children[1] ?? null);
   }
 
-  return () => {};
+  return () => window.removeEventListener('popstate', onPopState);
 }
