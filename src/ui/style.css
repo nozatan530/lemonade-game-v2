@@ -545,3 +545,5 @@ body.sheet-open { overflow: hidden; }
 .table tr.total td { font-weight: 800; border-top: 2px solid var(--text); }
 .last-market summary { cursor: pointer; }
 .last-market .table { font-size: 0.9rem; }
+/* みんなの◯年間：スマホでは売上・費用を隠し、通算のもうけとお金の残りを見せる */
+@media (max-width: 599px) { .all-years .wide-only { display: none; } }

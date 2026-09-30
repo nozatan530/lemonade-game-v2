@@ -275,14 +275,14 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
           </table></div>
         </div>
         <div class="card"><h2>${t('years.allH2', { n: years })}</h2>
-          <div class="table-scroll"><table class="table report-table">
-            <tr><th>${t('years.th.rank')}</th><th>${t('years.all.th.shop')}</th><th>${t('years.th.sales')}</th><th>${t('years.th.cost')}</th><th>${t('years.all.th.profit')}</th><th>${t('years.th.end')}</th></tr>
+          <div class="table-scroll"><table class="table report-table all-years">
+            <tr><th>${t('years.th.rank')}</th><th>${t('years.all.th.shop')}</th><th class="wide-only">${t('years.th.sales')}</th><th class="wide-only">${t('years.th.cost')}</th><th>${t('years.all.th.profit')}</th><th>${t('years.th.end')}</th></tr>
             ${ranked.map((tm, i) => {
               const own = s.results.flatMap((r) => r.teamResults.filter((x) => x.teamId === tm.teamId));
               const rev = own.reduce((a, x) => a + x.revenue, 0);
               const cost = own.reduce((a, x) => a + x.totalCost, 0);
               const out = tm.eliminatedMonth !== undefined ? ` <span class="muted">${t('years.all.out', { m: outLabel(s)(tm.eliminatedMonth) })}</span>` : '';
-              return `<tr${tm.teamId === HUMAN_ID ? ' class="me"' : ''}><td>${i + 1}</td><td>${esc(soloTeamName(tm.teamId))}${out}</td><td>${yen(rev)}</td><td>${yen(cost)}</td>
+              return `<tr${tm.teamId === HUMAN_ID ? ' class="me"' : ''}><td>${i + 1}</td><td>${esc(soloTeamName(tm.teamId))}${out}</td><td class="wide-only">${yen(rev)}</td><td class="wide-only">${yen(cost)}</td>
                 <td class="${tm.totalProfit >= 0 ? 'good' : 'bad'}">${signedYen(tm.totalProfit)}</td><td>${yen(tm.balance)}</td></tr>`;
             }).join('')}
           </table></div>
