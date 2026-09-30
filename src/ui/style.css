@@ -547,3 +547,12 @@ body.sheet-open { overflow: hidden; }
 @media (max-width: 599px) { .slim-on-phone .wide-only { display: none; } }
 /* 全体表示の結果：今月の市場を横いっぱいに大きく出し、その下にお金の推移 */
 .screen-result .story-market { grid-area: auto; grid-column: 1 / -1; }
+/* GM：参加用の QR コードをゲームコードの横に */
+.gm-join { display: flex; gap: 16px; align-items: center; justify-content: space-between; }
+.gm-join .qr { width: 140px; flex: none; background: #fff; padding: 6px; border-radius: 10px; }
+.gm-join .qr svg { display: block; width: 100%; height: auto; }
+@media (max-width: 599px) { .gm-join { flex-direction: column; align-items: flex-start; } }
+/* GM：いま話すこと */
+.gm-note summary { cursor: pointer; }
+.gm-note ul { margin: 8px 0 0; padding-left: 1.2em; }
+.gm-note li { margin: 4px 0; }
