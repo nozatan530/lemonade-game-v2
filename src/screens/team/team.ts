@@ -239,7 +239,7 @@ function howToPlay(pub: PublicConfig): string {
       <li>1杯＝レモン${pub.recipe.lemon}個＋砂糖${pub.recipe.sugar}袋。バリスタ1人で1か月に${pub.baristaCapacity}杯まで作れます。</li>
       <li>お客さんは<strong>安いお店から順に</strong>買います。お客さんが使えるお金には限りがあります。</li>
       <li>作って売れ残ったレモネードは捨てます。お店に出さなかった材料は来月に残せます。</li>
-      <li>3か月ごとに、バリスタの人数を決めます。給料は毎月かかります。</li>
+      <li>${pub.baristaCadence === 'monthly' ? '毎月' : '3か月ごとに'}、バリスタの人数を決めます。給料は毎月かかります。</li>
       <li>はじめのお金は${yen(pub.startFund)}。${pub.months}か月後に一番お金を増やしたチームの勝ち！</li>
     </ul></div>`;
 }

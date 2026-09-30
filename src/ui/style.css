@@ -556,3 +556,14 @@ body.sheet-open { overflow: hidden; }
 .gm-note summary { cursor: pointer; }
 .gm-note ul { margin: 8px 0 0; padding-left: 1.2em; }
 .gm-note li { margin: 4px 0; }
+/* 全体表示の入力中：中央に先月の市場とグラフ、右端に提出状況 */
+.screen-input { display: grid; grid-template-columns: 1fr 16em; gap: 2vw; align-items: start; }
+.screen-center { min-width: 0; }
+.screen-center .story-market { grid-area: auto; }
+.screen-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5vw; margin-top: 1.5vw; }
+.screen-status { display: grid; gap: 0.6vw; position: sticky; top: 1vw; }
+.screen-status .screen-label strong { font-size: 1.4em; color: var(--text); }
+@media (max-width: 900px) { .screen-input, .screen-charts { grid-template-columns: 1fr; } }
+.screen-center .story-market { font-size: 0.85em; }
+.screen-center .story-market .story-table td, .screen-center .story-market .story-table th { padding-top: 0.25em; padding-bottom: 0.25em; }
+.screen-charts .card h2 { font-size: 1.1em; margin-bottom: 0.3em; }

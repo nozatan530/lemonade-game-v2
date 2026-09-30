@@ -102,7 +102,7 @@ function renderHome() {
       <p class="muted" style="margin:0 0 4px">${t('home.multi.p')}${MULTIPLAYER ? '' : t('home.multi.soon')}</p>
       ${MULTIPLAYER
         ? `<a class="btn secondary" href="#/team">${t('home.multi.team')}</a>
-           <a class="btn secondary" href="#/gm">${t('home.multi.gm')}</a>`
+           <p class="muted" style="margin:10px 0 0;font-size:0.9rem">${t('home.multi.gmNote')} <a href="#/gm">${t('home.multi.gm')}</a></p>`
         : `<button class="btn secondary" type="button" disabled>${t('home.multi.teamSoon')}</button>
            <button class="btn secondary" type="button" disabled>${t('home.multi.gmSoon')}</button>`}
     </div>

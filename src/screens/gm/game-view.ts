@@ -217,6 +217,7 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
     if (!S.pub) return;
     const n = gmNote({
       phase: c.phase, month: c.month, months: S.pub.months, quarterStart: c.quarterStart,
+      baristaMonthly: S.pub.baristaCadence === 'monthly',
       seasonal: S.pub.pattern === 'realistic', calendarMonth: calendarMonth(Math.max(1, c.month), S.pub.startCalendarMonth),
     });
     // 閉じたら、月が変わっても閉じたまま

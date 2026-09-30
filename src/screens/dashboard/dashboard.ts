@@ -4,7 +4,7 @@
 import { marketSection } from '../team/month-story';
 import { rankTeams } from '../../engine/month';
 import QRCode from 'qrcode';
-import type { MonthResult, TeamState } from '../../engine/types';
+import type { MonthResult, TeamMonthResult, TeamState } from '../../engine/types';
 import { signInAsTeam, waitForAuth } from '../../sync/auth';
 import { firebase } from '../../sync/firebase';
 import { sortedTeams } from '../../sync/game';
@@ -77,19 +77,52 @@ export async function renderDashboard(root: HTMLElement, params: URLSearchParams
     </div>`;
   }
 
+  // 入力中：中央に先月の市場と、値段・売上の推移。右端に提出状況
   function renderInput(c: Clock, slots: { teamId: string; slot: TeamSlot }[]) {
     const done = slots.filter((s) => S.submitted[s.teamId]).length;
-    main.innerHTML = `
-      ${c.message ? `<div class="screen-news">📰 ${esc(c.message)}</div>` : ''}
-      <div class="screen-prices">
-        <span>🍋 レモン ${yen(c.prices.lemon)}</span><span>🍬 砂糖 ${yen(c.prices.sugar)}</span>
-        <span>👩‍🍳 バリスタ ${yen(c.prices.barista)}</span>
+    const last = S.results.find((r) => r.month === c.month - 1);
+    main.innerHTML = `<div class="screen-input">
+      <div class="screen-center">
+        ${c.message ? `<div class="screen-news">📰 ${esc(c.message)}</div>` : ''}
+        <div class="screen-prices">
+          <span>🍋 レモン ${yen(c.prices.lemon)}</span><span>🍬 砂糖 ${yen(c.prices.sugar)}</span>
+          <span>👩‍🍳 バリスタ ${yen(c.prices.barista)}</span>
+        </div>
+        ${c.quarterStart && S.pub?.baristaCadence !== 'monthly' ? '<p class="screen-label center">今月はバリスタの人数を決める月です</p>' : ''}
+        ${last
+          ? `${marketSection(last, '', S.teams, { title: '先月の市場' }).html}
+             <div class="screen-charts">${priceChart(slots)}${salesChart(slots)}</div>`
+          : '<p class="screen-label center">1か月目です。お客さんは安いお店から順に買います。値段と作る数を決めよう！</p>'}
       </div>
-      ${c.quarterStart && S.pub?.baristaCadence !== 'monthly' ? '<p class="screen-label center">今月はバリスタの人数を決める月です</p>' : ''}
-      <p class="screen-label center">提出したチーム ${done} / ${slots.length}</p>
-      <div class="screen-teams">${slots.map(({ teamId, slot }) =>
-        `<div class="team-tile ${S.submitted[teamId] ? 'on' : ''}">${S.submitted[teamId] ? '✅' : '✏️'} ${esc(slot.name)}</div>`).join('')}</div>`;
+      <aside class="screen-status">
+        <p class="screen-label">提出 <strong>${done} / ${slots.length}</strong></p>
+        ${slots.map(({ teamId, slot }) =>
+          `<div class="team-tile ${S.submitted[teamId] ? 'on' : ''}">${S.submitted[teamId] ? '✅' : '✏️'} ${esc(slot.name)}</div>`).join('')}
+      </aside>
+    </div>`;
   }
+
+  // チームごとの折れ線（月ごとの値）。value が null の月は線を切る
+  function monthlyChart(
+    title: string, slots: { teamId: string; slot: TeamSlot }[],
+    value: (r: TeamMonthResult) => number | null, formatY: (v: number) => string, includeZero = true,
+  ): string {
+    if (!S.pub || slots.length > MAX_SERIES || S.results.length === 0) return '';
+    const series: Series[] = slots.map(({ teamId, slot }, i) => ({
+      name: slot.name, slot: i,
+      values: S.results.map((r) => {
+        const tr = r.teamResults.find((x) => x.teamId === teamId);
+        return tr ? value(tr) : null;
+      }),
+    }));
+    const xLabels = S.results.map((r) => `${calendarMonth(r.month, S.pub!.startCalendarMonth)}月`);
+    // 線の右端にチーム名が出るので、凡例は出さない（1画面に収めるため低めに描く）
+    return `<div class="card"><h2>${title}</h2>${lineChartSvg({ series, xLabels, formatY, includeZero, height: 240 })}</div>`;
+  }
+  const priceChart = (slots: { teamId: string; slot: TeamSlot }[]) =>
+    monthlyChart('値段の推移', slots, (r) => (r.offered > 0 ? r.price : null), (v) => `${v}円`, false);
+  const salesChart = (slots: { teamId: string; slot: TeamSlot }[]) =>
+    monthlyChart('売上の推移', slots, (r) => r.revenue, (v) => (v === 0 ? '0円' : `${(v / 10000).toLocaleString('ja-JP', { maximumFractionDigits: 1 })}万円`));
 
   function balanceChart(slots: { teamId: string; slot: TeamSlot }[]): string {
     if (!S.pub || slots.length > MAX_SERIES || S.results.length === 0) return '';

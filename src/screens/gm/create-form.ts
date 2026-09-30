@@ -13,7 +13,11 @@ const LEVEL_NOTE: Record<SoloDifficulty, string> = {
 };
 import { esc } from '../../ui/format';
 
-const DEFAULT_NAMES = 'ABCDEFGHIJKL'.split('').map((c) => `${c}チーム`);
+// チームの名前（はじめの値）：頭文字が A〜L の動物。GM は自由に書きかえられる
+const DEFAULT_NAMES = [
+  '🐊 Alligator', '🐻 Bear', '🐱 Cat', '🐶 Dog', '🐘 Elephant', '🦊 Fox',
+  '🦒 Giraffe', '🐴 Horse', '🦎 Iguana', '🐆 Jaguar', '🦘 Kangaroo', '🦁 Lion',
+];
 
 export interface CreateInput {
   config: GameConfig;
@@ -39,15 +43,15 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
           ${(Object.keys(MARKET_PATTERNS) as MarketPattern[]).map((p) =>
             `<option value="${p}">${esc(MARKET_PATTERNS[p].label)}：${esc(MARKET_PATTERNS[p].description)}</option>`).join('')}
         </select></label>
-      <label class="check" style="margin:0 0 12px"><input type="checkbox" id="baristaMonthly">
-        バリスタの人数を毎月決められるようにする（初期値は3か月ごと。毎月にすると、チームの入力が毎月1つ増えます）</label>
+      <label class="check" style="margin:0 0 12px"><input type="checkbox" id="baristaMonthly" checked>
+        バリスタの人数を毎月決められるようにする（ソロと同じ。外すと3か月ごと）</label>
       <fieldset class="field"><legend>入力時間（秒）</legend>
         <div class="row3">
           <label>1か月目<input type="number" id="tFirst" min="30" value="${DEFAULT_TIMER.firstMonth}"></label>
           <label>4・7・10か月目<input type="number" id="tQuarter" min="30" value="${DEFAULT_TIMER.quarterStart}"></label>
           <label>そのほか<input type="number" id="tNormal" min="30" value="${DEFAULT_TIMER.normal}"></label>
         </div>
-        <label class="check"><input type="checkbox" id="tAll" checked> 全チームが提出したら早めに締め切る</label>
+        <label class="check"><input type="checkbox" id="tAll"> 全チームが提出したら早めに締め切る</label>
       </fieldset>
       <details><summary>詳細設定</summary>
       <label class="field">市場の大きさ（お客さんが使うお金。1チームあたり）
