@@ -1,4 +1,5 @@
-# プッシュと PR のたびに、テスト・型チェック・ビルドを自動で動かす
+# プッシュと PR のたびに、テスト・型チェック・ビルドを自動で動かす。
+# main に入ったら、テストが通ったあとで Firebase Hosting とセキュリティルールに公開する（README の「自動で公開」）
 name: CI
 
 on:
@@ -35,3 +36,40 @@ jobs:
           java-version: 21
       - run: npm ci
       - run: npm run test:emu
+
+  deploy:
+    name: 公開（Firebase Hosting とセキュリティルール）
+    # main に入ったときだけ。テストが両方通ってから
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [test, emulator]
+    runs-on: ubuntu-latest
+    concurrency: deploy-prod # 2つの公開が重ならないように
+    env:
+      HAS_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+    steps:
+      - name: 鍵が登録されていなければ公開しない
+        if: env.HAS_KEY != 'true'
+        run: echo "::warning::FIREBASE_SERVICE_ACCOUNT が登録されていないので、公開しませんでした（README の「自動で公開」）"
+      - if: env.HAS_KEY == 'true'
+        uses: actions/checkout@v4
+      - if: env.HAS_KEY == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - if: env.HAS_KEY == 'true'
+        run: npm ci
+      - name: ビルド
+        if: env.HAS_KEY == 'true'
+        run: npm run build
+        env:
+          # .env.production の代わり（GitHub の Variables に登録する。なければ空）
+          VITE_SURVEY_ENDPOINT: ${{ vars.VITE_SURVEY_ENDPOINT }}
+          VITE_ENABLE_MULTIPLAYER: ${{ vars.VITE_ENABLE_MULTIPLAYER }}
+      - if: env.HAS_KEY == 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - name: 公開
+        if: env.HAS_KEY == 'true'
+        run: npx firebase deploy --only hosting,database --project prod --non-interactive

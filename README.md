@@ -44,6 +44,17 @@ npm run deploy
 - ソロモード：`#/solo`
 - 対戦（GM：`#/gm` ／ チーム：`#/team` ／ 全体表示：`#/screen?code=XXXXXX`）は、本番ではまだ「開発中」の表示になる。`npm run dev` では使える。対戦を公開するときは `.env.production` に `VITE_ENABLE_MULTIPLAYER=true` を書く。
 
+### 自動で公開（GitHub Actions）
+`main` に入ると（PR のマージをふくむ）、CI のテストが通ったあとで、自動で Hosting とセキュリティルールに公開する（`.github/workflows/ci.yml` の `deploy`）。準備は1回だけ：
+
+1. Firebase コンソール →「プロジェクトの設定」→「サービス アカウント」→「新しい秘密鍵を生成」で JSON ファイルをダウンロードする。
+   - このサービスアカウントには「Firebase 管理者」の役割がついている。鍵はパスワードと同じなので、リポジトリには入れない。使い終わった JSON ファイルはパソコンから消す。
+2. GitHub のリポジトリ →「Settings」→「Secrets and variables」→「Actions」→「Secrets」に、名前 `FIREBASE_SERVICE_ACCOUNT` で JSON の中身をそのまま貼る。
+3. `.env.production` に書いている値は、同じ画面の「Variables」に同じ名前で登録する（`VITE_SURVEY_ENDPOINT`、対戦を公開するときは `VITE_ENABLE_MULTIPLAYER`）。CI では `.env.production` を使わないため。
+
+- 鍵が登録されていないあいだは、公開の手順を飛ばして警告だけ出す（テストはふだんどおり）。
+- 公開の結果は、GitHub の「Actions」タブで見られる。手元からの `npm run deploy` もこれまでどおり使える。
+
 GitHub Pages で公開する場合は、`dist/` をそのまま置けばよい（相対パスでビルドしている）。そのときは Firebase コンソールの Authentication →「設定」→「承認済みドメイン」に GitHub Pages のドメインを追加する（Google ログインのため）。
 
 ## アンケート（GAS → Google スプレッドシート）
