@@ -157,7 +157,8 @@ describe('旧版との比較：12か月の販売と損益', () => {
       G.submissions = {};
 
       teams.forEach((t, i) => {
-        const barista = isQuarterStart(month) ? int(0, 3) : t.baristaCount;
+        // 新版はバリスタ最低1人（旧版は0人も通った）
+        const barista = isQuarterStart(month) ? int(1, 3) : t.baristaCount;
         const watching = rand() < 0.1;
         const lemonQty = watching ? 0 : int(0, 150);
         const sugarQty = watching ? 0 : int(0, 150);

@@ -1,4 +1,4 @@
-// 何年も続けて経営するとき（ソロモードで1〜5年）の、年の区切りと年ごとの集計。
+// 何年も続けて経営するとき（ソロモードで1〜10年）の、年の区切りと年ごとの集計。
 // 期の月は通しの番号（1〜12×年数）。季節や単価の動きは暦の月で決まるので、毎年くり返す。
 
 import { termSummary } from './accounting';
@@ -7,7 +7,7 @@ import { rankTeams } from './month';
 import type { GameConfig, MonthResult, Recipe, TeamState } from './types';
 
 export const MONTHS_PER_YEAR = 12;
-export const MAX_YEARS = 5;
+export const MAX_YEARS = 10;
 
 // 通しの月が何年目か（1始まり）
 export function yearOf(month: number): number {

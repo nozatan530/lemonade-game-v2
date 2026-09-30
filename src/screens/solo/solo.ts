@@ -27,11 +27,39 @@ import { SHOWN_TITLES, TITLE_IDS, type TitleId } from '../../engine/titles';
 import { titleChip, titleDesc } from '../../ui/titles';
 import { mountSurveyForm } from '../survey/survey-form';
 
+const PLAY_HASH = '#/solo/play';
+
 // resume：言語を切り替えたときなど、保存されたゲームがあればそのまま続きを表示する
 export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): () => void {
   let state: SoloState | null = null;
   // この画面で、はじめてもらった肩書き（「NEW!」をつける）
   const unlocked = new Set<TitleId>();
+
+  // ゲーム中は URL を #/solo/play にし、履歴にもう1つ「ガード」を積む。
+  // ブラウザの「戻る」を押すと、まずガードが外れて popstate が来るので、そこで本当に抜けるか確かめる
+  let guarded = false;
+  function enterPlay() {
+    if (location.hash !== PLAY_HASH) history.pushState(null, '', PLAY_HASH);
+    if (history.state?.soloGuard) guarded = true; // 再読みこみしたときは、もう積んである
+    if (!guarded) {
+      history.pushState({ soloGuard: true }, '', PLAY_HASH);
+      guarded = true;
+    }
+  }
+  function leavePlay() {
+    guarded = false;
+    if (location.hash === PLAY_HASH) history.replaceState(null, '', '#/solo');
+  }
+  function onPopState() {
+    if (!guarded || location.hash !== PLAY_HASH) return;
+    guarded = false;
+    if (confirm(t('solo.confirmLeave'))) history.back();
+    else {
+      history.pushState({ soloGuard: true }, '', PLAY_HASH);
+      guarded = true;
+    }
+  }
+  window.addEventListener('popstate', onPopState);
 
   const saved = loadSolo();
   if (saved && opts.resume) {
@@ -56,6 +84,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
   }
 
   function renderStart(saved: SoloState | null, prev?: { difficulty: SoloDifficulty; pattern: MarketPattern; teamCount: number; elimination: boolean; years: number }) {
+    leavePlay();
     root.innerHTML = `<div class="page">
       <div class="lang-bar">${langToggleHtml()}</div>
       <h1>${t('solo.h1')}</h1>
@@ -140,6 +169,7 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
   function renderGame() {
     const s = state;
     if (!s) return;
+    enterPlay();
     const me = s.teams.find((tm) => tm.teamId === HUMAN_ID)!;
     const month = s.conditions.month;
     // 年の決算のときは、もう次の年の1か月目の条件になっているので、終わった月を出す
@@ -174,7 +204,10 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
       };
       mountInputView(
         view,
-        { pub: publicConfigOf(s.config), clock, me, ownSub: null, closed: false },
+        {
+          pub: publicConfigOf(s.config), clock, me, ownSub: null, closed: false,
+          ...(s.results.length > 0 ? { lastMonth: { result: s.results[s.results.length - 1]!, names: names(s) } } : {}),
+        },
         { decision: lastHumanDecision(s) ?? DEFAULT_DECISION, baristaCount: me.baristaCount },
         async (decision, baristaCount) => update(submitHuman(s, decision, baristaCount)),
         { submitLabel: t('solo.submit') },
@@ -228,14 +261,30 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
           <h2>${t('report.h2Years', { n: years })}</h2>
           <p class="big" style="margin:4px 0">${t('report.rank', { rank: ranked.findIndex((tm) => tm.teamId === HUMAN_ID) + 1 })} <span class="muted" style="font-size:1rem">${t('report.ofTeams', { n: s.teams.length })}</span></p>
           <p style="margin:0">${t('report.balance', { b: yen(me.balance), s: yen(s.config.startFund) })}</p>
+          <p style="margin:4px 0 0">${t('years.totalProfit', { n: years })} <strong class="${me.totalProfit >= 0 ? 'good' : 'bad'}">${signedYen(me.totalProfit)}</strong></p>
         </div>
         <div class="card"><h2>${t('years.h2')}</h2>
           <div class="chart" id="yearChart"></div>
-          <div class="table-scroll"><table class="table report-table">
-            <tr><th>${t('years.th.year')}</th><th>${t('years.th.sales')}</th><th>${t('years.th.cost')}</th><th>${t('years.th.profit')}</th><th>${t('years.th.end')}</th><th>${t('years.th.rank')}</th></tr>
-            ${rows.map((r) => `<tr><td>${t('years.label', { y: r.year })}</td><td>${yen(r.revenue)}</td><td>${yen(r.cost)}</td>
+          <div class="table-scroll"><table class="table report-table slim-on-phone">
+            <tr><th>${t('years.th.year')}</th><th class="wide-only">${t('years.th.sales')}</th><th class="wide-only">${t('years.th.cost')}</th><th>${t('years.th.profit')}</th><th>${t('years.th.end')}</th><th>${t('years.th.rank')}</th></tr>
+            ${rows.map((r) => `<tr><td>${t('years.label', { y: r.year })}</td><td class="wide-only">${yen(r.revenue)}</td><td class="wide-only">${yen(r.cost)}</td>
               <td class="${r.profit >= 0 ? 'good' : 'bad'}">${signedYen(r.profit)}</td><td>${yen(r.endBalance)}</td>
               <td>${t('sheet.tile.rankValue', { rank: r.rank, n: s.teams.length })}</td></tr>`).join('')}
+            <tr class="total"><td>${t('years.total')}</td><td class="wide-only">${yen(rows.reduce((a, r) => a + r.revenue, 0))}</td><td class="wide-only">${yen(rows.reduce((a, r) => a + r.cost, 0))}</td>
+              <td class="${me.totalProfit >= 0 ? 'good' : 'bad'}">${signedYen(me.totalProfit)}</td><td>${yen(me.balance)}</td><td></td></tr>
+          </table></div>
+        </div>
+        <div class="card"><h2>${t('years.allH2', { n: years })}</h2>
+          <div class="table-scroll"><table class="table report-table slim-on-phone">
+            <tr><th>${t('years.th.rank')}</th><th>${t('years.all.th.shop')}</th><th class="wide-only">${t('years.th.sales')}</th><th class="wide-only">${t('years.th.cost')}</th><th>${t('years.all.th.profit')}</th><th>${t('years.th.end')}</th></tr>
+            ${ranked.map((tm, i) => {
+              const own = s.results.flatMap((r) => r.teamResults.filter((x) => x.teamId === tm.teamId));
+              const rev = own.reduce((a, x) => a + x.revenue, 0);
+              const cost = own.reduce((a, x) => a + x.totalCost, 0);
+              const out = tm.eliminatedMonth !== undefined ? ` <span class="muted">${t('years.all.out', { m: outLabel(s)(tm.eliminatedMonth) })}</span>` : '';
+              return `<tr${tm.teamId === HUMAN_ID ? ' class="me"' : ''}><td>${i + 1}</td><td>${esc(soloTeamName(tm.teamId))}${out}</td><td class="wide-only">${yen(rev)}</td><td class="wide-only">${yen(cost)}</td>
+                <td class="${tm.totalProfit >= 0 ? 'good' : 'bad'}">${signedYen(tm.totalProfit)}</td><td>${yen(tm.balance)}</td></tr>`;
+            }).join('')}
           </table></div>
         </div>`;
       view.appendChild(summary);
@@ -357,5 +406,5 @@ export function renderSolo(root: HTMLElement, opts: { resume?: boolean } = {}): 
     container.insertBefore(el, container.children[1] ?? null);
   }
 
-  return () => {};
+  return () => window.removeEventListener('popstate', onPopState);
 }

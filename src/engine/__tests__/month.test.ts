@@ -19,6 +19,16 @@ const sub = (teamId: string, d: MonthlyDecision, order: number, baristaCount?: n
 describe('resolveMonth', () => {
   const teams = [initialTeamState('A', 'Aチーム', config), initialTeamState('B', 'Bチーム', config)];
 
+  it('バリスタは最低1人：0人を出しても1人で計算し、静観でも給料がかかる', () => {
+    const { teams: next, result } = resolveMonth(config, teams, cond(1, 100000), [
+      sub('A', { lemonQty: 0, sugarQty: 0, price: 0 }, 1, 0),
+      sub('B', { lemonQty: 0, sugarQty: 0, price: 0, watching: true }, 2, 0),
+    ]);
+    expect(next.map((t) => t.baristaCount)).toEqual([1, 1]);
+    expect(result.teamResults.map((r) => r.costBarista)).toEqual([2000, 2000]);
+    expect(initialTeamState('C', 'C', { ...config, initialBaristaCount: 0 }).baristaCount).toBe(1);
+  });
+
   it('月次損益：売上 − 原価 − 人件費 ＝ 利益。資金に反映される', () => {
     const { teams: next, result } = resolveMonth(config, teams, cond(1, 100000), [
       sub('A', { lemonQty: 50, sugarQty: 50, price: 200 }, 1, 1),

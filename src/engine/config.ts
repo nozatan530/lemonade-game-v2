@@ -53,6 +53,9 @@ export function canChangeBarista(month: number, cadence: BaristaCadence = 'quart
   return cadence === 'monthly' || isQuarterStart(month);
 }
 
+// バリスタは最低1人。静観の月も1人は雇ったまま（給料がかかる）
+export const MIN_BARISTA = 1;
+
 // 初期設定（旧版の既定値と同じ）
 export function defaultConfig(teamCount: number, seed: string): GameConfig {
   return {
