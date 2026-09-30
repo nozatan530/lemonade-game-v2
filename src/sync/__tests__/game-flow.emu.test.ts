@@ -3,7 +3,7 @@
 import { createUserWithEmailAndPassword, signInAnonymously } from 'firebase/auth';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_TIMER, defaultConfig } from '../../engine/config';
-import { connectFirebase, type FirebaseHandles } from '../firebase';
+import { allowGmInEmulator, connectFirebase, type FirebaseHandles } from '../firebase';
 import {
   claimTeam, closeCurrentMonth, createGame, deleteGame, extendDeadline, readPath, readResults, startGame,
   startNextMonth, submitDecision,
@@ -18,6 +18,7 @@ function newUser(): FirebaseHandles {
 async function newGm() {
   const h = newUser();
   const cred = await createUserWithEmailAndPassword(h.auth, `gm${appCount}-${Date.now()}@example.com`, 'password123');
+  await allowGmInEmulator(cred.user.uid);
   return { ...h, uid: cred.user.uid };
 }
 

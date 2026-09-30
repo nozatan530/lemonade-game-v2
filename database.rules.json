@@ -1,9 +1,15 @@
 {
   "rules": {
+    "gmAllow": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": false
+      }
+    },
     "gmGames": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid && auth.token.firebase.sign_in_provider !== 'anonymous'",
-        ".write": "auth != null && auth.uid === $uid && auth.token.firebase.sign_in_provider !== 'anonymous'"
+        ".write": "auth != null && auth.uid === $uid && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('gmAllow').child(auth.uid).val() === true"
       }
     },
     "games": {
@@ -12,7 +18,7 @@
 
         "meta": {
           ".read": "auth != null",
-          ".write": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && newData.child('gmUid').val() === auth.uid && (!data.exists() || data.child('gmUid').val() === auth.uid)",
+          ".write": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && newData.child('gmUid').val() === auth.uid && (data.exists() ? data.child('gmUid').val() === auth.uid : root.child('gmAllow').child(auth.uid).val() === true)",
           ".validate": "newData.hasChildren(['gmUid', 'createdAt', 'status'])"
         },
         "config": {
