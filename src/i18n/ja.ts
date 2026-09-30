@@ -20,7 +20,7 @@ export const ja = {
   'home.solo.btn': 'はじめる',
   'home.multi.h2': 'みんなで対戦',
   'home.multi.badge': '開発中',
-  'home.multi.p': 'ゲームマスター（進行役）が進めて、チームどうしで競います。参加する人は、GM から伝えられたゲームコードを入れるだけです。',
+  'home.multi.p': 'ゲームマスター（GM）が進行して、チームどうしで競います。参加する人は、GM から伝えられたゲームコードを入れるだけです。',
   'home.multi.soon': 'いま準備中です。',
   'home.multi.team': 'ゲームコードで参加する（ログイン不要）',
   'home.multi.gmNote': 'ゲームを作って進めるのは、登録した GM（進行役）だけです。',

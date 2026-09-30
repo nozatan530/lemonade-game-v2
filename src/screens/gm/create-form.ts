@@ -15,8 +15,8 @@ import { esc } from '../../ui/format';
 
 // チームの名前（はじめの値）：頭文字が A〜L の動物。GM は自由に書きかえられる
 const DEFAULT_NAMES = [
-  '🐊 アリゲーター', '🐻 ベア', '🐱 キャット', '🐶 ドッグ', '🐘 エレファント', '🦊 フォックス',
-  '🦒 ジラフ', '🐴 ホース', '🦎 イグアナ', '🐆 ジャガー', '🦘 カンガルー', '🦁 ライオン',
+  '🐊 Alligator', '🐻 Bear', '🐱 Cat', '🐶 Dog', '🐘 Elephant', '🦊 Fox',
+  '🦒 Giraffe', '🐴 Horse', '🦎 Iguana', '🐆 Jaguar', '🦘 Kangaroo', '🦁 Lion',
 ];
 
 export interface CreateInput {
