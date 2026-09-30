@@ -21,6 +21,15 @@ describe('GM の進行メモ', () => {
     expect(gmNote({ ...base, month: 12 }).points.join()).toContain('最後の月');
   });
 
+  it('2年以上：年の決算と、次の年の1か月目の話題', () => {
+    const y = gmNote({ ...base, phase: 'yearEnd', month: 12, months: 36 });
+    expect(y.title).toContain('第1期の決算');
+    expect(y.points.join()).toContain('第2期を始める');
+    expect(gmNote({ ...base, month: 13, months: 36 }).title).toContain('第2期');
+    expect(gmNote({ ...base, month: 12, months: 36 }).points.join()).toContain('第1期の最後の月');
+    expect(gmNote({ ...base, month: 18, months: 36 }).points.join()).toContain('折り返し');
+  });
+
   it('季節の話題は、お客さんの数が季節で変わるときだけ', () => {
     expect(gmNote({ ...base, calendarMonth: 7 }).points.join()).not.toContain('夏');
     expect(gmNote({ ...base, calendarMonth: 7, seasonal: true }).points.join()).toContain('夏');

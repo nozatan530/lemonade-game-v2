@@ -1,13 +1,14 @@
 // GM の進行画面：待機 → 入力（タイマー・提出状況・締切）→ 結果 → 次の月 → 期末 → 削除
 
 import QRCode from 'qrcode';
-import { renderGmFinal } from '../report/multi';
+import { renderGmFinal, renderGmYearEnd } from '../report/multi';
+import { isYearEnd, yearOf } from '../../engine/years';
 import { gmNote } from './facilitation';
 import type { Database } from 'firebase/database';
 import type { MonthResult, TeamState, TimerSettings } from '../../engine/types';
 import {
-  closeCurrentMonth, deleteGame, extendDeadline, readPath, releaseTeam, shouldAutoClose, sortedTeams, startGame,
-  startNextMonth,
+  closeCurrentMonth, deleteGame, extendDeadline, readPath, releaseTeam, restartGame, shouldAutoClose, sortedTeams,
+  startGame, startNextMonth,
 } from '../../sync/game';
 import type { Clock, GameMeta, PublicConfig, TeamSlot } from '../../sync/schema';
 import {
@@ -112,13 +113,14 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
     if (S.meta && S.meta.gmUid !== gmUid) { main.innerHTML = '<div class="card">このゲームの GM ではありません。</div>'; return; }
     const c = S.clock;
     if (!c || !S.pub) return;
-    $('month').textContent = c.month > 0 ? monthLabel(c.month, S.pub.startCalendarMonth) : '開始前';
+    $('month').textContent = c.month > 0 ? monthLabel(c.month, S.pub.startCalendarMonth, S.pub.months) : '開始前';
 
     renderNote(c);
     const slots = sortedTeams(S.teams);
     if (c.phase === 'lobby') return renderLobby(slots);
     if (c.phase === 'input') return renderInput(c, slots);
     if (c.phase === 'result') return renderResult(c, slots);
+    if (c.phase === 'yearEnd') return renderYearEnd(c);
     if (c.phase === 'final') return renderFinal();
   }
 
@@ -187,7 +189,7 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
     const isLast = S.pub && c.month >= S.pub.months;
     const byId = new Map(result.teamResults.map((r) => [r.teamId, r]));
     main.innerHTML = `<div class="card">
-      <h2>${c.month}か月目の結果</h2>
+      <h2>${monthLabel(c.month, S.pub!.startCalendarMonth, S.pub!.months)}の結果</h2>
       <p class="muted">市場予算 ${yen(result.marketBudget)} ／ 売上の合計 ${yen(result.teamResults.reduce((a, r) => a + r.revenue, 0))}</p>
       <table class="table">
         <tr><th>チーム</th><th>値段</th><th>売れた/出した</th><th>売上</th><th>費用</th><th>もうけ</th><th>お金の残り</th></tr>
@@ -199,8 +201,20 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
             <td class="${r.profit >= 0 ? 'good' : 'bad'}">${signedYen(r.profit)}</td><td>${yen(r.balance)}</td></tr>`;
         }).join('')}
       </table>
-      <button class="btn" id="next">${isLast ? '期末の結果へ' : '次の月へ'}</button></div>`;
+      <button class="btn" id="next">${isLast ? '期末の結果へ' : isYearEnd(c.month) ? `第${yearOf(c.month)}期の決算へ` : '次の月へ'}</button></div>`;
     main.querySelector('#next')!.addEventListener('click', async (e) => {
+      (e.target as HTMLButtonElement).disabled = true;
+      await startNextMonth(db, code, serverNow());
+    });
+  }
+
+  // 年の決算（2年以上のとき、12か月ごと）：その年の一覧と、次の年へ進むボタン
+  function renderYearEnd(c: Clock) {
+    if (!S.pub) return;
+    const year = yearOf(c.month);
+    renderGmYearEnd(main, { results: S.results, state: S.state, teams: S.teams, pub: S.pub }, year);
+    main.insertAdjacentHTML('beforeend', `<button class="btn" id="nextYear" type="button">第${year + 1}期を始める</button>`);
+    main.querySelector('#nextYear')!.addEventListener('click', async (e) => {
       (e.target as HTMLButtonElement).disabled = true;
       await startNextMonth(db, code, serverNow());
     });
@@ -209,7 +223,22 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
   function renderFinal() {
     if (!S.pub) return;
     renderGmFinal(main, { results: S.results, state: S.state, teams: S.teams, pub: S.pub });
-    main.insertAdjacentHTML('beforeend', '<p class="muted">振り返りが終わったら、下の「ゲームを終了してデータを削除」でデータを消してください。</p>');
+    main.insertAdjacentHTML('beforeend', `<div class="card">
+        <h2>次のゲーム</h2>
+        <p class="muted">同じゲームコード・同じチームのまま、新しいゲームを始められます（市場の動きは変わります）。チームは参加したままなので、そのまま1か月目に進めます。このゲームの結果は消えるので、レポートの印刷を先にすませてください。</p>
+        <button class="btn" id="restart" type="button">同じコード・同じチームで次のゲームを始める</button>
+      </div>
+      <p class="muted">終わるときは、下の「ゲームを終了してデータを削除」でデータを消してください。チームの画面には「ゲームは終了しました」と出ます。</p>`);
+    main.querySelector('#restart')!.addEventListener('click', async (e) => {
+      if (!confirm('このゲームの結果を消して、同じコード・同じチームで次のゲームを始めますか？\nレポートの印刷はすみましたか？')) return;
+      (e.target as HTMLButtonElement).disabled = true;
+      try {
+        await restartGame(db, code, serverNow());
+      } catch (err) {
+        alert(`次のゲームを始められませんでした：${(err as Error).message}`);
+        (e.target as HTMLButtonElement).disabled = false;
+      }
+    });
   }
 
   // いま話すこと（docs/facilitation-guide.md の短い版）

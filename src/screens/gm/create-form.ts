@@ -3,6 +3,10 @@
 import { DEFAULT_TIMER, defaultConfig, MARKET_PATTERNS, MIN_BARISTA, withMarketPattern, withRandomMarketSize } from '../../engine/config';
 import type { GameConfig, MarketPattern, TimerSettings } from '../../engine/types';
 import { SOLO_DIFFICULTY, type SoloDifficulty } from '../../solo/local-game';
+import { MONTHS_PER_YEAR } from '../../engine/years';
+
+// 対戦で経営できる年数（1コマ50分で1年。3年までにする）
+const MAX_MULTI_YEARS = 3;
 
 // むずかしさ：ソロと同じ3段階。市場の大きさ（1チームあたりの額）の幅だけを使う（対戦にロボット店長はいない）
 const LEVELS: SoloDifficulty[] = ['easy', 'normal', 'hard'];
@@ -43,12 +47,16 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
           ${(Object.keys(MARKET_PATTERNS) as MarketPattern[]).map((p) =>
             `<option value="${p}">${esc(MARKET_PATTERNS[p].label)}：${esc(MARKET_PATTERNS[p].description)}</option>`).join('')}
         </select></label>
+      <label class="field">経営する年数（1年 ≒ 50分。2年以上は12か月ごとに「第◯期の決算」をはさむ）
+        <select id="years">
+          ${Array.from({ length: MAX_MULTI_YEARS }, (_, i) => i + 1).map((y) =>
+            `<option value="${y}">${y}年（${y * 12}か月・約${y * 50}分）</option>`).join('')}
+        </select></label>
       <label class="check" style="margin:0 0 12px"><input type="checkbox" id="baristaMonthly" checked>
         バリスタの人数を毎月決められるようにする（ソロと同じ。外すと3か月ごと）</label>
       <fieldset class="field"><legend>入力時間（秒）</legend>
         <div class="row3">
           <label>1か月目<input type="number" id="tFirst" min="30" value="${DEFAULT_TIMER.firstMonth}"></label>
-          <label>4・7・10か月目<input type="number" id="tQuarter" min="30" value="${DEFAULT_TIMER.quarterStart}"></label>
           <label>そのほか<input type="number" id="tNormal" min="30" value="${DEFAULT_TIMER.normal}"></label>
         </div>
         <label class="check"><input type="checkbox" id="tAll"> 全チームが提出したら早めに締め切る</label>
@@ -103,6 +111,8 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
       : defaultConfig(names.length, seed);
     if (marketSize !== 'level') config.market = { ...config.market, base: perTeam * names.length, basePerTeam: perTeam };
     config.baristaCadence = $<HTMLInputElement>('baristaMonthly').checked ? 'monthly' : 'quarterly';
+    // 経営する年数（ソロと同じ：月は通しの番号。お金・材料・バリスタは年をまたいで引き継ぐ）
+    config.months = MONTHS_PER_YEAR * Math.min(MAX_MULTI_YEARS, Math.max(1, Number($<HTMLSelectElement>('years').value) || 1));
     // 市場のパターン（お客さんの数と材料の値段の動き方）を当てはめる
     Object.assign(config, withMarketPattern(config, $<HTMLSelectElement>('pattern').value as MarketPattern));
     config.market = { ...config.market, level };
@@ -113,7 +123,7 @@ export function mountCreateForm(container: HTMLElement, onCreate: (input: Create
 
     const timer: TimerSettings = {
       firstMonth: num('tFirst'),
-      quarterStart: num('tQuarter'),
+      quarterStart: num('tNormal'), // 1か月目とそのほかの2つだけ決める
       normal: num('tNormal'),
       closeWhenAllSubmitted: $<HTMLInputElement>('tAll').checked,
     };

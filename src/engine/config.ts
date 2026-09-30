@@ -82,9 +82,9 @@ export function defaultConfig(teamCount: number, seed: string): GameConfig {
 // 入力時間の初期値（50分版）
 export const DEFAULT_TIMER: TimerSettings = {
   firstMonth: 150,
-  quarterStart: 105,
-  normal: 90,
-  closeWhenAllSubmitted: true,
+  quarterStart: 100, // いまは「そのほか」と同じ（GM の画面では1か月目とそのほかの2つだけ決める）
+  normal: 100,
+  closeWhenAllSubmitted: false, // 全チームが出しても時間まで待つ
 };
 
 // その月の入力時間（秒）

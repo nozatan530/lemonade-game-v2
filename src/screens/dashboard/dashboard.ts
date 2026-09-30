@@ -3,6 +3,7 @@
 
 import { marketSection } from '../team/month-story';
 import { rankTeams } from '../../engine/month';
+import { resultsOfYear, yearOf } from '../../engine/years';
 import QRCode from 'qrcode';
 import type { MonthResult, TeamMonthResult, TeamState } from '../../engine/types';
 import { signInAsTeam, waitForAuth } from '../../sync/auth';
@@ -55,11 +56,12 @@ export async function renderDashboard(root: HTMLElement, params: URLSearchParams
     const key = JSON.stringify([c.phase, c.month, c.message, S.teams, S.submitted, S.results.length, c.phase === 'final' ? S.state : 0]);
     if (key === lastKey) return;
     lastKey = key;
-    $('month').textContent = c.month > 0 ? monthLabel(c.month, S.pub.startCalendarMonth) : '';
+    $('month').textContent = c.month > 0 ? monthLabel(c.month, S.pub.startCalendarMonth, S.pub.months) : '';
     const slots = sortedTeams(S.teams);
     if (c.phase === 'lobby') renderLobby(slots);
     else if (c.phase === 'input') renderInput(c, slots);
     else if (c.phase === 'result') renderResult(c, slots);
+    else if (c.phase === 'yearEnd') renderYearEnd(c, slots);
     else renderFinal(slots);
   }
 
@@ -142,7 +144,28 @@ export async function renderDashboard(root: HTMLElement, params: URLSearchParams
     if (!result) { main.innerHTML = '<p class="screen-big">集計中…</p>'; return; }
     // 月の結果と同じ「今月の市場」（お客さんのお金の行き先の帯と、みんなの結果）
     main.innerHTML = `<div class="screen-result">
-      ${marketSection(result, '', S.teams, { title: `${c.month}か月目の市場` }).html}
+      ${marketSection(result, '', S.teams, { title: `${monthLabel(c.month, S.pub!.startCalendarMonth, S.pub!.months)}の市場` }).html}
+      ${balanceChart(slots)}
+    </div>`;
+  }
+
+  // 年の決算（2年以上のとき）：その年の順位と、お金の推移
+  function renderYearEnd(c: Clock, slots: { teamId: string; slot: TeamSlot }[]) {
+    const year = yearOf(c.month);
+    const names = new Map(slots.map((s) => [s.teamId, s.slot.name]));
+    const yearProfit = (id: string) => resultsOfYear(S.results, year)
+      .reduce((a, r) => a + (r.teamResults.find((x) => x.teamId === id)?.profit ?? 0), 0);
+    const ranked = rankTeams(Object.values(S.state));
+    main.innerHTML = `<div class="screen-result">
+      <div class="card">
+        <h2>📊 第${year}期の決算</h2>
+        <table class="table screen-table">
+          <tr><th>順位</th><th>チーム</th><th>お金の残り</th><th>この1年のもうけ</th></tr>
+          ${ranked.map((t, i) => `<tr><td>${i + 1}</td><td>${esc(names.get(t.teamId) ?? t.teamId)}</td>
+            <td>${yen(t.balance)}</td><td class="${yearProfit(t.teamId) >= 0 ? 'good' : 'bad'}">${signedYen(yearProfit(t.teamId))}</td></tr>`).join('')}
+        </table>
+        <p class="screen-label">次は第${year + 1}期。お金・材料・バリスタはそのまま引き継ぎます。</p>
+      </div>
       ${balanceChart(slots)}
     </div>`;
   }
@@ -152,9 +175,9 @@ export async function renderDashboard(root: HTMLElement, params: URLSearchParams
     const ranked = rankTeams(Object.values(S.state));
     main.innerHTML = `<div class="screen-result">
       <div class="card">
-        <h2>🏆 1年間の結果</h2>
+        <h2>🏆 ${S.pub && S.pub.months > 12 ? `${S.pub.months / 12}年間` : '1年間'}の結果</h2>
         <table class="table screen-table">
-          <tr><th>順位</th><th>チーム</th><th>お金の残り</th><th>1年のもうけ</th></tr>
+          <tr><th>順位</th><th>チーム</th><th>お金の残り</th><th>${S.pub && S.pub.months > 12 ? '通算のもうけ' : '1年のもうけ'}</th></tr>
           ${ranked.map((t, i) => `<tr><td>${i + 1}</td><td>${esc(names.get(t.teamId) ?? t.teamId)}</td>
             <td>${yen(t.balance)}</td><td class="${t.totalProfit >= 0 ? 'good' : 'bad'}">${signedYen(t.totalProfit)}</td></tr>`).join('')}
         </table>

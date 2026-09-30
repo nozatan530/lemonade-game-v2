@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_TIMER, defaultConfig } from '../../engine/config';
 import { allowGmInEmulator, connectFirebase, type FirebaseHandles } from '../firebase';
 import {
-  claimTeam, closeCurrentMonth, createGame, deleteGame, extendDeadline, readPath, readResults, startGame,
+  claimTeam, closeCurrentMonth, createGame, deleteGame, extendDeadline, readPath, readResults, restartGame, startGame,
   startNextMonth, submitDecision,
 } from '../game';
 import type { Clock } from '../schema';
@@ -117,5 +117,62 @@ describe('ゲームの流れ（sync）', () => {
     await expect(submitDecision(a.db, code, 1, 't01', { lemonQty: 1, sugarQty: 1, price: 100 })).rejects.toThrow();
     await extendDeadline(gm.db, code, 300);
     await submitDecision(a.db, code, 1, 't01', { lemonQty: 1, sugarQty: 1, price: 100 });
+  });
+
+  it('2年：12か月目の結果のあとに年の決算をはさみ、13か月目へ進む。お金は引き継ぐ', async () => {
+    const gm = await newGm();
+    const config = { ...defaultConfig(2, 'years'), months: 24 };
+    const code = await createGame(gm.db, gm.uid, { config, teamNames: ['A', 'B'], timer: DEFAULT_TIMER, now: Date.now() });
+    const a = await newTeamDevice();
+    await claimTeam(a.db, code, 't01', a.uid);
+    await startGame(gm.db, code, Date.now());
+    for (let month = 1; month <= 12; month++) {
+      const c = (await readPath<Clock>(a.db, `games/${code}/clock`))!;
+      await submitDecision(a.db, code, month, 't01', { lemonQty: 20, sugarQty: 20, price: 150 }, c.quarterStart ? { baristaCount: 1 } : undefined);
+      await closeCurrentMonth(gm.db, code);
+      const next = await startNextMonth(gm.db, code, Date.now());
+      expect(next).toBe(month === 12 ? 'yearEnd' : 'started');
+    }
+    const atYearEnd = (await readPath<Clock>(a.db, `games/${code}/clock`))!;
+    expect(atYearEnd.phase).toBe('yearEnd');
+    expect(atYearEnd.month).toBe(12);
+    const balance12 = (await readPath<{ balance: number }>(a.db, `games/${code}/state/t01`))!.balance;
+
+    expect(await startNextMonth(gm.db, code, Date.now())).toBe('started');
+    const clock13 = (await readPath<Clock>(a.db, `games/${code}/clock`))!;
+    expect(clock13.month).toBe(13);
+    expect(clock13.phase).toBe('input');
+    // 13か月目にも提出でき、お金は12か月目の終わりから続く
+    await submitDecision(a.db, code, 13, 't01', { lemonQty: 0, sugarQty: 0, price: 0, watching: true });
+    await closeCurrentMonth(gm.db, code);
+    const [r13] = (await readResults(a.db, code)).filter((r) => r.month === 13);
+    const t01 = r13!.teamResults.find((t) => t.teamId === 't01')!;
+    expect(t01.balance).toBe(balance12 - t01.totalCost);
+  });
+
+  it('期末のあと、同じコード・同じチームで次のゲームを始められる。チームは書きかえられない', async () => {
+    const gm = await newGm();
+    const code = await createGame(gm.db, gm.uid, {
+      config: { ...defaultConfig(2, 'again'), months: 1 }, teamNames: ['A', 'B'], timer: DEFAULT_TIMER, now: Date.now(),
+    });
+    const a = await newTeamDevice();
+    await claimTeam(a.db, code, 't01', a.uid);
+    await startGame(gm.db, code, Date.now());
+    await submitDecision(a.db, code, 1, 't01', { lemonQty: 10, sugarQty: 10, price: 100 });
+    await closeCurrentMonth(gm.db, code);
+    expect(await startNextMonth(gm.db, code, Date.now())).toBe('final');
+
+    // チームは結果や提出を消せない
+    await expect(restartGame(a.db, code, Date.now())).rejects.toThrow();
+
+    await restartGame(gm.db, code, Date.now());
+    const clock = (await readPath<Clock>(a.db, `games/${code}/clock`))!;
+    expect(clock.phase).toBe('lobby');
+    expect(await readResults(a.db, code)).toHaveLength(0);
+    // 参加したまま
+    expect((await readPath<{ uid: string }>(a.db, `games/${code}/teams/t01`))!.uid).toBe(a.uid);
+    await startGame(gm.db, code, Date.now());
+    await submitDecision(a.db, code, 1, 't01', { lemonQty: 5, sugarQty: 5, price: 100 });
+    expect(await closeCurrentMonth(gm.db, code)).toBe('closed');
   });
 });

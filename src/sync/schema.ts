@@ -5,7 +5,8 @@ import type {
   GameConfig, MarketPattern, MonthlyDecision, MonthResult, QuarterlyDecision, TeamState, TimerSettings, UnitPrices,
 } from '../engine/types';
 
-export type Phase = 'lobby' | 'input' | 'result' | 'final';
+// yearEnd：2年以上のとき、12か月ごとの「第◯期の決算」（ソロと同じ）
+export type Phase = 'lobby' | 'input' | 'result' | 'yearEnd' | 'final';
 
 export interface GameMeta {
   gmUid: string;
