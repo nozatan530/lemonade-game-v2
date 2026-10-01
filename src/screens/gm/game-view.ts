@@ -8,7 +8,7 @@ import type { Database } from 'firebase/database';
 import type { MonthResult, TeamState, TimerSettings } from '../../engine/types';
 import {
   closeCurrentMonth, deleteGame, extendDeadline, readPath, releaseTeam, restartGame, shouldAutoClose, sortedTeams,
-  startGame, startNextMonth,
+  endGameEarly, startGame, startNextMonth,
 } from '../../sync/game';
 import type { Clock, GameMeta, PublicConfig, TeamSlot } from '../../sync/schema';
 import {
@@ -55,6 +55,11 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
     </div>
     <div class="card gm-note" id="note"></div>
     <div id="main"></div>
+    <div class="card" id="endEarlyCard" hidden>
+      <h2>ここで終わる</h2>
+      <p class="muted">授業の時間が足りないときに。結果が出た月までで期末にして、全チームに期末の結果を見せます（入力中の月は数えません）。データは消えません。</p>
+      <button class="btn secondary" id="endEarly" type="button">ここで終わる（そこまでの結果を見る）</button>
+    </div>
     <div class="card danger">
       <h2>ゲームの終了</h2>
       <p class="muted">終了すると、このゲームのデータ（チーム名・決定・結果）をすべて削除します。元には戻せません。</p>
@@ -67,6 +72,18 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
     .then((svg) => { $('qr').innerHTML = svg; })
     .catch(() => { $('qr').remove(); });
 
+  $('endEarly').addEventListener('click', async (e) => {
+    const done = S.results.length;
+    if (!confirm(`ここでゲームを終わりにしますか？\n${done}か月目までの結果で期末にします。`)) return;
+    (e.target as HTMLButtonElement).disabled = true;
+    try {
+      await endGameEarly(db, code);
+    } catch (err) {
+      alert(`終われませんでした：${(err as Error).message}`);
+    } finally {
+      (e.target as HTMLButtonElement).disabled = false;
+    }
+  });
   $('delete').addEventListener('click', async () => {
     if (!confirm(`ゲーム ${code} を終了して、データをすべて削除しますか？\n元には戻せません。`)) return;
     cleanup();
@@ -114,6 +131,7 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
     const c = S.clock;
     if (!c || !S.pub) return;
     $('month').textContent = c.month > 0 ? monthLabel(c.month, S.pub.startCalendarMonth, S.pub.months) : '開始前';
+    $('endEarlyCard').hidden = !['input', 'result', 'yearEnd'].includes(c.phase) || S.results.length < 1;
 
     renderNote(c);
     const slots = sortedTeams(S.teams);

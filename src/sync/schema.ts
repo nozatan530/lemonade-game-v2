@@ -24,6 +24,7 @@ export interface Clock {
   quarterStart: boolean; // バリスタを決められる月（3か月ごとの設定なら四半期の最初の月、毎月の設定なら毎月）
   prices: UnitPrices; // その月の単価
   message?: string; // シナリオのお知らせ
+  endedEarly?: boolean; // GM が途中で終えた（そこまでの月の結果で期末にした）
 }
 
 export interface TeamSlot {

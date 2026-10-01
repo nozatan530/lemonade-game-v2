@@ -1,6 +1,7 @@
 // 販売チーム画面（スマホ優先）。参加 → 待機 → 毎月の入力 → 結果 → 期末。
 
 import { reloadIfStale } from '../../ui/fresh';
+import { preparingHtml } from '../../ui/preparing';
 import type { MonthlyDecision, MonthResult, TeamState } from '../../engine/types';
 import { signInAsTeam, waitForAuth } from '../../sync/auth';
 import { firebase } from '../../sync/firebase';
@@ -80,6 +81,8 @@ export async function renderTeam(root: HTMLElement, params: URLSearchParams): Pr
     return { decision, baristaCount };
   }
 
+  let editing = false; // 提出したあと「決定をなおす」を押した
+  let editMonth = 0;
   let mounting = false;
   let seenGame = false; // このゲームを一度でも表示した（削除されたときに「終了しました」と出すため）
   async function render() {
@@ -124,6 +127,19 @@ export async function renderTeam(root: HTMLElement, params: URLSearchParams): Pr
 
     if (clock.phase === 'input' && me) {
       followOwnSubmission(teamId, clock.month);
+      if (editMonth !== clock.month) { editMonth = clock.month; editing = false; }
+      // 提出したら「他チームの準備中…」（締切までは「決定をなおす」で入力にもどれる）
+      if (S.ownSub && !editing) {
+        inputView = null;
+        const closed = isClosed();
+        const k = `prep-${clock.month}-${closed}`;
+        if (viewKey !== k) {
+          viewKey = k;
+          view.innerHTML = preparingHtml(closed ? '締め切りました。結果を待っています。' : 'GMが締め切ると、結果が出ます。', !closed);
+          view.querySelector('#editAgain')?.addEventListener('click', () => { editing = true; render(); });
+        }
+        return;
+      }
       const key = `input-${clock.month}-${teamId}`;
       const last = S.results.find((r) => r.month === clock.month - 1);
       const ctx = {
@@ -143,6 +159,8 @@ export async function renderTeam(root: HTMLElement, params: URLSearchParams): Pr
       inputView = mountInputView(view, { ...ctx, ownSub: S.ownSub }, values, async (decision, baristaCount) => {
         await submitDecision(db, code, clock.month, teamId, decision,
           baristaCount !== undefined ? { baristaCount } : undefined);
+        editing = false;
+        render();
       });
       if (clock.month === 1) maybeStartInputCoach(view, '提出する');
       return;
@@ -155,7 +173,7 @@ export async function renderTeam(root: HTMLElement, params: URLSearchParams): Pr
       if (viewKey === key) return;
       viewKey = key;
       if (!result) {
-        view.innerHTML = '<div class="card center">集計中…</div>';
+        view.innerHTML = preparingHtml('結果を集計しています。', false);
         return;
       }
       const previous = S.results.find((r) => r.month === clock.month - 1);
@@ -181,7 +199,15 @@ export async function renderTeam(root: HTMLElement, params: URLSearchParams): Pr
       const key = `final-${S.results.length}-${Object.keys(S.state).length}`;
       if (viewKey === key) return;
       viewKey = key;
-      renderTeamFinal(view, { results: S.results, state: S.state, teams: S.teams, pub: S.pub }, teamId);
+      const done = S.results.length;
+      renderTeamFinal(view, { results: S.results, state: S.state, teams: S.teams, pub: S.pub }, teamId,
+        clock.endedEarly && done < S.pub.months ? { heading: `${done}か月間おつかれさまでした！` } : {});
+      // GM が途中で終えたときは、上に大きく知らせる（急に終わって驚かないように）
+      if (clock.endedEarly) {
+        view.insertAdjacentHTML('afterbegin', `<div class="card center" style="border:2px solid var(--accent, #f5b800)">
+          <h2 style="margin:0 0 4px">🏁 GMがゲームを終了しました</h2>
+          <p class="muted" style="margin:0">${done}か月目までの結果で期末にしました。ここまでの結果を見てみましょう。</p></div>`);
+      }
     }
   }
 

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_TIMER, defaultConfig } from '../../engine/config';
 import { allowGmInEmulator, connectFirebase, type FirebaseHandles } from '../firebase';
 import {
-  claimTeam, closeCurrentMonth, createGame, deleteGame, extendDeadline, readPath, readResults, restartGame, startGame,
+  claimTeam, closeCurrentMonth, createGame, deleteGame, extendDeadline, readPath, readResults, restartGame, endGameEarly, startGame,
   startNextMonth, submitDecision,
 } from '../game';
 import type { Clock } from '../schema';
@@ -148,6 +148,31 @@ describe('ゲームの流れ（sync）', () => {
     const [r13] = (await readResults(a.db, code)).filter((r) => r.month === 13);
     const t01 = r13!.teamResults.find((t) => t.teamId === 't01')!;
     expect(t01.balance).toBe(balance12 - t01.totalCost);
+  });
+
+  it('GM は途中で終えられる。結果が出た月までで期末になり、チームは終えられない', async () => {
+    const gm = await newGm();
+    const code = await createGame(gm.db, gm.uid, {
+      config: defaultConfig(2, 'early'), teamNames: ['A', 'B'], timer: DEFAULT_TIMER, now: Date.now(),
+    });
+    const a = await newTeamDevice();
+    await claimTeam(a.db, code, 't01', a.uid);
+    await startGame(gm.db, code, Date.now());
+    await submitDecision(a.db, code, 1, 't01', { lemonQty: 10, sugarQty: 10, price: 100 });
+    await closeCurrentMonth(gm.db, code);
+    expect(await startNextMonth(gm.db, code, Date.now())).toBe('started');
+    // 2か月目の入力中に終える
+    await expect(endGameEarly(a.db, code)).rejects.toThrow();
+    expect(await endGameEarly(gm.db, code)).toBe('final');
+    const clock = (await readPath<Clock>(a.db, `games/${code}/clock`))!;
+    expect(clock.phase).toBe('final');
+    expect(clock.endedEarly).toBe(true);
+    expect(await readResults(a.db, code)).toHaveLength(1);
+    // もう終わっているので何もしない
+    expect(await endGameEarly(gm.db, code)).toBe('noop');
+    // 次のゲームを始めると、途中で終えた印は消える
+    await restartGame(gm.db, code, Date.now());
+    expect((await readPath<Clock>(a.db, `games/${code}/clock`))!.endedEarly).toBeUndefined();
   });
 
   it('期末のあと、同じコード・同じチームで次のゲームを始められる。チームは書きかえられない', async () => {
