@@ -240,6 +240,15 @@ export async function restartGame(db: Database, code: string, now: number): Prom
   });
 }
 
+// 途中で終える（授業の時間が足りないとき）。そこまでに結果が出た月で期末にする。
+// 入力中の月は集計しない（その月の提出は使わない）
+export async function endGameEarly(db: Database, code: string): Promise<'final' | 'noop'> {
+  const clock = await read<Clock>(db, gamePath(code, 'clock'));
+  if (!clock || !['input', 'result', 'yearEnd'].includes(clock.phase)) return 'noop';
+  await update(ref(db, gamePath(code)), { 'clock/phase': 'final', 'clock/endedEarly': true, 'meta/status': 'ended' });
+  return 'final';
+}
+
 export async function extendDeadline(db: Database, code: string, seconds: number): Promise<void> {
   const clock = await read<Clock>(db, gamePath(code, 'clock'));
   if (!clock || clock.phase !== 'input') return;

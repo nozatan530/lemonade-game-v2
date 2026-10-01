@@ -1,6 +1,7 @@
 // 全体表示（プロジェクター・画面共有用）。読み取り専用。
 // 待機：ゲームコードと参加用 QR ／ 入力中：月・お知らせ・残り時間・提出状況 ／ 結果：表と資金の推移 ／ 期末：順位
 
+import { reloadIfStale } from '../../ui/fresh';
 import { marketSection } from '../team/month-story';
 import { rankTeams } from '../../engine/month';
 import { resultsOfYear, yearOf } from '../../engine/years';
@@ -17,6 +18,7 @@ import { calendarMonth, esc, mmss, monthLabel, secondsLeft, signedYen, yen } fro
 import { legendHtml, lineChartSvg, MAX_SERIES, type Series } from '../../ui/line-chart';
 
 export async function renderDashboard(root: HTMLElement, params: URLSearchParams): Promise<() => void> {
+  void reloadIfStale(); // 公開前から開いていた古い画面なら、新しい版に読みこみ直す
   const code = (params.get('code') ?? '').trim().toUpperCase();
   if (!code) {
     root.innerHTML = '<div class="page"><div class="card">URL にゲームコードがありません（#/screen?code=XXXXXX）。</div></div>';

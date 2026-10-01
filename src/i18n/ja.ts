@@ -21,7 +21,7 @@ export const ja = {
   'home.room.h2': 'ルームで対戦',
   'home.room.p': '友だちと最大4人で遊べます（ログイン不要）。だれかがルームを作り、コードを送って集まります。足りない席にはロボット店長が入ります。',
   'home.room.btn': 'ルームを作る／入る',
-  'home.multi.h2': 'みんなで対戦',
+  'home.multi.h2': 'ワークショップモード',
   'home.multi.badge': '開発中',
   'home.multi.p': 'ゲームマスター（GM）が進行して、チームどうしで競います。参加する人は、GM から伝えられたゲームコードを入れるだけです。',
   'home.multi.soon': 'いま準備中です。',
@@ -31,7 +31,7 @@ export const ja = {
   'home.multi.teamSoon': 'チームで参加する（開発中）',
   'home.multi.gmSoon': 'GM（進行役）（開発中）',
   'home.survey': '✉️ 感想を送る',
-  'soon.h2': 'みんなで対戦するモードは開発中です',
+  'soon.h2': 'ワークショップモードは開発中です',
   'soon.p': 'いまは、ひとりで 🤖 ロボット店長のお店と競うソロモードで遊べます。',
   'soon.btn': 'ソロモードで遊ぶ',
 

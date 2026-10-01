@@ -21,7 +21,7 @@ export const en: Record<Key, string> = {
   'home.room.h2': 'Play in a room',
   'home.room.p': 'Play with up to 4 friends (no sign-in). One person opens a room and shares the code. Robot managers fill empty seats.',
   'home.room.btn': 'Open or join a room',
-  'home.multi.h2': 'Play with others',
+  'home.multi.h2': 'Workshop mode',
   'home.multi.badge': 'Coming soon',
   'home.multi.p': 'A game master runs the game and teams compete against each other. Players just enter the game code from the game master.',
   'home.multi.soon': "We're still working on it.",
@@ -31,7 +31,7 @@ export const en: Record<Key, string> = {
   'home.multi.teamSoon': 'Join as a team (coming soon)',
   'home.multi.gmSoon': 'Game master (coming soon)',
   'home.survey': '✉️ Send feedback',
-  'soon.h2': 'Multiplayer mode is coming soon',
+  'soon.h2': 'Workshop mode is coming soon',
   'soon.p': 'For now, you can play solo against stands run by 🤖 robot managers.',
   'soon.btn': 'Play solo',
 
