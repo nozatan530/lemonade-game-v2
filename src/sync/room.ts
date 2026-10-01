@@ -259,13 +259,14 @@ export function shouldAdvanceRoom(clock: RoomClock, now: number, humans: string[
   return now >= (clock.resultAt ?? 0) + NEXT_AUTO_MS;
 }
 
-// 次の月へ。最後の月のあとは期末。1台だけが進める（トランザクション）
-export async function advanceRoom(db: Database, code: string, now: number): Promise<void> {
+// 次の月へ。最後の月のあとは期末。1台だけが進める（トランザクション）。
+// 'final' を返すのは、期末にした端末だけ（ゲームの記録はこの端末が1件だけ送る）
+export async function advanceRoom(db: Database, code: string, now: number): Promise<'next' | 'final' | 'skip'> {
   const [config, results] = await Promise.all([
     read<GameConfig>(db, roomPath(code, 'config')),
     read<Record<string, MonthResult>>(db, roomPath(code, 'results')),
   ]);
-  if (!config) return;
+  if (!config) return 'skip';
   const tx = await runTransaction(ref(db, roomPath(code, 'clock')), (c: RoomClock | null) => {
     if (!c) return c;
     if (c.phase !== 'result') return undefined;
@@ -274,9 +275,12 @@ export async function advanceRoom(db: Database, code: string, now: number): Prom
     if (!next) return { ...c, phase: 'final' };
     return clockFor(next, now, config);
   });
-  if (tx.committed && (tx.snapshot.val() as RoomClock).phase === 'final') {
+  if (!tx.committed) return 'skip';
+  if ((tx.snapshot.val() as RoomClock).phase === 'final') {
     await set(ref(db, roomPath(code, 'meta/status')), 'ended');
+    return 'final';
   }
+  return 'next';
 }
 
 export { humanSeats };

@@ -14,10 +14,12 @@ var MAX_PER_MINUTE = 60; // いたずらで大量に送られたときの上限�
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
-    var row = toRow_(data, new Date());
+    // ルームモードのゲームの記録（ログ）は、別のシートに1行ずつ
+    var isLog = data && data.kind === 'gameLog';
+    var row = isLog ? toLogRow_(data, new Date()) : toRow_(data, new Date());
     if (!row) return json_({ ok: false });
     if (!withinRateLimit_()) return json_({ ok: false });
-    sheet_().appendRow(row);
+    (isLog ? logSheet_() : sheet_()).appendRow(row);
     return json_({ ok: true });
   } catch (err) {
     return json_({ ok: false });
@@ -95,6 +97,41 @@ function sheet_() {
   else if (sh.getRange(1, HEADERS.length).getValue() !== HEADERS[HEADERS.length - 1]) {
     sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
   }
+  return sh;
+}
+
+// ---- ルームモードのゲームの記録（ログ） ----
+
+var LOG_SHEET_NAME = 'ログ';
+var LOG_SEATS = 4;
+var LOG_KINDS = { human: '人', discount: 'ロボット（安売り）', premium: 'ロボット（高値）', follower: 'ロボット（追随）', cautious: 'ロボット（慎重）' };
+var LOG_HEADERS = (function () {
+  var h = ['受付日時', 'モード', 'ルームコード', 'むずかしさ', '市場のパターン', '人', 'ロボット', '月数'];
+  for (var i = 1; i <= LOG_SEATS; i++) h.push(i + '位 お店', i + '位 種類', i + '位 もうけ', i + '位 お金の残り', i + '位 平均の値段', i + '位 売れた杯数');
+  h.push('市場の大きさ（月ごと）', 'バージョン');
+  return h;
+})();
+
+// 受け取った記録を1行にする。おかしなデータなら null（保存しない）
+function toLogRow_(d, now) {
+  if (d.v !== 1 || d.mode !== 'room') return null;
+  if (!Array.isArray(d.teams) || d.teams.length === 0 || d.teams.length > LOG_SEATS) return null;
+  if (!Array.isArray(d.budgets) || d.budgets.length > 120) return null;
+  var row = [now, 'ルーム', text_(d.code, 6), text_(d.difficulty, 10), text_(d.pattern, 20), int_(d.humans), int_(d.robots), int_(d.months)];
+  for (var i = 0; i < LOG_SEATS; i++) {
+    var t = d.teams[i];
+    if (!t) { row.push('', '', '', '', '', ''); continue; }
+    if (!LOG_KINDS.hasOwnProperty(t.kind)) return null;
+    row.push(text_(t.name, 30), LOG_KINDS[t.kind], int_(t.profit), int_(t.balance), t.avgPrice === null ? '' : int_(t.avgPrice), int_(t.sold));
+  }
+  row.push(d.budgets.map(function (b) { return int_(b); }).join(','), text_(d.appVersion, 40));
+  return row;
+}
+
+function logSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(LOG_SHEET_NAME) || ss.insertSheet(LOG_SHEET_NAME);
+  if (sh.getLastRow() === 0) sh.appendRow(LOG_HEADERS);
   return sh;
 }
 
