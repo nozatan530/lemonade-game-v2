@@ -5,7 +5,7 @@ import { get, ref, set } from 'firebase/database';
 import { describe, expect, it } from 'vitest';
 import { connectFirebase } from '../firebase';
 import {
-  advanceRoom, closeRoomMonth, createRoom, joinRoom, readyNext, roomPath, shouldAdvanceRoom, shouldCloseRoom, startRoom,
+  advanceRoom, closeRoomMonth, createRoom, endRoom, goOnline, takeOverSeat, joinRoom, readyNext, roomPath, shouldAdvanceRoom, shouldCloseRoom, startRoom,
   submitRoom, type RoomClock, type RoomSeat,
 } from '../room';
 
@@ -82,5 +82,48 @@ describe('ルームモード', () => {
     const stranger = await newDevice();
     await expect(set(ref(stranger.db, roomPath(code, 'clock/phase')), 'final')).rejects.toThrow();
     await expect(set(ref(stranger.db, roomPath(code, 'state')), {})).rejects.toThrow();
+  });
+
+  it('抜けた人の席：つながっている間は取れず、切れたら入り直せる。出さなかった月はロボットがおまかせで決める', async () => {
+    const owner = await newDevice();
+    const guest = await newDevice();
+    const code = await createRoom(owner.db, owner.uid, { difficulty: 'normal', pattern: 'stable', now: Date.now() });
+    await joinRoom(guest.db, code, guest.uid);
+    await goOnline(owner.db, code, 't01');
+    await goOnline(guest.db, code, 't02');
+    await startRoom(owner.db, code, Date.now());
+
+    const newcomer = await newDevice();
+    // まだつながっている人の席は取れない
+    await expect(takeOverSeat(newcomer.db, code, newcomer.uid, 't02')).rejects.toThrow();
+
+    // guest の接続が切れた（onDisconnect で false になったのと同じ）
+    await set(ref(guest.db, roomPath(code, 'seats/t02/online')), false);
+    // owner だけ出して締める → t02 はロボットがおまかせ
+    await submitRoom(owner.db, code, 1, 't01', { lemonQty: 30, sugarQty: 30, price: 200 }, { baristaCount: 1 });
+    expect(await closeRoomMonth(owner.db, code, Date.now())).toBe('closed');
+    const auto = await read<Record<string, true>>(owner.db, roomPath(code, 'auto/m01'));
+    expect(auto).toEqual({ t02: true });
+    const r1 = await read<{ teamResults: { teamId: string; offered: number; lemonBought: number }[] }>(owner.db, roomPath(code, 'results/m01'));
+    const t02 = r1.teamResults.find((t) => t.teamId === 't02')!;
+    expect(t02.lemonBought).toBeGreaterThan(0); // 静観ではない
+
+    // 新しい端末が、その席で入り直せる
+    await takeOverSeat(newcomer.db, code, newcomer.uid, 't02');
+    const seat = await read<RoomSeat>(owner.db, roomPath(code, 'seats/t02'));
+    expect(seat.uid).toBe(newcomer.uid);
+    expect(seat.online).toBe(true);
+  });
+
+  it('ゲームを途中で終われる。参加していない人は終われない', async () => {
+    const owner = await newDevice();
+    const code = await createRoom(owner.db, owner.uid, { difficulty: 'easy', pattern: 'stable', now: Date.now() });
+    await startRoom(owner.db, code, Date.now());
+    const stranger = await newDevice();
+    await expect(endRoom(stranger.db, code, 'x')).rejects.toThrow();
+    expect(await endRoom(owner.db, code, '🐊 Alligator')).toBe('final');
+    const clock = await read<RoomClock>(owner.db, roomPath(code, 'clock'));
+    expect(clock.phase).toBe('final');
+    expect(clock.endedEarlyBy).toBe('🐊 Alligator');
   });
 });

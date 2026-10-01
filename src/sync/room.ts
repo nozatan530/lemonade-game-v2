@@ -7,7 +7,7 @@
 // - 集計は1台だけが行う（clock をトランザクションで closing にできた端末）。結果は1度しか書けない
 // - 結果のあと、全員が「次の月へ」を押すか、30秒たったら次の月へ
 
-import { get, ref, runTransaction, serverTimestamp, set, update, type Database } from 'firebase/database';
+import { get, onDisconnect, ref, runTransaction, serverTimestamp, set, update, type Database } from 'firebase/database';
 import { canChangeBarista, DEFAULT_TIMER, inputSecondsFor, withMarketPattern, withRandomMarketSize, defaultConfig } from '../engine/config';
 import { monthConditions } from '../engine/demand';
 import { closeMonth, openNextMonth, startTerm } from '../engine/month';
@@ -29,6 +29,7 @@ export const RESULT_DELAY_MS = 5000; // 全員が提出してから結果を出�
 export const NEXT_AUTO_MS = 30000; // 結果のあと、自動で次の月へ進むまで
 export const START_ANYONE_MS = 5 * 60 * 1000; // 作った人が始めないとき、ほかの人も「はじめる」を押せるまで
 export const CLOSING_RETRY_MS = 10000; // 集計中の端末が落ちたとき、ほかの端末がやり直すまで
+const AUTO_PILOT: CpuType = 'follower'; // つながっていない人の代わりに決めるロボットの作戦（ほどほどの値段で、売れる数を見込む）
 
 export interface RoomMeta {
   ownerUid: string;
@@ -39,11 +40,13 @@ export interface RoomMeta {
 
 export interface RoomSeat extends TeamSlot {
   robot?: CpuType; // ロボット店長の作戦（はじめるときに空いた席に入る）
+  online?: boolean; // 座っている人がいまつながっているか（切れると false。ほかの人が入り直せる）
 }
 
 export interface RoomClock extends Clock {
   resultAt?: number; // 結果を出した時刻
   closingAt?: number; // 集計を始めた時刻
+  endedEarlyBy?: string; // 途中で終えたときの、終えた人のお店の名前
 }
 
 export const roomPath = (code: string, sub = '') => `rooms/${code}${sub ? '/' + sub : ''}`;
@@ -129,6 +132,41 @@ export async function joinRoom(db: Database, code: string, uid: string): Promise
     }
   }
   throw new Error('満席です');
+}
+
+// いまつながっていることを記録する。切れたら自動で false（onDisconnect）
+export async function goOnline(db: Database, code: string, teamId: string): Promise<void> {
+  const r = ref(db, roomPath(code, `seats/${teamId}/online`));
+  await onDisconnect(r).set(false);
+  await set(r, true);
+}
+
+// 入り直せる席：人が座っていたが、いまつながっていない席
+export function vacantSeats(seats: Record<string, RoomSeat>): string[] {
+  return ROOM_SEATS.filter((id) => seats[id]?.uid && !seats[id]?.robot && seats[id]?.online !== true);
+}
+
+// つながっていない人の席を引き継ぐ（途中から入り直す）。お金や材料はその席のまま続く
+export async function takeOverSeat(db: Database, code: string, uid: string, teamId: string): Promise<void> {
+  await update(ref(db), { [roomPath(code, `seats/${teamId}/uid`)]: uid, [roomPath(code, `members/${uid}`)]: teamId });
+  await goOnline(db, code, teamId);
+}
+
+// いまつながっている人の席（全員の提出・「次の月へ」を待つのはこの席だけ）
+export function onlineHumans(seats: Record<string, RoomSeat>): string[] {
+  return ROOM_SEATS.filter((id) => seats[id]?.uid && !seats[id]?.robot && seats[id]?.online === true);
+}
+
+// ゲームを途中で終える。そこまでの月の結果で期末にする
+export async function endRoom(db: Database, code: string, byName: string): Promise<'final' | 'skip'> {
+  const tx = await runTransaction(ref(db, roomPath(code, 'clock')), (c: RoomClock | null) => {
+    if (!c) return c;
+    if (c.phase === 'final' || c.phase === 'lobby') return undefined;
+    return { ...c, phase: 'final', endedEarlyBy: byName };
+  });
+  if (!tx.committed) return 'skip';
+  await set(ref(db, roomPath(code, 'meta/status')), 'ended');
+  return 'final';
 }
 
 // ---- 進行 ----
@@ -221,7 +259,11 @@ export async function closeRoomMonth(db: Database, code: string, now: number): P
     prices: clock.prices, ...(clock.message ? { message: clock.message } : {}),
   };
 
-  const cpu = Object.fromEntries(ROOM_SEATS.filter((id) => seats[id]!.robot).map((id) => [id, seats[id]!.robot!]));
+  const cpu: Record<string, CpuType> = Object.fromEntries(ROOM_SEATS.filter((id) => seats[id]!.robot).map((id) => [id, seats[id]!.robot!]));
+  // つながっていない人が出さなかった席は、ロボット店長がおまかせで決める（静観のまま続かないように）
+  const submittedIds = Object.keys(asRecord<SubmissionDoc>(subs));
+  const auto = vacantSeats(seats).filter((id) => !submittedIds.includes(id));
+  for (const id of auto) cpu[id] = AUTO_PILOT;
   const meta = await read<RoomMeta>(db, roomPath(code, 'meta'));
   const robots = robotSubmissions({
     config, teams, conditions, results, cpu, skill: SOLO_DIFFICULTY[meta?.difficulty ?? 'normal'].cpuSkill,
@@ -241,6 +283,7 @@ export async function closeRoomMonth(db: Database, code: string, now: number): P
     [roomPath(code, `results/${mk}`)]: r.result,
     [roomPath(code, 'state')]: newState,
     [roomPath(code, `decided/${mk}`)]: r.decided,
+    ...Object.fromEntries(auto.map((id) => [roomPath(code, `auto/${mk}/${id}`), true])),
     [roomPath(code, 'clock/phase')]: 'result',
     [roomPath(code, 'clock/resultAt')]: now,
   }));
