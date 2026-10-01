@@ -7,7 +7,7 @@
 // - 集計は1台だけが行う（clock をトランザクションで closing にできた端末）。結果は1度しか書けない
 // - 結果のあと、全員が「次の月へ」を押すか、30秒たったら次の月へ
 
-import { get, onDisconnect, ref, runTransaction, serverTimestamp, set, update, type Database } from 'firebase/database';
+import { get, onDisconnect, onValue, ref, runTransaction, serverTimestamp, set, update, type Database } from 'firebase/database';
 import { canChangeBarista, DEFAULT_TIMER, inputSecondsFor, withMarketPattern, withRandomMarketSize, defaultConfig } from '../engine/config';
 import { monthConditions } from '../engine/demand';
 import { closeMonth, openNextMonth, startTerm } from '../engine/month';
@@ -139,6 +139,14 @@ export async function goOnline(db: Database, code: string, teamId: string): Prom
   const r = ref(db, roomPath(code, `seats/${teamId}/online`));
   await onDisconnect(r).set(false);
   await set(r, true);
+}
+
+// つながっている間ずっと「つながっている」を保つ。電波が切れて戻ったとき（スマホのスリープなど）も
+// .info/connected を見て記録し直す。返り値で見るのをやめる
+export function keepOnline(db: Database, code: string, teamId: string): () => void {
+  return onValue(ref(db, '.info/connected'), (snap) => {
+    if (snap.val() === true) goOnline(db, code, teamId).catch(() => {});
+  });
 }
 
 // 入り直せる席：人が座っていたが、いまつながっていない席

@@ -11,7 +11,7 @@ import { signInAsTeam, waitForAuth } from '../../sync/auth';
 import { asRecord } from '../../sync/codec';
 import { firebase } from '../../sync/firebase';
 import {
-  endRoom, goOnline, onlineHumans, takeOverSeat, vacantSeats,
+  endRoom, goOnline, keepOnline, onlineHumans, takeOverSeat, vacantSeats,
   advanceRoom, cleanupRooms, closeRoomMonth, createRoom, joinRoom, readyNext, ROOM_SEATS, roomPath, roomTeams,
   shouldAdvanceRoom, shouldCloseRoom, START_ANYONE_MS, startRoom, submitRoom, type RoomClock, type RoomMeta,
   type RoomSeat,
@@ -143,6 +143,8 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
   let inputView: InputView | null = null;
   let joinTried = false;
   let onlineFor: string | null = null;
+  let stopOnline: (() => void) | null = null;
+  let fixedAt = 0;
   let seen = false;
 
   async function render() {
@@ -164,9 +166,14 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
       return;
     }
     // 座っていたら「つながっている」を記録する（切れると自動で外れ、ほかの人が入り直せるようになる）
-    if (me && S.seats[me]?.online !== true && onlineFor !== me) {
+    if (me && onlineFor !== me) {
+      stopOnline?.();
       onlineFor = me;
-      goOnline(db, code, me).catch(() => { onlineFor = null; });
+      stopOnline = keepOnline(db, code, me);
+    } else if (me && S.seats[me]?.online === false && Date.now() - fixedAt > 3000) {
+      // 同じ端末の古いタブが閉じたときなど、つながっているのに false になったら直す
+      fixedAt = Date.now();
+      goOnline(db, code, me).catch(() => {});
     }
     const teams = roomTeams(S.seats);
     $('teamname').textContent = me ? `🍋 ${teams[me]!.name}` : `🍋 ルーム ${code}`;
@@ -398,5 +405,6 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
     unsubs.forEach((u) => u());
     monthWatch.forEach((u) => u());
     unsubOwn?.();
+    stopOnline?.();
   };
 }
