@@ -567,3 +567,7 @@ body.sheet-open { overflow: hidden; }
 .screen-center .story-market { font-size: 0.85em; }
 .screen-center .story-market .story-table td, .screen-center .story-market .story-table th { padding-top: 0.25em; padding-bottom: 0.25em; }
 .screen-charts .card h2 { font-size: 1.1em; margin-bottom: 0.3em; }
+/* ルームモード */
+.code-input { width: 100%; height: 52px; font-size: 1.6rem; text-align: center; letter-spacing: .2em; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+.room-qr { width: 180px; margin: 8px auto; background: #fff; padding: 8px; border-radius: 12px; }
+.room-qr svg { display: block; width: 100%; height: auto; }

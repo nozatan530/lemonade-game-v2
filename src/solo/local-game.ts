@@ -2,9 +2,8 @@
 // オンラインの sync にあたる役。計算は engine の関数に任せ、ここは状態を持って順に呼ぶだけ。
 
 import { canChangeBarista, defaultConfig, withMarketPattern, withRandomMarketSize, type MarketSizeRange } from '../engine/config';
-import { CPU_TYPES, cpuViewOf, decideCpu } from '../engine/cpu-teams';
-import { closeMonth, isActive, openNextMonth, startTerm } from '../engine/month';
-import { seededRand } from '../engine/random';
+import { assignCpuTypes, robotSubmissions, shuffleOrder } from '../engine/robots';
+import { closeMonth, openNextMonth, startTerm } from '../engine/month';
 import { yearTitles, type TitleId } from '../engine/titles';
 import { isYearEnd, MAX_YEARS, MONTHS_PER_YEAR, resultsOfYear, standingsAt, yearlySummary } from '../engine/years';
 import type {
@@ -61,28 +60,8 @@ export function newSoloGame(options: {
   config.months = MONTHS_PER_YEAR * Math.min(MAX_YEARS, Math.max(1, Math.floor(options.years ?? 1)));
   if (options.elimination) config.elimination = true;
 
-  // 4つの作戦から選び、どの店に割り当てるかもシードで決める（毎回ちがう並び）。
-  // 「ふつう」「むずかしい」では安売りを必ず入れる（いないと、何も考えなくても勝ててしまうため）
-  // ロボット店長が4店以上のときは、4つの作戦を一通り使ったうえで、残りをシードで選ぶ（同じ作戦が2店になる）
-  const withDiscount = difficulty !== 'easy';
-  const firstRound = Math.min(cpuIds.length, 3) - (withDiscount ? 1 : 0);
-  const pool = withDiscount ? CPU_TYPES.filter((t) => t !== 'discount') : [...CPU_TYPES];
-  const ordered = [...pool]
-    .map((type, i) => ({ type, key: seededRand(`${options.seed}:cpu-pick`, i) }))
-    .sort((a, b) => a.key - b.key)
-    .map((x) => x.type);
-  const picked = ordered.slice(0, firstRound);
-  const rest = [...ordered.slice(firstRound)];
-  const extra: CpuType[] = [];
-  for (let i = 0; extra.length < cpuIds.length - 3; i++) {
-    extra.push(rest.length > 0 ? rest.shift()! : CPU_TYPES[Math.floor(seededRand(`${options.seed}:cpu-extra`, i) * CPU_TYPES.length)]!);
-  }
-  const shuffled = [...picked, ...(withDiscount ? ['discount' as const] : []), ...extra]
-    .map((type, i) => ({ type, key: seededRand(`${options.seed}:cpu-assign`, i) }))
-    .sort((a, b) => a.key - b.key)
-    .map((x) => x.type);
-  const cpu: Record<string, CpuType> = {};
-  cpuIds.forEach((id, i) => { cpu[id] = shuffled[i]!; });
+  // 作戦の割り当て（engine/robots.ts。ルームモードと同じ）。「ふつう」「むずかしい」では安売りを必ず入れる
+  const cpu = assignCpuTypes(options.seed, cpuIds, difficulty !== 'easy');
 
   const names: Record<string, string> = { t1: 'あなたのお店' };
   cpuIds.forEach((id, i) => { names[id] = `🤖 ${STAND_LETTERS[i]}スタンド`; });
@@ -106,30 +85,11 @@ export function submitHuman(state: SoloState, decision: MonthlyDecision, barista
 // 1か月を締め切る。人が脱落しているときは human = null（ロボット店長だけで進める）
 function closeSoloMonth(state: SoloState, human: Submission | null): SoloState {
   const c = state.conditions;
-  const seed = state.config.market.seed;
-  const active = state.teams.filter(isActive);
-  const cpuSubs: Submission[] = active
-    .filter((t) => t.teamId !== HUMAN_ID)
-    .map((t) => {
-      const view = cpuViewOf({
-        month: c.month,
-        prices: c.prices,
-        // 脱落したお店は数えない（残っているお店の数で売れる数を見込む）
-        rules: { baristaCapacity: state.config.baristaCapacity, recipe: state.config.recipe, teamCount: active.length },
-        me: t,
-        results: state.results,
-        baristaCadence: state.config.baristaCadence,
-      });
-      const dice = (k: number) => seededRand(`${seed}:cpu:${t.teamId}`, c.month * 100 + k);
-      const skill = SOLO_DIFFICULTY[state.difficulty ?? 'easy'].cpuSkill;
-      return { teamId: t.teamId, ...decideCpu(state.cpu[t.teamId]!, view, dice, skill), order: 0 };
-    });
-
-  // 提出順（同じ値段のときの端数の順番）は毎月シードで決める。人がいつも先になると有利すぎるため
-  const subs = [...(human ? [human] : []), ...cpuSubs]
-    .map((s, i) => ({ s, key: seededRand(`${seed}:order`, c.month * 100 + i) }))
-    .sort((a, b) => a.key - b.key)
-    .map(({ s }, i) => ({ ...s, order: i + 1 }));
+  const cpuSubs = robotSubmissions({
+    config: state.config, teams: state.teams, conditions: c, results: state.results, cpu: state.cpu,
+    skill: SOLO_DIFFICULTY[state.difficulty ?? 'easy'].cpuSkill,
+  });
+  const subs = shuffleOrder([...(human ? [human] : []), ...cpuSubs], state.config.market.seed, c.month);
 
   const r = closeMonth(state.config, state.teams, c, subs, state.decided);
   return { ...state, teams: r.teams, decided: { ...state.decided, ...r.decided }, results: [...state.results, r.result] };

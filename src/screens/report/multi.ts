@@ -103,13 +103,16 @@ export function renderTeamYearEnd(container: HTMLElement, input: MultiReportInpu
 
 // チームの期末：1年ならソロと同じ期末レポート。2年以上なら通算のまとめ＋最後の年の決算。
 // いちばん下に「トップにもどる」（GM が同じコードで次のゲームを始めると、この画面から続けて参加できる）
-export function renderTeamFinal(container: HTMLElement, input: MultiReportInput, teamId: string): void {
+export function renderTeamFinal(
+  container: HTMLElement, input: MultiReportInput, teamId: string,
+  opts: { note?: string } = {}, // 最後のひとこと（ルームモードでは GM の話をしない）
+): void {
   const years = yearCount(input);
   const sheets = teamSheets(input, teamId);
   container.innerHTML = `${years > 1 ? '<div id="total"></div>' : ''}<div id="report"></div>
     <button class="btn" id="sheet" type="button">📄 年次決算レポート（A4）を見る${sheets.length > 1 ? `（${sheets.length}枚）` : ''}</button>
     <div class="card center">
-      <p style="margin:0 0 8px">おつかれさまでした！ GM が次のゲームを始めると、この画面からそのまま参加できます。</p>
+      <p style="margin:0 0 8px">${opts.note ?? 'おつかれさまでした！ GM が次のゲームを始めると、この画面からそのまま参加できます。'}</p>
       <a class="btn secondary" href="#/">トップにもどる</a>
     </div>`;
   if (years > 1) renderTotal(container.querySelector<HTMLElement>('#total')!, input, teamId, years);

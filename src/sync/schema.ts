@@ -6,7 +6,8 @@ import type {
 } from '../engine/types';
 
 // yearEnd：2年以上のとき、12か月ごとの「第◯期の決算」（ソロと同じ）
-export type Phase = 'lobby' | 'input' | 'result' | 'yearEnd' | 'final';
+// closing：ルームモードで、どれか1台が集計している間
+export type Phase = 'lobby' | 'input' | 'closing' | 'result' | 'yearEnd' | 'final';
 
 export interface GameMeta {
   gmUid: string;
