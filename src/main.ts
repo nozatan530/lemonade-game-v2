@@ -2,6 +2,7 @@
 //   #/team?code=XXXXXX  販売チーム
 //   #/gm                GM
 //   #/screen?code=…     全体表示
+//   #/room（?code=…）    ルームモード（だれでも作れる。最大4人＋ロボット店長）
 //   #/guide             はじめに（遊び方の説明）
 //   #/survey            感想を送る（アンケート）
 //   #/solo              ソロモード（ブラウザの中だけ。Firebase を使わない）
@@ -30,12 +31,18 @@ async function route(opts: { resume?: boolean } = {}) {
   cleanup = undefined;
   root.innerHTML = '';
   // 対戦（チーム・GM・全体表示）は、英語に対応するまで日本語で出す
-  pinLang(['/team', '/gm', '/screen'].includes(path ?? '') ? 'ja' : null);
+  pinLang(['/team', '/gm', '/screen', '/room'].includes(path ?? '') ? 'ja' : null);
   switch (path) {
     case '/team': {
       if (!MULTIPLAYER) { renderComingSoon(); break; }
       const { renderTeam } = await import('./screens/team/team');
       cleanup = await renderTeam(root, params);
+      break;
+    }
+    case '/room': {
+      if (!MULTIPLAYER) { renderComingSoon(); break; }
+      const { renderRoom } = await import('./screens/room/room');
+      cleanup = await renderRoom(root, params);
       break;
     }
     case '/gm': {
@@ -97,6 +104,11 @@ function renderHome() {
       <p style="margin:0 0 4px">${t('home.solo.p')}</p>
       <a class="btn" href="#/solo">${t('home.solo.btn')}</a>
     </div>
+    ${MULTIPLAYER ? `<div class="card">
+      <h2>${t('home.room.h2')}</h2>
+      <p style="margin:0 0 4px">${t('home.room.p')}</p>
+      <a class="btn" href="#/room">${t('home.room.btn')}</a>
+    </div>` : ''}
     <div class="card">
       <h2>${t('home.multi.h2')} ${MULTIPLAYER ? '' : `<span class="chip">${t('home.multi.badge')}</span>`}</h2>
       <p class="muted" style="margin:0 0 4px">${t('home.multi.p')}${MULTIPLAYER ? '' : t('home.multi.soon')}</p>
