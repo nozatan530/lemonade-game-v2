@@ -145,6 +145,18 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
   let onlineFor: string | null = null;
   let stopOnline: (() => void) | null = null;
   let fixedAt = 0;
+  let endArmed = false; // 「ゲームを終わる」を1回押した（アプリ内ブラウザでは confirm が出ないことがあるので、画面の中で確かめる）
+  // ボタンが書きかわっても押せるよう、外側で受ける
+  $('status').addEventListener('click', async (e) => {
+    const id = (e.target as HTMLElement).closest('button')?.id;
+    if (id === 'endCancel') { endArmed = false; render(); return; }
+    if (id !== 'endGame') return;
+    const me = myTeam();
+    if (!me) return;
+    if (!endArmed) { endArmed = true; render(); return; }
+    endArmed = false;
+    if ((await endRoom(db, code, roomTeams(S.seats)[me]!.name).catch(() => 'skip')) === 'final') sendLog();
+  });
   let seen = false;
 
   async function render() {
@@ -180,19 +192,19 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
     $('month').textContent = c.month > 0 ? monthLabel(c.month, S.pub.startCalendarMonth, S.pub.months) : '';
     const away = vacantSeats(S.seats);
     const canEnd = me && (S.meta.ownerUid === uid || !onlineHumans(S.seats).some((id) => S.seats[id]?.uid === S.meta!.ownerUid));
-    $('status').innerHTML = (c.phase === 'input'
+    const statusHtml = (c.phase === 'input'
       ? `<p class="muted center" style="margin:0 0 8px">提出 ${humans().filter((id) => S.submitted[id]).length} / ${humans().length} 人（ロボット店長は自動）。全員そろうと5秒後に結果が出ます。</p>`
       : '')
       + (away.length > 0 && c.phase !== 'lobby' && c.phase !== 'final'
         ? `<p class="muted center" style="margin:0 0 8px">🔌 つながっていない人：${away.map((id) => esc(teams[id]!.name)).join('、')}（出さなかった月はロボット店長がおまかせで決めます。同じリンクを開くと入り直せます）</p>`
         : '')
       + (canEnd && ['input', 'result'].includes(c.phase)
-        ? '<p class="center" style="margin:0 0 8px"><button class="small" id="endGame" type="button">ゲームを終わる</button></p>'
+        ? (endArmed
+          ? '<p class="center" style="margin:0 0 8px">ここまでの月の結果で期末にします。<br><button class="small" id="endGame" type="button">本当に終わる</button> <button class="small secondary" id="endCancel" type="button">やめる</button></p>'
+          : '<p class="center" style="margin:0 0 8px"><button class="small" id="endGame" type="button">ゲームを終わる</button></p>')
         : '');
-    $('status').querySelector('#endGame')?.addEventListener('click', async () => {
-      if (!me || !confirm('ゲームをここで終わりにしますか？\nここまでの月の結果で期末レポートを出します。')) return;
-      if ((await endRoom(db, code, roomTeams(S.seats)[me]!.name).catch(() => 'skip')) === 'final') sendLog();
-    });
+    // 中身が変わったときだけ書きかえる（押している途中でボタンが入れかわって押せない、を防ぐ）
+    if ($('status').innerHTML !== statusHtml) $('status').innerHTML = statusHtml;
 
     if (!me) {
       // つながっていない人の席があれば、その席で入り直せる
@@ -249,7 +261,7 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
       if (viewKey === key) return;
       viewKey = key;
       renderTeamFinal(view, { results: S.results, state: S.state, teams, pub: S.pub }, me, {
-        ...(c.endedEarlyBy && S.results.length < 12 ? { heading: `${S.results.length}か月間おつかれさまでした！` } : {}),
+        ...(c.endedEarlyBy && S.results.length < 12 ? { heading: S.results.length > 0 ? `${S.results.length}か月間おつかれさまでした！` : `おつかれさまでした！` } : {}),
         note: `${c.endedEarlyBy ? `${esc(c.endedEarlyBy)} が ${c.month}か月目でゲームを終わりにしました。` : ''}おつかれさまでした！ もう一度遊ぶときは、ルームの画面から新しいルームを作ってね。`,
       });
     }
