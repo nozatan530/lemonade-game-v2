@@ -1,6 +1,7 @@
 // ルームモード（#/room）：だれでもルームを作り、最大4人で遊ぶ。空いた席はロボット店長。
 // 画面の部品はチーム画面と同じ（入力・月の結果・期末レポート）。進行は参加している端末が自動で行う（sync/room.ts）。
 
+import { reloadIfStale } from '../../ui/fresh';
 import QRCode from 'qrcode';
 import { get, onValue, ref, type Database } from 'firebase/database';
 import { MARKET_PATTERNS } from '../../engine/config';
@@ -34,6 +35,7 @@ const watch = <T>(db: Database, path: string, cb: (v: T | null) => void): Unsub 
 export async function renderRoom(root: HTMLElement, params: URLSearchParams): Promise<() => void> {
   const code = (params.get('code') ?? '').trim().toUpperCase();
   root.innerHTML = '<div class="page"><p class="muted">読み込み中…</p></div>';
+  void reloadIfStale(); // 公開前から開いていた古い画面なら、新しい版に読みこみ直す
   // 開発中だけ、device で別の端末のふりができる
   const device = import.meta.env.VITE_USE_EMULATOR === 'true' ? (params.get('device') ?? '') : '';
   const { auth, db } = firebase('room', device);
@@ -268,6 +270,14 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
         ...(c.endedEarlyBy && S.results.length < 12 ? { heading: S.results.length > 0 ? `${S.results.length}か月間おつかれさまでした！` : `おつかれさまでした！` } : {}),
         note: `${c.endedEarlyBy ? `${esc(c.endedEarlyBy)} が ${c.month}か月目でゲームを終わりにしました。` : ''}おつかれさまでした！ もう一度遊ぶときは、ルームの画面から新しいルームを作ってね。`,
       });
+      // 途中で終わったとき、終えた人以外には、だれが終えたかを上に大きく出す（急に終わって驚かないように）
+      if (c.endedEarlyBy && (!me || teams[me]?.name !== c.endedEarlyBy)) {
+        const ownerSeat = ROOM_SEATS.find((id) => S.seats[id]?.uid === S.meta!.ownerUid);
+        const who = ownerSeat && teams[ownerSeat]?.name === c.endedEarlyBy ? 'ホスト' : esc(c.endedEarlyBy);
+        view.insertAdjacentHTML('afterbegin', `<div class="card center" style="border:2px solid var(--accent, #f5b800)">
+          <h2 style="margin:0 0 4px">🏁 ${who}がゲームを終了しました</h2>
+          <p class="muted" style="margin:0">${c.month}か月目で終わりました。ここまでの結果を見てみましょう。</p></div>`);
+      }
     }
   }
 
@@ -322,9 +332,9 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
     const k = `prep-${key}`;
     if (viewKey === k) return;
     viewKey = k;
-    view.innerHTML = `<div class="card center preparing">
-      <div class="big" style="margin:8px 0">🍋</div>
-      <h2 style="margin:0 0 6px">準備中…</h2>
+    view.innerHTML = `<div class="card center preparing" style="min-height:55vh;display:flex;flex-direction:column;justify-content:center;align-items:center">
+      <div style="font-size:3rem;line-height:1">🍋</div>
+      <h2 style="margin:12px 0 6px">他チームの準備中…</h2>
       <p class="muted" style="margin:0">みんながそろったら、次の画面に進みます。</p>
       ${canEdit ? '<p style="margin:12px 0 0"><button class="small secondary" id="editAgain" type="button">決定をなおす</button></p>' : ''}
     </div>`;
