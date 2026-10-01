@@ -2,7 +2,7 @@
 // 画面の部品はチーム画面と同じ（入力・月の結果・期末レポート）。進行は参加している端末が自動で行う（sync/room.ts）。
 
 import QRCode from 'qrcode';
-import { onValue, ref, type Database } from 'firebase/database';
+import { get, onValue, ref, type Database } from 'firebase/database';
 import { MARKET_PATTERNS } from '../../engine/config';
 import type { MarketPattern, MonthlyDecision, MonthResult, TeamState } from '../../engine/types';
 import { difficultyDesc, difficultyLabel, patternDesc, patternLabel } from '../../i18n/content';
@@ -16,12 +16,17 @@ import {
   type RoomSeat,
 } from '../../sync/room';
 import { monthKey, type PublicConfig, type SubmissionDoc } from '../../sync/schema';
+import { buildGameLog, sendGameLog } from '../../survey/game-log';
 import { esc, mmss, monthLabel, secondsLeft } from '../../ui/format';
 import { renderTeamFinal } from '../report/multi';
 import { DEFAULT_DECISION, mountInputView, type InputView } from '../team/input-view';
 import { renderMonthStory } from '../team/month-story';
 
 type Unsub = () => void;
+const readOnce = async <T>(db: Database, path: string): Promise<T | null> => {
+  const snap = await get(ref(db, path));
+  return snap.exists() ? (snap.val() as T) : null;
+};
 const watch = <T>(db: Database, path: string, cb: (v: T | null) => void): Unsub =>
   onValue(ref(db, path), (s) => cb(s.exists() ? (s.val() as T) : null));
 
@@ -95,9 +100,7 @@ function renderEntry(root: HTMLElement, db: Database, uid: string): () => void {
       location.hash = `#/room?code=${code}`;
     } catch {
       // 1人が同時に開けるルームは1つ。前に作ったルームがあれば案内する
-      const mine = await new Promise<string | null>((res) => {
-        const u = watch<string>(db, `roomOwners/${uid}`, (v) => { u(); res(v); });
-      }).catch(() => null);
+      const mine = await readOnce<string>(db, `roomOwners/${uid}`).catch(() => null);
       msg.innerHTML = mine
         ? `前に作ったルームがまだ開いています。<a href="#/room?code=${esc(mine)}">ルーム ${esc(mine)} にもどる</a>（終わったルームは、期末になるか6時間たつと、新しく作れるようになります）`
         : 'ルームを作れませんでした。少したってからもう一度試してください。';
@@ -278,12 +281,30 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
     busy = true;
     try {
       if (shouldCloseRoom(c, now(), humans(), S.submitted)) await closeRoomMonth(db, code, now());
-      else if (shouldAdvanceRoom(c, now(), humans(), S.ready)) await advanceRoom(db, code, now());
+      else if (shouldAdvanceRoom(c, now(), humans(), S.ready)) {
+        // 期末にしたのがこの端末なら、ゲームの記録を1件だけ送る（失敗しても遊びには影響しない）
+        if ((await advanceRoom(db, code, now())) === 'final') sendLog();
+      }
     } catch {
       // ほかの端末が先に進めた、など。次の見回りでやり直す
     } finally {
       busy = false;
     }
+  }
+
+  async function sendLog() {
+    const [results, state] = await Promise.all([
+      readOnce<Record<string, MonthResult>>(db, roomPath(code, 'results')),
+      readOnce<Record<string, TeamState>>(db, roomPath(code, 'state')),
+    ]);
+    if (!S.meta || !S.pub || !results || !state) return;
+    const robots = Object.fromEntries(ROOM_SEATS.filter((id) => S.seats[id]?.robot).map((id) => [id, S.seats[id]!.robot!]));
+    const names = Object.fromEntries(ROOM_SEATS.map((id) => [id, S.seats[id]?.name ?? id]));
+    await sendGameLog(buildGameLog({
+      code, difficulty: S.meta.difficulty, ...(S.pub.pattern ? { pattern: S.pub.pattern } : {}),
+      results: Object.values(results).sort((a, b) => a.month - b.month), state, names, robots,
+      recipe: S.pub.recipe, appVersion: __APP_VERSION__,
+    })).catch(() => false);
   }
 
   const tick = setInterval(() => {
