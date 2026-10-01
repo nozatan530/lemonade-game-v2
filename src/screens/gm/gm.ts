@@ -1,5 +1,6 @@
 // GM 画面の入口：ログイン → ゲーム一覧・新規作成 → 進行画面
 
+import { reloadIfStale } from '../../ui/fresh';
 import type { User } from 'firebase/auth';
 import { signInAsDevGm, signInAsGm, signOutUser, waitForAuth } from '../../sync/auth';
 import { firebase } from '../../sync/firebase';
@@ -11,6 +12,7 @@ import { mountCreateForm } from './create-form';
 import { mountGameView } from './game-view';
 
 export async function renderGm(root: HTMLElement, params: URLSearchParams): Promise<() => void> {
+  void reloadIfStale(); // 公開前から開いていた古い画面なら、新しい版に読みこみ直す
   const { auth, db } = firebase('gm');
   root.innerHTML = '<div class="page wide"><p class="muted">読み込み中…</p></div>';
   let user = await waitForAuth(auth);

@@ -1,5 +1,6 @@
 // 販売チーム画面（スマホ優先）。参加 → 待機 → 毎月の入力 → 結果 → 期末。
 
+import { reloadIfStale } from '../../ui/fresh';
 import type { MonthlyDecision, MonthResult, TeamState } from '../../engine/types';
 import { signInAsTeam, waitForAuth } from '../../sync/auth';
 import { firebase } from '../../sync/firebase';
@@ -16,6 +17,7 @@ import { isYearEnd, yearOf } from '../../engine/years';
 import { renderMonthStory } from './month-story';
 
 export async function renderTeam(root: HTMLElement, params: URLSearchParams): Promise<() => void> {
+  void reloadIfStale(); // 公開前から開いていた古い画面なら、新しい版に読みこみ直す
   const code = (params.get('code') ?? '').trim().toUpperCase();
   if (!code) {
     renderCodeEntry(root);

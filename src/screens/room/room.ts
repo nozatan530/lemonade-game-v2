@@ -333,7 +333,7 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
     if (viewKey === k) return;
     viewKey = k;
     view.innerHTML = `<div class="card center preparing" style="min-height:55vh;display:flex;flex-direction:column;justify-content:center;align-items:center">
-      <div style="font-size:3rem;line-height:1">🍋</div>
+      <div class="wobble" style="font-size:3rem;line-height:1">🍋</div>
       <h2 style="margin:12px 0 6px">他チームの準備中…</h2>
       <p class="muted" style="margin:0">みんながそろったら、次の画面に進みます。</p>
       ${canEdit ? '<p style="margin:12px 0 0"><button class="small secondary" id="editAgain" type="button">決定をなおす</button></p>' : ''}
