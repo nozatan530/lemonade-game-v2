@@ -25,7 +25,9 @@ export const ROOM_SEATS = ['t01', 't02', 't03', 't04'] as const;
 export const ROOM_NAMES = ['🐊 Alligator', '🐻 Bear', '🐱 Cat', '🐶 Dog'];
 export const ROOM_TTL_MS = 6 * 60 * 60 * 1000; // 6時間たったルームは、だれでも消せる（新しいルームを作るときの掃除）
 export const MAX_ROOMS = 20; // 同時に開けるルームの数（4人×20＝80接続。Spark の100接続に収める）
-export const RESULT_DELAY_MS = 5000; // 全員が提出してから結果を出すまで
+// 最後の人が押してから次の画面までの間（だれが最後に押したか分かりにくくする）
+export const RESULT_DELAY_MS = 2500; // 全員が提出してから結果を出すまで
+export const NEXT_DELAY_MS = 2500; // 全員が「次の月へ」を押してから次の月へ進むまで
 export const NEXT_AUTO_MS = 30000; // 結果のあと、自動で次の月へ進むまで
 export const START_ANYONE_MS = 5 * 60 * 1000; // 作った人が始めないとき、ほかの人も「はじめる」を押せるまで
 export const CLOSING_RETRY_MS = 10000; // 集計中の端末が落ちたとき、ほかの端末がやり直すまで
@@ -300,13 +302,19 @@ export async function closeRoomMonth(db: Database, code: string, now: number): P
 
 // 「次の月へ」を押した
 export async function readyNext(db: Database, code: string, month: number, teamId: string): Promise<void> {
-  await set(ref(db, roomPath(code, `ready/${monthKey(month)}/${teamId}`)), true);
+  await set(ref(db, roomPath(code, `ready/${monthKey(month)}/${teamId}`)), serverTimestamp());
 }
 
-// 次の月へ進んでよいか（全員が押した、または30秒たった）
-export function shouldAdvanceRoom(clock: RoomClock, now: number, humans: string[], ready: Record<string, true>): boolean {
+// 次の月へ進んでよいか（全員が押して少したった、または30秒たった）
+// ready の値は押した時刻（古い版の端末は true を書く。そのときは待たずに進む）
+export function shouldAdvanceRoom(
+  clock: RoomClock, now: number, humans: string[], ready: Record<string, number | true>,
+): boolean {
   if (clock.phase !== 'result') return false;
-  if (humans.length > 0 && humans.every((id) => ready[id])) return true;
+  if (humans.length > 0 && humans.every((id) => ready[id])) {
+    const last = Math.max(...humans.map((id) => (ready[id] === true ? 0 : (ready[id] as number))));
+    if (now >= last + NEXT_DELAY_MS) return true;
+  }
   return now >= (clock.resultAt ?? 0) + NEXT_AUTO_MS;
 }
 

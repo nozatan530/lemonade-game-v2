@@ -43,7 +43,7 @@ describe('ルームモード', () => {
     // 全員が出しても、5秒たつまでは集計しない
     const last = Math.max(...Object.values(submitted));
     expect(shouldCloseRoom(clock, last + 1000, ['t01', 't02'], submitted)).toBe(false);
-    expect(shouldCloseRoom(clock, last + 5000, ['t01', 't02'], submitted)).toBe(true);
+    expect(shouldCloseRoom(clock, last + 2500, ['t01', 't02'], submitted)).toBe(true);
 
     // 2台が同時に集計しても、結果は1つ
     const [a, b] = await Promise.all([closeRoomMonth(owner.db, code, Date.now()), closeRoomMonth(guest.db, code, Date.now())]);
@@ -56,8 +56,11 @@ describe('ルームモード', () => {
     expect(after.phase).toBe('result');
     await readyNext(owner.db, code, 1, 't01');
     await readyNext(guest.db, code, 1, 't02');
-    const ready = await read<Record<string, true>>(owner.db, roomPath(code, 'ready/m01'));
-    expect(shouldAdvanceRoom(after, Date.now(), ['t01', 't02'], ready)).toBe(true);
+    const ready = await read<Record<string, number>>(owner.db, roomPath(code, 'ready/m01'));
+    const lastReady = Math.max(ready.t01!, ready.t02!);
+    // 最後の人が押してすぐは進まない（だれが最後か分かりにくくする）
+    expect(shouldAdvanceRoom(after, lastReady + 1000, ['t01', 't02'], ready)).toBe(false);
+    expect(shouldAdvanceRoom(after, lastReady + 2500, ['t01', 't02'], ready)).toBe(true);
     await Promise.all([advanceRoom(owner.db, code, Date.now()), advanceRoom(guest.db, code, Date.now())]);
     const m2 = await read<RoomClock>(owner.db, roomPath(code, 'clock'));
     expect(m2.month).toBe(2);

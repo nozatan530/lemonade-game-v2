@@ -122,7 +122,7 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
     state: {} as Record<string, TeamState>,
     results: [] as MonthResult[],
     submitted: {} as Record<string, number>,
-    ready: {} as Record<string, true>,
+    ready: {} as Record<string, number | true>,
     auto: {} as Record<string, Record<string, true>>, // 月ごとの、ロボット店長がおまかせで決めた席
     ownSub: null as SubmissionDoc | null,
     offset: 0,
@@ -145,6 +145,10 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
   let onlineFor: string | null = null;
   let stopOnline: (() => void) | null = null;
   let fixedAt = 0;
+  let lastStatus = '';
+  let editing = false; // 提出したあと「決定をなおす」を押した
+  let editMonth = 0;
+  let readyFor = 0; // 「次の月へ」を押した月
   let endArmed = false; // 「ゲームを終わる」を1回押した（アプリ内ブラウザでは confirm が出ないことがあるので、画面の中で確かめる）
   // ボタンが書きかわっても押せるよう、外側で受ける
   $('status').addEventListener('click', async (e) => {
@@ -192,8 +196,9 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
     $('month').textContent = c.month > 0 ? monthLabel(c.month, S.pub.startCalendarMonth, S.pub.months) : '';
     const away = vacantSeats(S.seats);
     const canEnd = me && (S.meta.ownerUid === uid || !onlineHumans(S.seats).some((id) => S.seats[id]?.uid === S.meta!.ownerUid));
-    const statusHtml = (c.phase === 'input'
-      ? `<p class="muted center" style="margin:0 0 8px">提出 ${humans().filter((id) => S.submitted[id]).length} / ${humans().length} 人（ロボット店長は自動）。全員そろうと5秒後に結果が出ます。</p>`
+    // 提出した人数は出さない（だれが最後に押したか分からないように）
+    const statusHtml = (c.phase === 'input' && !(S.ownSub && !editing)
+      ? '<p class="muted center" style="margin:0 0 8px">全員が提出すると、少しして結果が出ます（ロボット店長は自動）。</p>'
       : '')
       + (away.length > 0 && c.phase !== 'lobby' && c.phase !== 'final'
         ? `<p class="muted center" style="margin:0 0 8px">🔌 つながっていない人：${away.map((id) => esc(teams[id]!.name)).join('、')}（出さなかった月はロボット店長がおまかせで決めます。同じリンクを開くと入り直せます）</p>`
@@ -204,7 +209,7 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
           : '<p class="center" style="margin:0 0 8px"><button class="small" id="endGame" type="button">ゲームを終わる</button></p>')
         : '');
     // 中身が変わったときだけ書きかえる（押している途中でボタンが入れかわって押せない、を防ぐ）
-    if ($('status').innerHTML !== statusHtml) $('status').innerHTML = statusHtml;
+    if (lastStatus !== statusHtml) { lastStatus = statusHtml; $('status').innerHTML = statusHtml; }
 
     if (!me) {
       // つながっていない人の席があれば、その席で入り直せる
@@ -232,11 +237,10 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
     if (c.phase === 'lobby') return renderLobby(me);
     if (c.phase === 'input') return renderInput(me, c);
     inputView = null;
-    if (c.phase === 'closing') {
-      if (viewKey !== 'closing') { viewKey = 'closing'; view.innerHTML = '<div class="card center">集計中…</div>'; }
-      return;
-    }
+    if (c.phase === 'closing') return showPreparing('closing');
     if (c.phase === 'result') {
+      // 「次の月へ」を押したら、全員そろって進むまで「準備中…」
+      if (me && (S.ready[me] || readyFor === c.month)) return showPreparing(`ready-${c.month}`);
       const result = S.results.find((r) => r.month === c.month);
       const key = `result-${c.month}-${!!result}`;
       if (viewKey === key || !result) return;
@@ -249,9 +253,9 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
         recipe: S.pub.recipe, baristaCapacity: S.pub.baristaCapacity, ...(previous ? { previous } : {}),
         nextLabel: last ? '期末の結果へ' : '次の月へ',
         onNext: () => {
+          readyFor = c.month;
           readyNext(db, code, c.month, me).catch(() => {});
-          view.querySelector('.result-next')?.insertAdjacentHTML('afterbegin',
-            '<p class="muted center">ほかの人を待っています（30秒で自動で進みます）</p>');
+          render();
         },
       });
       return;
@@ -312,8 +316,26 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
     unsubOwn = watch<SubmissionDoc>(db, roomPath(code, `subs/${monthKey(month)}/${me}`), (v) => { S.ownSub = v; render(); });
   }
 
+  // 「提出する」「次の月へ」を押したあとの待ち画面（みんな同じ画面なので、だれが最後か分からない）
+  function showPreparing(key: string, canEdit = false) {
+    inputView = null;
+    const k = `prep-${key}`;
+    if (viewKey === k) return;
+    viewKey = k;
+    view.innerHTML = `<div class="card center preparing">
+      <div class="big" style="margin:8px 0">🍋</div>
+      <h2 style="margin:0 0 6px">準備中…</h2>
+      <p class="muted" style="margin:0">みんながそろったら、次の画面に進みます。</p>
+      ${canEdit ? '<p style="margin:12px 0 0"><button class="small secondary" id="editAgain" type="button">決定をなおす</button></p>' : ''}
+    </div>`;
+    view.querySelector('#editAgain')?.addEventListener('click', () => { editing = true; render(); });
+  }
+
   function renderInput(me: string, c: RoomClock) {
     followOwn(me, c.month);
+    if (editMonth !== c.month) { editMonth = c.month; editing = false; }
+    // 提出したら「準備中…」（締切までは「決定をなおす」で入力にもどれる）
+    if (S.ownSub && !editing) return showPreparing(`input-${c.month}`, secondsLeft(c.deadlineAt, now()) > 0);
     const mine = S.state[me];
     if (!mine) return;
     const last = S.results.find((r) => r.month === c.month - 1);
@@ -326,10 +348,12 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
     viewKey = key;
     // 入力欄のはじめの値：先月の自分の決定（なければ既定値）
     const prev = last?.teamResults.find((t) => t.teamId === me);
-    const decision: MonthlyDecision = prev && prev.offered > 0
+    const decision: MonthlyDecision = S.ownSub ? S.ownSub.monthlyDecision : prev && prev.offered > 0
       ? { lemonQty: prev.lemonBought, sugarQty: prev.sugarBought, price: prev.price } : DEFAULT_DECISION;
     inputView = mountInputView(view, ctx, { decision, baristaCount: mine.baristaCount }, async (d, baristaCount) => {
       await submitRoom(db, code, c.month, me, d, baristaCount !== undefined ? { baristaCount } : undefined);
+      editing = false;
+      render();
     });
   }
 
@@ -392,7 +416,7 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
     S.ready = {};
     monthWatch = [
       watch<Record<string, number>>(db, roomPath(code, `submitted/${v.monthKey}`), (x) => { S.submitted = asRecord(x); render(); }),
-      watch<Record<string, true>>(db, roomPath(code, `ready/${v.monthKey}`), (x) => { S.ready = asRecord(x); render(); }),
+      watch<Record<string, number | true>>(db, roomPath(code, `ready/${v.monthKey}`), (x) => { S.ready = asRecord(x); render(); }),
     ];
   }
   const unsubs: Unsub[] = [
