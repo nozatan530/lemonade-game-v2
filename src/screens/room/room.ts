@@ -242,6 +242,7 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
       if (viewKey === key) return;
       viewKey = key;
       renderTeamFinal(view, { results: S.results, state: S.state, teams, pub: S.pub }, me, {
+        ...(c.endedEarlyBy && S.results.length < 12 ? { heading: `${S.results.length}か月間おつかれさまでした！` } : {}),
         note: `${c.endedEarlyBy ? `${esc(c.endedEarlyBy)} が ${c.month}か月目でゲームを終わりにしました。` : ''}おつかれさまでした！ もう一度遊ぶときは、ルームの画面から新しいルームを作ってね。`,
       });
     }

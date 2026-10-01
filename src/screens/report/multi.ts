@@ -105,7 +105,7 @@ export function renderTeamYearEnd(container: HTMLElement, input: MultiReportInpu
 // いちばん下に「トップにもどる」（GM が同じコードで次のゲームを始めると、この画面から続けて参加できる）
 export function renderTeamFinal(
   container: HTMLElement, input: MultiReportInput, teamId: string,
-  opts: { note?: string } = {}, // 最後のひとこと（ルームモードでは GM の話をしない）
+  opts: { note?: string; heading?: string } = {}, // 最後のひとこと（ルームモードでは GM の話をしない）・見出し（途中で終えたとき）
 ): void {
   const years = yearCount(input);
   const sheets = teamSheets(input, teamId);
@@ -117,7 +117,7 @@ export function renderTeamFinal(
     </div>`;
   if (years > 1) renderTotal(container.querySelector<HTMLElement>('#total')!, input, teamId, years);
   const last = lastYearOf(input);
-  if (years === 1) renderYearReport(container.querySelector<HTMLElement>('#report')!, input, teamId, 1);
+  if (years === 1) renderYearReport(container.querySelector<HTMLElement>('#report')!, input, teamId, 1, opts.heading);
   else renderYearReport(container.querySelector<HTMLElement>('#report')!, input, teamId, last, `第${last}期の決算`);
   container.querySelector('#sheet')!.addEventListener('click', () => openSheets(sheets));
 }
