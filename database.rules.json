@@ -181,10 +181,14 @@
           ".write": "auth != null && !root.child('rooms').child($code).child('meta').exists() && newData.parent().child('meta/ownerUid').val() === auth.uid",
           "$t": {
             "uid": {
-              ".write": "auth != null && !data.exists() && newData.val() === auth.uid && root.child('rooms').child($code).child('clock/phase').val() === 'lobby' && !root.child('rooms').child($code).child('members').child(auth.uid).exists() && !data.parent().child('robot').exists()"
+              ".write": "auth != null && newData.val() === auth.uid && !root.child('rooms').child($code).child('members').child(auth.uid).exists() && !data.parent().child('robot').exists() && ((!data.exists() && root.child('rooms').child($code).child('clock/phase').val() === 'lobby') || (data.exists() && data.parent().child('online').val() !== true && root.child('rooms').child($code).child('clock/phase').val() !== 'lobby' && root.child('rooms').child($code).child('clock/phase').val() !== 'final'))"
             },
             "robot": {
               ".write": "auth != null && root.child('rooms').child($code).child('members').child(auth.uid).exists() && !data.exists()"
+            },
+            "online": {
+              ".write": "auth != null && root.child('rooms').child($code).child('seats').child($t).child('uid').val() === auth.uid",
+              ".validate": "newData.isBoolean()"
             }
           }
         },
@@ -257,6 +261,10 @@
               ".validate": "newData.isBoolean()"
             }
           }
+        },
+        "auto": {
+          ".read": "auth != null",
+          ".write": "auth != null && root.child('rooms').child($code).child('members').child(auth.uid).exists()"
         }
       }
     }

@@ -11,6 +11,7 @@ import { signInAsTeam, waitForAuth } from '../../sync/auth';
 import { asRecord } from '../../sync/codec';
 import { firebase } from '../../sync/firebase';
 import {
+  endRoom, goOnline, onlineHumans, takeOverSeat, vacantSeats,
   advanceRoom, cleanupRooms, closeRoomMonth, createRoom, joinRoom, readyNext, ROOM_SEATS, roomPath, roomTeams,
   shouldAdvanceRoom, shouldCloseRoom, START_ANYONE_MS, startRoom, submitRoom, type RoomClock, type RoomMeta,
   type RoomSeat,
@@ -122,12 +123,15 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
     results: [] as MonthResult[],
     submitted: {} as Record<string, number>,
     ready: {} as Record<string, true>,
+    auto: {} as Record<string, Record<string, true>>, // 月ごとの、ロボット店長がおまかせで決めた席
     ownSub: null as SubmissionDoc | null,
     offset: 0,
   };
   const now = () => Date.now() + S.offset;
   const myTeam = () => Object.entries(S.seats).find(([, s]) => s.uid === uid)?.[0] ?? null;
   const humans = () => ROOM_SEATS.filter((id) => S.seats[id]?.uid && !S.seats[id]?.robot);
+  // 待つのは、いまつながっている人だけ（抜けた人を待って止まらないように）
+  const waitFor = () => onlineHumans(S.seats);
 
   root.innerHTML = `<div class="page">
     <div class="topbar"><span class="team" id="teamname">🍋 ルーム ${esc(code)}</span><span class="muted" id="month"></span><span class="timer" id="timer"></span></div>
@@ -138,6 +142,7 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
   let viewKey = '';
   let inputView: InputView | null = null;
   let joinTried = false;
+  let onlineFor: string | null = null;
   let seen = false;
 
   async function render() {
@@ -158,18 +163,50 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
       joinRoom(db, code, uid).catch(() => render());
       return;
     }
+    // 座っていたら「つながっている」を記録する（切れると自動で外れ、ほかの人が入り直せるようになる）
+    if (me && S.seats[me]?.online !== true && onlineFor !== me) {
+      onlineFor = me;
+      goOnline(db, code, me).catch(() => { onlineFor = null; });
+    }
     const teams = roomTeams(S.seats);
     $('teamname').textContent = me ? `🍋 ${teams[me]!.name}` : `🍋 ルーム ${code}`;
     $('month').textContent = c.month > 0 ? monthLabel(c.month, S.pub.startCalendarMonth, S.pub.months) : '';
-    $('status').innerHTML = c.phase === 'input'
+    const away = vacantSeats(S.seats);
+    const canEnd = me && (S.meta.ownerUid === uid || !onlineHumans(S.seats).some((id) => S.seats[id]?.uid === S.meta!.ownerUid));
+    $('status').innerHTML = (c.phase === 'input'
       ? `<p class="muted center" style="margin:0 0 8px">提出 ${humans().filter((id) => S.submitted[id]).length} / ${humans().length} 人（ロボット店長は自動）。全員そろうと5秒後に結果が出ます。</p>`
-      : '';
+      : '')
+      + (away.length > 0 && c.phase !== 'lobby' && c.phase !== 'final'
+        ? `<p class="muted center" style="margin:0 0 8px">🔌 つながっていない人：${away.map((id) => esc(teams[id]!.name)).join('、')}（出さなかった月はロボット店長がおまかせで決めます。同じリンクを開くと入り直せます）</p>`
+        : '')
+      + (canEnd && ['input', 'result'].includes(c.phase)
+        ? '<p class="center" style="margin:0 0 8px"><button class="small" id="endGame" type="button">ゲームを終わる</button></p>'
+        : '');
+    $('status').querySelector('#endGame')?.addEventListener('click', async () => {
+      if (!me || !confirm('ゲームをここで終わりにしますか？\nここまでの月の結果で期末レポートを出します。')) return;
+      if ((await endRoom(db, code, roomTeams(S.seats)[me]!.name).catch(() => 'skip')) === 'final') sendLog();
+    });
 
     if (!me) {
-      viewKey = 'full';
-      view.innerHTML = `<div class="card center"><h2>このルームには入れません</h2>
-        <p class="muted">${c.phase === 'lobby' ? '満席です（最大4人）。' : 'もう始まっています。'}</p>
-        <a class="btn" href="#/room">ルームの画面へ</a></div>`;
+      // つながっていない人の席があれば、その席で入り直せる
+      const key = `full-${away.join(',')}-${c.phase}`;
+      if (viewKey === key) return;
+      viewKey = key;
+      view.innerHTML = away.length > 0 && c.phase !== 'final' && c.phase !== 'lobby'
+        ? `<div class="card center"><h2>入り直す席を選んでください</h2>
+            <p class="muted">つながっていない人の席から続けられます。お金や材料はその席のままです。</p>
+            ${away.map((id) => `<button class="btn" type="button" data-take="${id}">${esc(teams[id]!.name)} で入り直す</button>`).join('')}
+            <p><a href="#/room">ルームの画面へ</a></p></div>`
+        : `<div class="card center"><h2>このルームには入れません</h2>
+            <p class="muted">${c.phase === 'lobby' ? '満席です（最大4人）。' : c.phase === 'final' ? 'このゲームは終わりました。' : 'もう始まっていて、空いている席がありません。'}</p>
+            <a class="btn" href="#/room">ルームの画面へ</a></div>`;
+      view.querySelectorAll<HTMLButtonElement>('button[data-take]').forEach((b) => b.addEventListener('click', async () => {
+        b.disabled = true;
+        await takeOverSeat(db, code, uid, b.dataset.take!).catch(() => {
+          alert('入り直せませんでした。その席の人がつながったのかもしれません。');
+          b.disabled = false;
+        });
+      }));
       return;
     }
 
@@ -187,7 +224,9 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
       viewKey = key;
       const previous = S.results.find((r) => r.month === c.month - 1);
       const last = c.month >= S.pub.months;
-      renderMonthStory(view, result, me, teams, {
+      const autoNow = S.auto[monthKey(c.month)] ?? {};
+      const shown = Object.fromEntries(Object.entries(teams).map(([id, t]) => [id, autoNow[id] ? { ...t, name: `${t.name}（おまかせ）` } : t]));
+      renderMonthStory(view, result, me, shown, {
         recipe: S.pub.recipe, baristaCapacity: S.pub.baristaCapacity, ...(previous ? { previous } : {}),
         nextLabel: last ? '期末の結果へ' : '次の月へ',
         onNext: () => {
@@ -203,7 +242,7 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
       if (viewKey === key) return;
       viewKey = key;
       renderTeamFinal(view, { results: S.results, state: S.state, teams, pub: S.pub }, me, {
-        note: 'おつかれさまでした！ もう一度遊ぶときは、ルームの画面から新しいルームを作ってね。',
+        note: `${c.endedEarlyBy ? `${esc(c.endedEarlyBy)} が ${c.month}か月目でゲームを終わりにしました。` : ''}おつかれさまでした！ もう一度遊ぶときは、ルームの画面から新しいルームを作ってね。`,
       });
     }
   }
@@ -219,6 +258,7 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
     view.innerHTML = `<div class="card center">
         <h2>ルーム ${esc(code)}</h2>
         <p class="muted">友だちに、このコードか QR コードを送ってね（最大4人）。</p>
+        <p class="notice" style="text-align:left">LINE などのアプリの中で開いた人は、右上のメニューから「Safari／Chrome で開く」を選んでから参加してね。アプリの中だと、読み込み直したときに別の人として扱われることがあります。</p>
         <div class="room-qr" id="qr"></div>
         <p class="muted" style="word-break:break-all">${esc(url)}</p>
       </div>
@@ -280,8 +320,8 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
     if (!c || busy || !myTeam()) return;
     busy = true;
     try {
-      if (shouldCloseRoom(c, now(), humans(), S.submitted)) await closeRoomMonth(db, code, now());
-      else if (shouldAdvanceRoom(c, now(), humans(), S.ready)) {
+      if (shouldCloseRoom(c, now(), waitFor(), S.submitted)) await closeRoomMonth(db, code, now());
+      else if (shouldAdvanceRoom(c, now(), waitFor(), S.ready)) {
         // 期末にしたのがこの端末なら、ゲームの記録を1件だけ送る（失敗しても遊びには影響しない）
         if ((await advanceRoom(db, code, now())) === 'final') sendLog();
       }
@@ -322,28 +362,33 @@ function renderPlay(root: HTMLElement, db: Database, uid: string, code: string):
 
   let monthWatch: Unsub[] = [];
   let followed = -1;
+  // その月の提出・「次の月へ」を受け取る（参加者だけが読める。途中から入り直したときも、ここで受け取りはじめる）
+  function followMonth() {
+    const v = S.clock;
+    if (!v || v.month === followed || !myTeam()) return;
+    followed = v.month;
+    monthWatch.forEach((u) => u());
+    S.submitted = {};
+    S.ready = {};
+    monthWatch = [
+      watch<Record<string, number>>(db, roomPath(code, `submitted/${v.monthKey}`), (x) => { S.submitted = asRecord(x); render(); }),
+      watch<Record<string, true>>(db, roomPath(code, `ready/${v.monthKey}`), (x) => { S.ready = asRecord(x); render(); }),
+    ];
+  }
   const unsubs: Unsub[] = [
     watch<number>(db, '.info/serverTimeOffset', (v) => { S.offset = v ?? 0; }),
     watch<RoomMeta>(db, roomPath(code, 'meta'), (v) => { S.meta = v; render(); }),
     watch<PublicConfig>(db, roomPath(code, 'public'), (v) => { S.pub = v; render(); }),
-    watch<Record<string, RoomSeat>>(db, roomPath(code, 'seats'), (v) => { S.seats = asRecord(v); render(); }),
+    watch<Record<string, RoomSeat>>(db, roomPath(code, 'seats'), (v) => { S.seats = asRecord(v); followMonth(); render(); }),
     watch<Record<string, TeamState>>(db, roomPath(code, 'state'), (v) => { S.state = asRecord(v); render(); }),
     watch<Record<string, MonthResult>>(db, roomPath(code, 'results'), (v) => {
       S.results = Object.values(asRecord<MonthResult>(v)).sort((a, b) => a.month - b.month);
       render();
     }),
+    watch<Record<string, Record<string, true>>>(db, roomPath(code, 'auto'), (v) => { S.auto = asRecord(v); viewKey = ''; render(); }),
     watch<RoomClock>(db, roomPath(code, 'clock'), (v) => {
       S.clock = v;
-      if (v && v.month !== followed && myTeam()) {
-        followed = v.month;
-        monthWatch.forEach((u) => u());
-        S.submitted = {};
-        S.ready = {};
-        monthWatch = [
-          watch<Record<string, number>>(db, roomPath(code, `submitted/${v.monthKey}`), (x) => { S.submitted = asRecord(x); render(); }),
-          watch<Record<string, true>>(db, roomPath(code, `ready/${v.monthKey}`), (x) => { S.ready = asRecord(x); render(); }),
-        ];
-      }
+      followMonth();
       render();
     }),
   ];
