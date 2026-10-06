@@ -50,7 +50,6 @@ export function mountInputView(
   const submitLabel = options.submitLabel ?? t('input.submit');
   let ctx = initial;
   const v = initialInputValues(startValues.decision, startValues.baristaCount);
-  const { prices } = ctx.clock;
   const { recipe, baristaCapacity } = ctx.pub;
   const canChooseBarista = ctx.clock.quarterStart;
   // バリスタを決められる月（3か月ごとなら 4・7・10・1月など。毎月なら「毎月」）
@@ -147,6 +146,7 @@ export function mountInputView(
     `<span class="nowrap">${yen(unit)} × ${qtyText}</span> <span class="nowrap">＝ <strong>${yen(amount)}</strong></span>`;
 
   function refresh() {
+    const { prices } = ctx.clock; // GM が月の途中で単価を変えることがあるので、毎回いまの値を使う
     const me = ctx.me;
     const b = baristaNow();
     const p = previewDecision(me.stock, decisionNow(), b, prices, ctx.pub, me.balance);

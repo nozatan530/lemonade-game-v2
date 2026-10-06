@@ -7,7 +7,7 @@ import {
 import { canChangeBarista, inputSecondsFor, withTeamCount } from '../engine/config';
 import { closeMonth, openNextMonth, startTerm } from '../engine/month';
 import type {
-  GameConfig, MonthConditions, MonthlyDecision, MonthResult, QuarterlyDecision, Submission, TeamState, TimerSettings,
+  GameConfig, MonthConditions, MonthlyDecision, MonthResult, QuarterlyDecision, Submission, TeamState, TimerSettings, UnitPrices,
 } from '../engine/types';
 import { asArray, asRecord, stripUndefined } from './codec';
 import { monthKey, publicConfigOf, type Clock, type GameMeta, type SubmissionDoc, type TeamSlot } from './schema';
@@ -238,6 +238,17 @@ export async function restartGame(db: Database, code: string, now: number): Prom
     'meta/status': 'active',
     clock: lobby,
   });
+}
+
+// 入力中の月の単価（レモン・砂糖・バリスタ）を GM が変える。チームの画面にもすぐ反映され、
+// その月の集計はこの単価で行う。0 以下や整数でない値は受け付けない
+export async function setMonthPrices(db: Database, code: string, prices: UnitPrices): Promise<'ok' | 'noop'> {
+  const ok = (n: number) => Number.isInteger(n) && n > 0 && n <= 100000;
+  if (!ok(prices.lemon) || !ok(prices.sugar) || !ok(prices.barista)) throw new Error('単価は1以上の整数にしてください');
+  const clock = await read<Clock>(db, gamePath(code, 'clock'));
+  if (!clock || clock.phase !== 'input') return 'noop';
+  await set(ref(db, gamePath(code, 'clock/prices')), prices);
+  return 'ok';
 }
 
 // 途中で終える（授業の時間が足りないとき）。そこまでに結果が出た月で期末にする。

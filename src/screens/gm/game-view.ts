@@ -8,11 +8,12 @@ import type { Database } from 'firebase/database';
 import type { MonthResult, TeamState, TimerSettings } from '../../engine/types';
 import {
   closeCurrentMonth, deleteGame, extendDeadline, readPath, releaseTeam, restartGame, shouldAutoClose, sortedTeams,
-  endGameEarly, startGame, startNextMonth,
+  endGameEarly, setMonthPrices, startGame, startNextMonth,
 } from '../../sync/game';
-import type { Clock, GameMeta, PublicConfig, TeamSlot } from '../../sync/schema';
+import type { Clock, GameMeta, PublicConfig, SubmissionDoc, TeamSlot } from '../../sync/schema';
+import { openOnOtherScreen } from '../../ui/present';
 import {
-  watchClock, watchHidden, watchMeta, watchPublic, watchResults, watchServerOffset, watchState, watchSubmitted,
+  watchClock, watchHidden, watchMonthSubs, watchMeta, watchPublic, watchResults, watchServerOffset, watchState, watchSubmitted,
   watchTeams,
 } from '../../sync/watch';
 import { calendarMonth, esc, mmss, monthLabel, secondsLeft, signedYen, yen } from '../../ui/format';
@@ -27,6 +28,7 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
     state: {} as Record<string, TeamState>,
     results: [] as MonthResult[],
     submitted: {} as Record<string, true>,
+    subs: {} as Record<string, SubmissionDoc>, // 提出の中身（GM の手元だけ）
     budget: null as number | null,
     timer: null as TimerSettings | null,
     offset: 0,
@@ -50,11 +52,24 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
         <p class="muted" style="margin:4px 0 0">
           チームの参加用：<a href="${teamUrl}" target="_blank">${esc(teamUrl)}</a><br>
           全体表示（プロジェクター用）：<a href="${screenUrl}" target="_blank">${esc(screenUrl)}</a></p>
+        <p style="margin:8px 0 0"><button class="btn secondary" id="openScreen" type="button" style="width:auto">📺 全体表示をもう1つの画面に開く</button></p>
+        <p class="muted" id="openScreenMsg" style="margin:4px 0 0">プロジェクターや大きな画面を「拡張」でつないでから押すと、そちらの画面に開きます。開いた画面の「全画面にする」を押せば準備完了です。</p>
       </div>
       <div class="qr" id="qr" title="チームの参加用 QR コード"></div>
     </div>
     <div class="card gm-note" id="note"></div>
     <div id="main"></div>
+    <div class="card" id="priceCard" hidden>
+      <h2>今月の単価を変える</h2>
+      <p class="muted">材料の値上がり・値下がりを演出したいときに。チームの画面にもすぐ反映され、今月の集計はこの単価で行います。</p>
+      <div class="price-edit">
+        <label>🍋 レモン1個 <input type="number" id="pLemon" min="1" step="1"> 円</label>
+        <label>🍬 砂糖1袋 <input type="number" id="pSugar" min="1" step="1"> 円</label>
+        <label>👩‍🍳 バリスタ1人 <input type="number" id="pBarista" min="1" step="100"> 円</label>
+      </div>
+      <button class="btn secondary" id="pApply" type="button" style="width:auto">この単価にする</button>
+      <span class="muted" id="pMsg"></span>
+    </div>
     <div class="card" id="endEarlyCard" hidden>
       <h2>ここで終わる</h2>
       <p class="muted">授業の時間が足りないときに。結果が出た月までで期末にして、全チームに期末の結果を見せます（入力中の月は数えません）。データは消えません。</p>
@@ -71,6 +86,43 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
   QRCode.toString(teamUrl, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' })
     .then((svg) => { $('qr').innerHTML = svg; })
     .catch(() => { $('qr').remove(); });
+
+  $('openScreen').addEventListener('click', async () => {
+    $('openScreenMsg').textContent = '開いています…（画面の配置の許可を聞かれたら「許可」を押してください）';
+    const r = await openOnOtherScreen(screenUrl);
+    $('openScreenMsg').textContent = r === 'other'
+      ? 'もう1つの画面に開きました。そちらの「全画面にする」を押してください。'
+      : r === 'window'
+        ? '新しいウィンドウで開きました。プロジェクターの画面へドラッグして、「全画面にする」を押してください（Chrome・Edge では、画面の配置の許可をすると次から自動で移ります）。'
+        : 'ウィンドウを開けませんでした。ブラウザのポップアップの許可を確認してください。';
+  });
+
+  // 今月の単価（月が変わったときだけ入力欄に入れる。入力中に上書きしない）
+  let priceMonth = -1;
+  function syncPriceCard(c: Clock) {
+    const show = c.phase === 'input';
+    $('priceCard').hidden = !show;
+    if (!show || priceMonth === c.month) return;
+    priceMonth = c.month;
+    ($('pLemon') as HTMLInputElement).value = String(c.prices.lemon);
+    ($('pSugar') as HTMLInputElement).value = String(c.prices.sugar);
+    ($('pBarista') as HTMLInputElement).value = String(c.prices.barista);
+    $('pMsg').textContent = '';
+  }
+  $('pApply').addEventListener('click', async (e) => {
+    const num = (id: string) => Number(($(id) as HTMLInputElement).value);
+    const prices = { lemon: num('pLemon'), sugar: num('pSugar'), barista: num('pBarista') };
+    const sent = Object.keys(S.subs).length;
+    if (sent > 0 && !confirm(`もう${sent}チームが提出しています。単価を変えると、その決定のまま新しい単価で集計します。変えますか？`)) return;
+    (e.target as HTMLButtonElement).disabled = true;
+    try {
+      $('pMsg').textContent = (await setMonthPrices(db, code, prices)) === 'ok' ? '　変えました。' : '　入力中の月だけ変えられます。';
+    } catch (err) {
+      $('pMsg').textContent = `　${(err as Error).message}`;
+    } finally {
+      (e.target as HTMLButtonElement).disabled = false;
+    }
+  });
 
   $('endEarly').addEventListener('click', async (e) => {
     const done = S.results.length;
@@ -131,6 +183,7 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
     const c = S.clock;
     if (!c || !S.pub) return;
     $('month').textContent = c.month > 0 ? monthLabel(c.month, S.pub.startCalendarMonth, S.pub.months) : '開始前';
+    syncPriceCard(c);
     $('endEarlyCard').hidden = !['input', 'result', 'yearEnd'].includes(c.phase) || S.results.length < 1;
 
     renderNote(c);
@@ -186,8 +239,10 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
       <table class="table">${slots.map(({ teamId, slot }) => `<tr>
         <td>${esc(slot.name)}</td>
         <td>${S.submitted[teamId] ? '✅ 提出済み' : slot.uid ? '<span class="muted">入力中…</span>' : '<span class="muted">未参加（静観）</span>'}</td>
+        <td>${subSummary(S.subs[teamId])}</td>
         <td>${slot.uid ? `<button class="small" data-release="${teamId}">解除</button>` : ''}</td></tr>`).join('')}</table>
-      <p class="muted">締切までに提出しなかったチームは、先月と同じ決定で進みます（1か月目は静観）。</p>
+      <p class="muted">提出の中身（値段・仕入れ）は GM の画面だけに出ます。全体表示やチームには出ません。<br>
+        締切までに提出しなかったチームは、先月と同じ決定で進みます（1か月目は静観）。</p>
       <div class="row2">
         <button class="btn secondary" id="extend">＋30秒</button>
         <button class="btn" id="close">いま締め切る</button>
@@ -285,7 +340,7 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
   // 画面の作り直しは、表示に関わる値が変わったときだけ（ボタンの押し間違いを防ぐ）
   function update() {
     const c = S.clock;
-    const key = JSON.stringify([S.meta?.gmUid ?? S.meta, c?.phase, c?.month, c?.message, S.teams, S.submitted,
+    const key = JSON.stringify([S.meta?.gmUid ?? S.meta, c?.phase, c?.month, c?.message, S.teams, S.submitted, S.subs,
       S.results.length, S.budget, Object.keys(S.state).length, c?.phase === 'final' ? S.state : null]);
     if (key === lastKey) return;
     lastKey = key;
@@ -295,6 +350,7 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
   // ---- 受け取り ----
   let hiddenUnsub: (() => void) | null = null;
   let submittedUnsub: (() => void) | null = null;
+  let subsUnsub: (() => void) | null = null;
   let followedMonth = -1;
   unsubs.push(
     watchServerOffset(db, (o) => { S.offset = o; }),
@@ -307,16 +363,26 @@ export function mountGameView(root: HTMLElement, db: Database, gmUid: string, co
       S.clock = v;
       if (v && v.month !== followedMonth) {
         followedMonth = v.month;
-        hiddenUnsub?.(); submittedUnsub?.();
-        S.budget = null; S.submitted = {};
+        hiddenUnsub?.(); submittedUnsub?.(); subsUnsub?.();
+        S.budget = null; S.submitted = {}; S.subs = {};
+        subsUnsub = watchMonthSubs(db, code, v.month, (x) => { S.subs = x; update(); });
         hiddenUnsub = watchHidden(db, code, v.month, (h) => { S.budget = h?.marketBudget ?? null; update(); });
         submittedUnsub = watchSubmitted(db, code, v.month, (s) => { S.submitted = s; update(); });
       }
       update();
     }),
-    () => { hiddenUnsub?.(); submittedUnsub?.(); },
+    () => { hiddenUnsub?.(); submittedUnsub?.(); subsUnsub?.(); },
   );
   readPath<{ timer: TimerSettings }>(db, `games/${code}/settings`).then((s) => { S.timer = s?.timer ?? null; });
 
   return cleanup;
+}
+
+// 提出の中身を短く（GM の表だけで使う）
+function subSummary(sub: SubmissionDoc | undefined): string {
+  if (!sub) return '';
+  const d = sub.monthlyDecision;
+  if (d.watching) return '<span class="muted">静観</span>';
+  const barista = sub.quarterlyDecision?.baristaCount;
+  return `<strong>${yen(d.price)}</strong> <span class="muted">🍋${d.lemonQty} 🍬${d.sugarQty}${barista !== undefined ? ` 👩‍🍳${barista}人` : ''}</span>`;
 }
