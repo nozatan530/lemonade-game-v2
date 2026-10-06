@@ -2,6 +2,7 @@
 // 待機：ゲームコードと参加用 QR ／ 入力中：月・お知らせ・残り時間・提出状況 ／ 結果：表と資金の推移 ／ 期末：順位
 
 import { reloadIfStale } from '../../ui/fresh';
+import { mountFullscreenButton } from '../../ui/present';
 import { marketSection } from '../team/month-story';
 import { rankTeams } from '../../engine/month';
 import { resultsOfYear, yearOf } from '../../engine/years';
@@ -49,6 +50,7 @@ export async function renderDashboard(root: HTMLElement, params: URLSearchParams
     <main id="main"></main></div>`;
   const $ = (id: string) => root.querySelector<HTMLElement>(`#${id}`)!;
   const main = $('main');
+  const unmountFullscreen = mountFullscreenButton(root);
 
   let lastKey = '';
   function render() {
@@ -218,6 +220,7 @@ export async function renderDashboard(root: HTMLElement, params: URLSearchParams
     }),
   ];
   return () => {
+    unmountFullscreen();
     clearInterval(tick);
     unsubs.forEach((u) => u());
     submittedUnsub?.();

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_TIMER, defaultConfig } from '../../engine/config';
 import { allowGmInEmulator, connectFirebase, type FirebaseHandles } from '../firebase';
 import {
-  claimTeam, closeCurrentMonth, createGame, deleteGame, extendDeadline, readPath, readResults, restartGame, endGameEarly, startGame,
+  claimTeam, closeCurrentMonth, createGame, deleteGame, extendDeadline, readPath, readResults, restartGame, endGameEarly, setMonthPrices, startGame,
   startNextMonth, submitDecision,
 } from '../game';
 import type { Clock } from '../schema';
@@ -148,6 +148,31 @@ describe('ゲームの流れ（sync）', () => {
     const [r13] = (await readResults(a.db, code)).filter((r) => r.month === 13);
     const t01 = r13!.teamResults.find((t) => t.teamId === 't01')!;
     expect(t01.balance).toBe(balance12 - t01.totalCost);
+  });
+
+  it('GM は入力中の月の単価を変えられ、その月はその単価で集計する。チームは変えられない', async () => {
+    const gm = await newGm();
+    const code = await createGame(gm.db, gm.uid, {
+      config: defaultConfig(2, 'price'), teamNames: ['A', 'B'], timer: DEFAULT_TIMER, now: Date.now(),
+    });
+    const a = await newTeamDevice();
+    await claimTeam(a.db, code, 't01', a.uid);
+    await startGame(gm.db, code, Date.now());
+    const prices = { lemon: 123, sugar: 45, barista: 2500 };
+    await expect(setMonthPrices(a.db, code, prices)).rejects.toThrow();
+    await expect(setMonthPrices(gm.db, code, { ...prices, lemon: 0 })).rejects.toThrow();
+    expect(await setMonthPrices(gm.db, code, prices)).toBe('ok');
+    expect((await readPath<Clock>(a.db, `games/${code}/clock`))!.prices).toEqual(prices);
+    // GM は提出の中身を読める（チームはほかのチームの提出を読めない）
+    await submitDecision(a.db, code, 1, 't01', { lemonQty: 10, sugarQty: 10, price: 200 });
+    expect((await readPath<{ monthlyDecision: { price: number } }>(gm.db, `games/${code}/subs/m01/t01`))!.monthlyDecision.price).toBe(200);
+    await closeCurrentMonth(gm.db, code);
+    const [r1] = await readResults(a.db, code);
+    expect(r1!.prices).toEqual(prices);
+    const t01 = r1!.teamResults.find((t) => t.teamId === 't01')!;
+    expect(t01.costLemon).toBe(10 * 123);
+    // 結果のあとは変えられない
+    expect(await setMonthPrices(gm.db, code, prices)).toBe('noop');
   });
 
   it('GM は途中で終えられる。結果が出た月までで期末になり、チームは終えられない', async () => {

@@ -31,6 +31,10 @@ export const watchState = (db: Database, code: string, cb: (v: Record<string, Te
 export const watchSubmitted = (db: Database, code: string, month: number, cb: (v: Record<string, true>) => void) =>
   watchPath<Record<string, true>>(db, gamePath(code, `submitted/${monthKey(month)}`), (v) => cb(asRecord(v)));
 
+// その月の全チームの提出の中身（GM だけが読める。GM の手元で値段などを先に見るため）
+export const watchMonthSubs = (db: Database, code: string, month: number, cb: (v: Record<string, SubmissionDoc>) => void) =>
+  watchPath<Record<string, SubmissionDoc>>(db, gamePath(code, `subs/${monthKey(month)}`), (v) => cb(asRecord(v)));
+
 // 自分のチームの提出（出し直しや、画面の読み込み直しのとき用）
 export const watchOwnSubmission = (
   db: Database, code: string, month: number, teamId: string, cb: (v: SubmissionDoc | null) => void,
